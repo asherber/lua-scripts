@@ -12,625 +12,244 @@ function require(item)
     end
     return __import_results[item]
 end
-__imports["library.configuration"] = __imports["library.configuration"] or function()
+__imports["library.notehead"] = __imports["library.notehead"] or function()
 
-
-
-    local configuration = {}
-    local script_settings_dir = "script_settings"
-    local comment_marker = "--"
-    local parameter_delimiter = "="
-    local path_delimiter = "/"
-    local file_exists = function(file_path)
-        local f = io.open(file_path, "r")
-        if nil ~= f then
-            io.close(f)
-            return true
-        end
-        return false
-    end
-    local strip_leading_trailing_whitespace = function(str)
-        return str:match("^%s*(.-)%s*$")
-    end
-    parse_parameter = function(val_string)
-        if "\"" == val_string:sub(1, 1) and "\"" == val_string:sub(#val_string, #val_string) then
-            return string.gsub(val_string, "\"(.+)\"", "%1")
-        elseif "'" == val_string:sub(1, 1) and "'" == val_string:sub(#val_string, #val_string) then
-            return string.gsub(val_string, "'(.+)'", "%1")
-        elseif "{" == val_string:sub(1, 1) and "}" == val_string:sub(#val_string, #val_string) then
-            return load("return " .. val_string)()
-        elseif "true" == val_string then
-            return true
-        elseif "false" == val_string then
-            return false
-        end
-        return tonumber(val_string)
-    end
-    local get_parameters_from_file = function(file_path, parameter_list)
-        local file_parameters = {}
-        if not file_exists(file_path) then
-            return false
-        end
-        for line in io.lines(file_path) do
-            local comment_at = string.find(line, comment_marker, 1, true)
-            if nil ~= comment_at then
-                line = string.sub(line, 1, comment_at - 1)
-            end
-            local delimiter_at = string.find(line, parameter_delimiter, 1, true)
-            if nil ~= delimiter_at then
-                local name = strip_leading_trailing_whitespace(string.sub(line, 1, delimiter_at - 1))
-                local val_string = strip_leading_trailing_whitespace(string.sub(line, delimiter_at + 1))
-                file_parameters[name] = parse_parameter(val_string)
-            end
-        end
-        local function process_table(param_table, param_prefix)
-            param_prefix = param_prefix and param_prefix.."." or ""
-            for param_name, param_val in pairs(param_table) do
-                local file_param_name = param_prefix .. param_name
-                local file_param_val = file_parameters[file_param_name]
-                if nil ~= file_param_val then
-                    param_table[param_name] = file_param_val
-                elseif type(param_val) == "table" then
-                        process_table(param_val, param_prefix..param_name)
-                end
-            end
-        end
-        process_table(parameter_list)
-        return true
-    end
-
-    function configuration.get_parameters(file_name, parameter_list)
-        local path = ""
-        if finenv.IsRGPLua then
-            path = finenv.RunningLuaFolderPath()
-        else
-            local str = finale.FCString()
-            str:SetRunningLuaFolderPath()
-            path = str.LuaString
-        end
-        local file_path = path .. script_settings_dir .. path_delimiter .. file_name
-        return get_parameters_from_file(file_path, parameter_list)
-    end
-
-
-    local calc_preferences_filepath = function(script_name)
-        local str = finale.FCString()
-        str:SetUserOptionsPath()
-        local folder_name = str.LuaString
-        if not finenv.IsRGPLua and finenv.UI():IsOnMac() then
-
-            folder_name = os.getenv("HOME") .. folder_name:sub(2)
-        end
-        if finenv.UI():IsOnWindows() then
-            folder_name = folder_name .. path_delimiter .. "FinaleLua"
-        end
-        local file_path = folder_name .. path_delimiter
-        if finenv.UI():IsOnMac() then
-            file_path = file_path .. "com.finalelua."
-        end
-        file_path = file_path .. script_name .. ".settings.txt"
-        return file_path, folder_name
-    end
-
-    function configuration.save_user_settings(script_name, parameter_list)
-        local file_path, folder_path = calc_preferences_filepath(script_name)
-        local file = io.open(file_path, "w")
-        if not file and finenv.UI():IsOnWindows() then
-            os.execute('mkdir "' .. folder_path ..'"')
-            file = io.open(file_path, "w")
-        end
-        if not file then
-            return false
-        end
-        file:write("-- User settings for " .. script_name .. ".lua\n\n")
-        for k,v in pairs(parameter_list) do
-            if type(v) == "string" then
-                v = "\"" .. v .."\""
-            else
-                v = tostring(v)
-            end
-            file:write(k, " = ", v, "\n")
-        end
-        file:close()
-        return true
-    end
-
-    function configuration.get_user_settings(script_name, parameter_list, create_automatically)
-        if create_automatically == nil then create_automatically = true end
-        local exists = get_parameters_from_file(calc_preferences_filepath(script_name), parameter_list)
-        if not exists and create_automatically then
-            configuration.save_user_settings(script_name, parameter_list)
-        end
-        return exists
-    end
-    return configuration
-end
-__imports["library.transposition"] = __imports["library.transposition"] or function()
-
-
-
-
-
-
-
-    local transposition = {}
-    local client = require("library.client")
+    local notehead = {}
     local configuration = require("library.configuration")
-    local standard_key_number_of_steps = 12
-    local standard_key_major_diatonic_steps = {0, 2, 4, 5, 7, 9, 11}
-    local standard_key_minor_diatonic_steps = {0, 2, 3, 5, 7, 8, 10}
-    local max_allowed_abs_alteration = 7
+    local library = require("library.general_library")
+    local config = {
+        diamond = {
+            quarter = { glyph = 79, size = 110 },
+            half  = { glyph = 79, size = 110 },
+            whole = { glyph = 79, size = 110, offset = 5 },
+            breve = { glyph = 79, size = 110, offset = 14 },
+        },
+        diamond_guitar = {
+            quarter = { glyph = 226, size = 110 },
+            half  = { glyph = 79, size = 110 },
+            whole = { glyph = 79, size = 110, offset = 5 },
+            breve = { glyph = 79, size = 110, offset = 14 },
+        },
+        x = {
+            quarter = { glyph = 192 },
+            half  = { glyph = 192 },
+            whole = { glyph = 192 },
+            breve = { glyph = 192, size = 120 },
+        },
+        triangle = {
 
 
-    local diatonic_interval_adjustments = {{0, 0}, {2, -1}, {4, -2}, {-1, 1}, {1, 0}, {3, -1}, {5, -2}, {0, 1}}
-    local custom_key_sig_config = {number_of_steps = standard_key_number_of_steps, diatonic_steps = standard_key_major_diatonic_steps}
-    configuration.get_parameters("custom_key_sig.config.txt", custom_key_sig_config)
+
+            quarter = { glyph = 209 },
+            half  = { glyph = 177 },
+            whole = { glyph = 177 },
+            breve = { glyph = 177 },
+        },
+        triangle_down = {
+            quarter = { glyph = 224 },
+            half  = { glyph = 198 },
+            whole = { glyph = 198 },
+            breve = { glyph = 198 },
+        },
+        triangle_up = {
+            quarter = { glyph = 209 },
+            half  = { glyph = 177 },
+            whole = { glyph = 177 },
+            breve = { glyph = 177 },
+        },
+        slash = {
+            quarter = { glyph = 243 },
+            half  = { glyph = 203 },
+            whole = { glyph = 213 },
+            breve = { glyph = 213 },
+        },
+        square = {
+            quarter = { glyph = 208 },
+            half  = { glyph = 173 },
+            whole = { glyph = 194 },
+            breve = { glyph = 221 },
+        },
+        wedge = {
+            quarter = { glyph = 108 },
+            half  = { glyph = 231 },
+            whole = { glyph = 231, offset = -14 },
+            breve = { glyph = 231, offset = -14 },
+        },
+        strikethrough = {
+            quarter = { glyph = 191 },
+            half  = { glyph = 191 },
+            whole = { glyph = 191 },
+            breve = { glyph = 191 },
+        },
+        circled = {
+            quarter = { glyph = 76 },
+            half  = { glyph = 76 },
+            whole = { glyph = 76 },
+            breve = { glyph = 76 },
+        },
+        round = {
+            quarter = { glyph = 76 },
+            half  = { glyph = 76 },
+            whole = { glyph = 191 },
+            breve = { glyph = 191 },
+        },
+        hidden = {
+            quarter = { glyph = 202 },
+            half  = { glyph = 202 },
+            whole = { glyph = 202 },
+            breve = { glyph = 202 },
+        },
+        default = {
+            quarter = { glyph = 207 }
+        },
+    }
+
+    if library.is_font_smufl_font() then
+        config = {
+            diamond = {
+                quarter = { glyph = 0xe0e1, size = 110 },
+                half  = { glyph = 0xe0e1, size = 110 },
+                whole = { glyph = 0xe0d8, size = 110 },
+                breve = { glyph = 0xe0d7, size = 110 },
+            },
+            diamond_guitar = {
+                quarter = { glyph = 0xe0e2, size = 110 },
+                half  = { glyph = 0xe0e1, size = 110 },
+                whole = { glyph = 0xe0d8, size = 110 },
+                breve = { glyph = 0xe0d7, size = 110 },
+            },
+            x = {
+                quarter = { glyph = 0xe0a9 },
+                half  = { glyph = 0xe0a8 },
+                whole = { glyph = 0xe0a7 },
+                breve = { glyph = 0xe0a6 },
+            },
+            triangle = {
 
 
 
-    local sign = function(n)
-        if n < 0 then
-            return -1
+                quarter = { glyph = 0xe0be },
+                half  = { glyph = 0xe0bd },
+                whole = { glyph = 0xe0bc },
+                breve = { glyph = 0xe0bb },
+            },
+            triangle_down = {
+                quarter = { glyph = 0xe0c7 },
+                half  = { glyph = 0xe0c6 },
+                whole = { glyph = 0xe0c5 },
+                breve = { glyph = 0xe0c4 },
+            },
+            triangle_up = {
+                quarter = { glyph = 0xe0be },
+                half  = { glyph = 0xe0bd },
+                whole = { glyph = 0xe0bc },
+                breve = { glyph = 0xe0bb },
+            },
+            slash = {
+                quarter = { glyph = 0xe100 },
+                half  = { glyph = 0xe103 },
+                whole = { glyph = 0xe102 },
+                breve = { glyph = 0xe10a },
+            },
+            square = {
+                quarter = { glyph = 0xe934 },
+                half  = { glyph = 0xe935 },
+                whole = { glyph = 0xe937 },
+                breve = { glyph = 0xe933 },
+            },
+            wedge = {
+                quarter = { glyph = 0xe1c5 },
+                half  = { glyph = 0xe1c8, size = 120 },
+                whole = { glyph = 0xe1c4, size = 120, offset = -14 },
+                breve = { glyph = 0xe1ca, size = 120, offset = -14 },
+            },
+            strikethrough = {
+                quarter = { glyph = 0xe0cf },
+                half  = { glyph = 0xe0d1 },
+                whole = { glyph = 0xe0d3 },
+                breve = { glyph = 0xe0d5 },
+            },
+            circled = {
+                quarter = { glyph = 0xe0e4 },
+                half  = { glyph = 0xe0e5 },
+                whole = { glyph = 0xe0e6 },
+                breve = { glyph = 0xe0e7 },
+            },
+            round = {
+                quarter = { glyph = 0xe113 },
+                half  = { glyph = 0xe114 },
+                whole = { glyph = 0xe115 },
+                breve = { glyph = 0xe112 },
+            },
+            hidden = {
+                quarter = { glyph = 0xe0a5 },
+                half  = { glyph = 0xe0a5 },
+                whole = { glyph = 0xe0a5 },
+                breve = { glyph = 0xe0a5 },
+            },
+            default = {
+                quarter = { glyph = 0xe0a4 }
+            },
+        }
+    end
+    configuration.get_parameters("notehead.config.txt", config)
+
+    function notehead.change_shape(note, shape)
+        local notehead_mod = finale.FCNoteheadMod()
+        notehead_mod:EraseAt(note)
+        local notehead_char = config.default.quarter.glyph
+        if type(shape) == "number" then
+            notehead_char = shape
+            shape = "number"
+        elseif not config[shape] then
+            shape = "default"
         end
-        return 1
-    end
-
-
-    local signed_modulus = function(n, d)
-        return sign(n) * (math.abs(n) % d)
-    end
-    local get_key = function(note)
-        local cell = finale.FCCell(note.Entry.Measure, note.Entry.Staff)
-        return cell:GetKeySignature()
-    end
-
-
-
-    local get_key_info = function(key)
-        local number_of_steps = standard_key_number_of_steps
-        local diatonic_steps = standard_key_major_diatonic_steps
-        if client.supports("FCKeySignature::CalcTotalChromaticSteps") then
-            number_of_steps = key:CalcTotalChromaticSteps()
-            diatonic_steps = key:CalcDiatonicStepsMap()
+        if shape == "default" then
+            notehead_mod:ClearChar()
+            notehead_mod.Resize = 100
+            notehead_mod.HorizontalPos = 0
         else
-            if not key:IsPredefined() then
-                number_of_steps = custom_key_sig_config.number_of_steps
-                diatonic_steps = custom_key_sig_config.diatonic_steps
-            elseif key:IsMinor() then
-                diatonic_steps = standard_key_minor_diatonic_steps
-            end
-        end
-
-
-
-        local fifth_steps = math.floor((number_of_steps * 0.5849625) + 0.5)
-        return number_of_steps, diatonic_steps, fifth_steps
-    end
-    local calc_scale_degree = function(interval, number_of_diatonic_steps_in_key)
-        local interval_normalized = signed_modulus(interval, number_of_diatonic_steps_in_key)
-        if interval_normalized < 0 then
-            interval_normalized = interval_normalized + number_of_diatonic_steps_in_key
-        end
-        return interval_normalized
-    end
-    local calc_steps_between_scale_degrees = function(key, first_disp, second_disp)
-        local number_of_steps_in_key, diatonic_steps = get_key_info(key)
-        local first_scale_degree = calc_scale_degree(first_disp, #diatonic_steps)
-        local second_scale_degree = calc_scale_degree(second_disp, #diatonic_steps)
-        local number_of_steps = sign(second_disp - first_disp) * (diatonic_steps[second_scale_degree + 1] - diatonic_steps[first_scale_degree + 1])
-        if number_of_steps < 0 then
-            number_of_steps = number_of_steps + number_of_steps_in_key
-        end
-        return number_of_steps
-    end
-    local calc_steps_in_alteration = function(key, interval, alteration)
-        local number_of_steps_in_key, _, fifth_steps = get_key_info(key)
-        local plus_fifths = sign(interval) * alteration * 7
-        local minus_octaves = sign(interval) * alteration * -4
-        local new_alteration = sign(interval) * ((plus_fifths * fifth_steps) + (minus_octaves * number_of_steps_in_key))
-        return new_alteration
-    end
-    local calc_steps_in_normalized_interval = function(key, interval_normalized)
-        local number_of_steps_in_key, _, fifth_steps = get_key_info(key)
-        local plus_fifths = diatonic_interval_adjustments[math.abs(interval_normalized) + 1][1]
-        local minus_octaves = diatonic_interval_adjustments[math.abs(interval_normalized) + 1][2]
-        local number_of_steps_in_interval = sign(interval_normalized) * ((plus_fifths * fifth_steps) + (minus_octaves * number_of_steps_in_key))
-        return number_of_steps_in_interval
-    end
-    local simplify_spelling = function(note, min_abs_alteration)
-        while math.abs(note.RaiseLower) > min_abs_alteration do
-            local curr_sign = sign(note.RaiseLower)
-            local curr_abs_disp = math.abs(note.RaiseLower)
-            local direction = curr_sign
-            local success = transposition.enharmonic_transpose(note, direction, true)
-            if not success then
-                return false
-            end
-            if math.abs(note.RaiseLower) >= curr_abs_disp then
-                return transposition.enharmonic_transpose(note, -1 * direction)
-            end
-            if curr_sign ~= sign(note.RaiseLower) then
-                break
-            end
-        end
-        return true
-    end
-
-
-
-
-    function transposition.diatonic_transpose(note, interval)
-        note.Displacement = note.Displacement + interval
-    end
-
-    function transposition.change_octave(note, number_of_octaves)
-        transposition.diatonic_transpose(note, 7 * number_of_octaves)
-    end
-
-
-
-
-    function transposition.enharmonic_transpose(note, direction, ignore_error)
-        ignore_error = ignore_error or false
-        local curr_disp = note.Displacement
-        local curr_alt = note.RaiseLower
-        local key = get_key(note)
-        local key_step_enharmonic = calc_steps_between_scale_degrees(key, note.Displacement, note.Displacement + sign(direction))
-        transposition.diatonic_transpose(note, sign(direction))
-        note.RaiseLower = note.RaiseLower - sign(direction) * key_step_enharmonic
-        if ignore_error then
-            return true
-        end
-        if math.abs(note.RaiseLower) > max_allowed_abs_alteration then
-            note.Displacement = curr_disp
-            note.RaiseLower = curr_alt
-            return false
-        end
-        return true
-    end
-
-
-
-
-    function transposition.chromatic_transpose(note, interval, alteration, simplify)
-        simplify = simplify or false
-        local curr_disp = note.Displacement
-        local curr_alt = note.RaiseLower
-        local key = get_key(note)
-        local number_of_steps, diatonic_steps, fifth_steps = get_key_info(key)
-        local interval_normalized = signed_modulus(interval, #diatonic_steps)
-        local steps_in_alteration = calc_steps_in_alteration(key, interval, alteration)
-        local steps_in_interval = calc_steps_in_normalized_interval(key, interval_normalized)
-        local steps_in_diatonic_interval = calc_steps_between_scale_degrees(key, note.Displacement, note.Displacement + interval_normalized)
-        local effective_alteration = steps_in_alteration + steps_in_interval - sign(interval) * steps_in_diatonic_interval
-        transposition.diatonic_transpose(note, interval)
-        note.RaiseLower = note.RaiseLower + effective_alteration
-        local min_abs_alteration = max_allowed_abs_alteration
-        if simplify then
-            min_abs_alteration = 0
-        end
-        local success = simplify_spelling(note, min_abs_alteration)
-        if not success then
-            note.Displacement = curr_disp
-            note.RaiseLower = curr_alt
-        end
-        return success
-    end
-
-    function transposition.stepwise_transpose(note, number_of_steps)
-        local curr_disp = note.Displacement
-        local curr_alt = note.RaiseLower
-        note.RaiseLower = note.RaiseLower + number_of_steps
-        local success = simplify_spelling(note, 0)
-        if not success then
-            note.Displacement = curr_disp
-            note.RaiseLower = curr_alt
-        end
-        return success
-    end
-
-    function transposition.chromatic_major_third_down(note)
-        transposition.chromatic_transpose(note, -2, -0)
-    end
-
-    function transposition.chromatic_perfect_fourth_up(note)
-        transposition.chromatic_transpose(note, 3, 0)
-    end
-
-    function transposition.chromatic_perfect_fifth_down(note)
-        transposition.chromatic_transpose(note, -4, -0)
-    end
-    return transposition
-end
-__imports["library.note_entry"] = __imports["library.note_entry"] or function()
-
-    local note_entry = {}
-
-    function note_entry.get_music_region(entry)
-        local exp_region = finale.FCMusicRegion()
-        exp_region:SetCurrentSelection()
-        exp_region.StartStaff = entry.Staff
-        exp_region.EndStaff = entry.Staff
-        exp_region.StartMeasure = entry.Measure
-        exp_region.EndMeasure = entry.Measure
-        exp_region.StartMeasurePos = entry.MeasurePos
-        exp_region.EndMeasurePos = entry.MeasurePos
-        return exp_region
-    end
-
-
-    local use_or_get_passed_in_entry_metrics = function(entry, entry_metrics)
-        if entry_metrics then
-            return entry_metrics, false
-        end
-        entry_metrics = finale.FCEntryMetrics()
-        if entry_metrics:Load(entry) then
-            return entry_metrics, true
-        end
-        return nil, false
-    end
-
-    function note_entry.get_evpu_notehead_height(entry)
-        local highest_note = entry:CalcHighestNote(nil)
-        local lowest_note = entry:CalcLowestNote(nil)
-        local evpu_height = (2 + highest_note:CalcStaffPosition() - lowest_note:CalcStaffPosition()) * 12
-        return evpu_height
-    end
-
-    function note_entry.get_top_note_position(entry, entry_metrics)
-        local retval = -math.huge
-        local loaded_here = false
-        entry_metrics, loaded_here = use_or_get_passed_in_entry_metrics(entry, entry_metrics)
-        if nil == entry_metrics then
-            return retval
-        end
-        if not entry:CalcStemUp() then
-            retval = entry_metrics.TopPosition
-        else
-            local cell_metrics = finale.FCCell(entry.Measure, entry.Staff):CreateCellMetrics()
-            if nil ~= cell_metrics then
-                local evpu_height = note_entry.get_evpu_notehead_height(entry)
-                local scaled_height = math.floor(((cell_metrics.StaffScaling * evpu_height) / 10000) + 0.5)
-                retval = entry_metrics.BottomPosition + scaled_height
-                cell_metrics:FreeMetrics()
-            end
-        end
-        if loaded_here then
-            entry_metrics:FreeMetrics()
-        end
-        return retval
-    end
-
-    function note_entry.get_bottom_note_position(entry, entry_metrics)
-        local retval = math.huge
-        local loaded_here = false
-        entry_metrics, loaded_here = use_or_get_passed_in_entry_metrics(entry, entry_metrics)
-        if nil == entry_metrics then
-            return retval
-        end
-        if entry:CalcStemUp() then
-            retval = entry_metrics.BottomPosition
-        else
-            local cell_metrics = finale.FCCell(entry.Measure, entry.Staff):CreateCellMetrics()
-            if nil ~= cell_metrics then
-                local evpu_height = note_entry.get_evpu_notehead_height(entry)
-                local scaled_height = math.floor(((cell_metrics.StaffScaling * evpu_height) / 10000) + 0.5)
-                retval = entry_metrics.TopPosition - scaled_height
-                cell_metrics:FreeMetrics()
-            end
-        end
-        if loaded_here then
-            entry_metrics:FreeMetrics()
-        end
-        return retval
-    end
-
-    function note_entry.calc_widths(entry)
-        local left_width = 0
-        local right_width = 0
-        for note in each(entry) do
-            local note_width = note:CalcNoteheadWidth()
-            if note_width > 0 then
-                if note:CalcRightsidePlacement() then
-                    if note_width > right_width then
-                        right_width = note_width
-                    end
-                else
-                    if note_width > left_width then
-                        left_width = note_width
-                    end
+            local entry = note:GetEntry()
+            if not entry then return end
+            local duration = entry.Duration
+            local offset = 0
+            local resize = 100
+            if shape ~= "number" then
+                local note_type = "quarter"
+                if duration >= finale.BREVE then
+                    note_type = "breve"
+                elseif duration >= finale.WHOLE_NOTE then
+                    note_type = "whole"
+                elseif duration >= finale.HALF_NOTE then
+                    note_type = "half"
+                end
+                local ref_table = config[shape][note_type]
+                if shape == "triangle" and entry:CalcStemUp() then
+                    ref_table = config["triangle_down"][note_type]
+                end
+                if ref_table.glyph then
+                    notehead_char = ref_table.glyph
+                end
+                if ref_table.size then
+                    resize = ref_table.size
+                end
+                if ref_table.offset then
+                    offset = ref_table.offset
                 end
             end
-        end
-        return left_width, right_width
-    end
 
-
-
-
-    function note_entry.calc_left_of_all_noteheads(entry)
-        if entry:CalcStemUp() then
-            return 0
-        end
-        local left, right = note_entry.calc_widths(entry)
-        return -left
-    end
-
-    function note_entry.calc_left_of_primary_notehead(entry)
-        return 0
-    end
-
-    function note_entry.calc_center_of_all_noteheads(entry)
-        local left, right = note_entry.calc_widths(entry)
-        local width_centered = (left + right) / 2
-        if not entry:CalcStemUp() then
-            width_centered = width_centered - left
-        end
-        return width_centered
-    end
-
-    function note_entry.calc_center_of_primary_notehead(entry)
-        local left, right = note_entry.calc_widths(entry)
-        if entry:CalcStemUp() then
-            return left / 2
-        end
-        return right / 2
-    end
-
-    function note_entry.calc_stem_offset(entry)
-        if not entry:CalcStemUp() then
-            return 0
-        end
-        local left, right = note_entry.calc_widths(entry)
-        return left
-    end
-
-    function note_entry.calc_right_of_all_noteheads(entry)
-        local left, right = note_entry.calc_widths(entry)
-        if entry:CalcStemUp() then
-            return left + right
-        end
-        return right
-    end
-
-    function note_entry.calc_note_at_index(entry, note_index)
-        local x = 0
-        for note in each(entry) do
-            if x == note_index then
-                return note
+            notehead_mod.CustomChar = notehead_char
+            if resize > 0 and resize ~= 100 then
+                notehead_mod.Resize = resize
             end
-            x = x + 1
-        end
-        return nil
-    end
-
-    function note_entry.stem_sign(entry)
-        if entry:CalcStemUp() then
-            return 1
-        end
-        return -1
-    end
-
-    function note_entry.duplicate_note(note)
-        local new_note = note.Entry:AddNewNote()
-        if nil ~= new_note then
-            new_note.Displacement = note.Displacement
-            new_note.RaiseLower = note.RaiseLower
-            new_note.Tie = note.Tie
-            new_note.TieBackwards = note.TieBackwards
-        end
-        return new_note
-    end
-
-    function note_entry.delete_note(note)
-        local entry = note.Entry
-        if nil == entry then
-            return false
-        end
-
-        finale.FCAccidentalMod():EraseAt(note)
-        finale.FCCrossStaffMod():EraseAt(note)
-        finale.FCDotMod():EraseAt(note)
-        finale.FCNoteheadMod():EraseAt(note)
-        finale.FCPercussionNoteMod():EraseAt(note)
-        finale.FCTablatureNoteMod():EraseAt(note)
-        if finale.FCTieMod then
-            finale.FCTieMod(finale.TIEMODTYPE_TIESTART):EraseAt(note)
-            finale.FCTieMod(finale.TIEMODTYPE_TIEEND):EraseAt(note)
-        end
-        return entry:DeleteNote(note)
-    end
-
-    function note_entry.make_rest(entry)
-        local articulations = entry:CreateArticulations()
-        for articulation in each(articulations) do
-            articulation:DeleteData()
-        end
-        if entry:IsNote() then
-            while entry.Count > 0 do
-                note_entry.delete_note(entry:GetItemAt(0))
+            if offset ~= 0 then
+                notehead_mod.HorizontalPos = (entry:CalcStemUp()) and (-1 * offset) or offset
             end
         end
-        entry:MakeRest()
-        return true
+        notehead_mod:SaveAt(note)
+        return notehead_mod
     end
-
-    function note_entry.calc_pitch_string(note)
-        local pitch_string = finale.FCString()
-        local cell = finale.FCCell(note.Entry.Measure, note.Entry.Staff)
-        local key_signature = cell:GetKeySignature()
-        note:GetString(pitch_string, key_signature, false, false)
-        return pitch_string
-    end
-
-    function note_entry.calc_spans_number_of_octaves(entry)
-        local top_note = entry:CalcHighestNote(nil)
-        local bottom_note = entry:CalcLowestNote(nil)
-        local displacement_diff = top_note.Displacement - bottom_note.Displacement
-        local num_octaves = math.ceil(displacement_diff / 7)
-        return num_octaves
-    end
-
-    function note_entry.add_augmentation_dot(entry)
-
-        entry.Duration = bit32.bor(entry.Duration, bit32.rshift(entry.Duration, 1))
-    end
-
-    function note_entry.get_next_same_v(entry)
-        local next_entry = entry:Next()
-        if entry.Voice2 then
-            if (nil ~= next_entry) and next_entry.Voice2 then
-                return next_entry
-            end
-            return nil
-        end
-        if entry.Voice2Launch then
-            while (nil ~= next_entry) and next_entry.Voice2 do
-                next_entry = next_entry:Next()
-            end
-        end
-        return next_entry
-    end
-
-    function note_entry.hide_stem(entry)
-        local stem = finale.FCCustomStemMod()
-        stem:SetNoteEntry(entry)
-        stem:UseUpStemData(entry:CalcStemUp())
-        if stem:LoadFirst() then
-            stem.ShapeID = 0
-            stem:Save()
-        else
-            stem.ShapeID = 0
-            stem:SaveNew()
-        end
-    end
-
-    function note_entry.rest_offset(entry, offset)
-        if entry:IsNote() then
-            return false
-        end
-        if offset == 0 then
-            entry:SetFloatingRest(true)
-        else
-            local rest_prop = "OtherRestPosition"
-            if entry.Duration >= finale.BREVE then
-                rest_prop = "DoubleWholeRestPosition"
-            elseif entry.Duration >= finale.WHOLE_NOTE then
-                rest_prop = "WholeRestPosition"
-            elseif entry.Duration >= finale.HALF_NOTE then
-                rest_prop = "HalfRestPosition"
-            end
-            entry:MakeMovableRest()
-            local rest = entry:GetItemAt(0)
-            local curr_staffpos = rest:CalcStaffPosition()
-            local staff_spec = finale.FCCurrentStaffSpec()
-            staff_spec:LoadForEntry(entry)
-            local total_offset = staff_spec[rest_prop] + offset - curr_staffpos
-            entry:SetRestDisplacement(entry:GetRestDisplacement() + total_offset)
-        end
-        return true
-    end
-    return note_entry
+    return notehead
 end
 __imports["mixin.FCMControl"] = __imports["mixin.FCMControl"] or function()
 
@@ -5124,170 +4743,354 @@ __imports["library.mixin"] = __imports["library.mixin"] or function()
 
     return mixin
 end
-function plugindef()
-    finaleplugin.RequireSelection = false
-    finaleplugin.HandlesUndo = true
-    finaleplugin.Author = "Robert Patterson"
-    finaleplugin.Copyright = "CC0 https://creativecommons.org/publicdomain/zero/1.0/"
-    finaleplugin.Version = "1.1"
-    finaleplugin.Date = "January 20, 2022"
-    finaleplugin.CategoryTags = "Pitch"
-    finaleplugin.Notes = [[
-        This script transposes the selected region by a chromatic interval. It works correctly even with
-        microtone scales defined by custom key signatures.
-        Normally the script opens a modeless window. However, if you invoke the plugin with a shift, option, or
-        alt key pressed, it skips opening a window and uses the last settings you entered into the window.
-        (This works with RGP Lua version 0.60 and higher.)
-        If you are using custom key signatures with JW Lua or an early version of RGP Lua, you must create
-        a custom_key_sig.config.txt file in a folder called `script_settings` within the same folder as the script.
-        It should contains the following two lines that define the custom key signature you are using. Unfortunately,
-        the JW Lua and early versions of RGP Lua do not allow scripts to read this information from the Finale document.
-        (This example is for 31-EDO.)
-        ```
-        number_of_steps = 31
-        diatonic_steps = {0, 5, 10, 13, 18, 23, 28}
-        ```
-        Later versions of RGP Lua (0.58 or higher) ignore this configuration file (if it exists) and read the correct
-        information from the Finale document.
-    ]]
-    return "Transpose Chromatic...", "Transpose Chromatic", "Chromatic transposition of selected region (supports microtone systems)."
-end
-if not finenv.RetainLuaState then
+__imports["library.configuration"] = __imports["library.configuration"] or function()
 
-    interval_names = {
-        "Perfect Unison",
-        "Augmented Unison",
-        "Diminished Second",
-        "Minor Second",
-        "Major Second",
-        "Augmented Second",
-        "Diminished Third",
-        "Minor Third",
-        "Major Third",
-        "Augmented Third",
-        "Diminished Fourth",
-        "Perfect Fourth",
-        "Augmented Fourth",
-        "Diminished Fifth",
-        "Perfect Fifth",
-        "Augmented Fifth",
-        "Diminished Sixth",
-        "Minor Sixth",
-        "Major Sixth",
-        "Augmented Sixth",
-        "Diminished Seventh",
-        "Minor Seventh",
-        "Major Seventh",
-        "Augmented Seventh",
-        "Diminished Octave",
-        "Perfect Octave"
-    }
-    interval_disp_alts = {
-        {0,0},  {0,1},
-        {1,-2}, {1,-1}, {1,0}, {1,1},
-        {2,-2}, {2,-1}, {2,0}, {2,1},
-        {3,-1}, {3,0},  {3,1},
-        {4,-1}, {4,0},  {4,1},
-        {5,-2}, {5,-1}, {5,0}, {5,1},
-        {6,-2}, {6,-1}, {6,0}, {6,1},
-        {7,-1}, {7,0}
-    }
-end
-if not finenv.IsRGPLua then
-    local path = finale.FCString()
-    path:SetRunningLuaFolderPath()
-    package.path = package.path .. ";" .. path.LuaString .. "?.lua"
-end
-local transposition = require("library.transposition")
-local note_entry = require("library.note_entry")
-local mixin = require("library.mixin")
-function do_transpose_chromatic(direction, interval_index, simplify, plus_octaves, preserve_originals)
-    if finenv.Region():IsEmpty() then
-        return
+
+
+    local configuration = {}
+    local script_settings_dir = "script_settings"
+    local comment_marker = "--"
+    local parameter_delimiter = "="
+    local path_delimiter = "/"
+    local file_exists = function(file_path)
+        local f = io.open(file_path, "r")
+        if nil ~= f then
+            io.close(f)
+            return true
+        end
+        return false
     end
-    local interval = direction * interval_disp_alts[interval_index][1]
-    local alteration = direction * interval_disp_alts[interval_index][2]
-    plus_octaves = direction * plus_octaves
-    local undostr = "Transpose Chromatic " .. tostring(finenv.Region().StartMeasure)
-    if finenv.Region().StartMeasure ~= finenv.Region().EndMeasure then
-        undostr = undostr .. " - " .. tostring(finenv.Region().EndMeasure)
+    local strip_leading_trailing_whitespace = function(str)
+        return str:match("^%s*(.-)%s*$")
     end
-    finenv.StartNewUndoBlock(undostr, false)
-    local success = true
-    for entry in eachentrysaved(finenv.Region()) do
-        local note_count = entry.Count
-        local note_index = 0
-        for note in each(entry) do
-            if preserve_originals then
-                note_index = note_index + 1
-                if note_index > note_count then
-                    break
-                end
-                local dup_note = note_entry.duplicate_note(note)
-                if nil ~= dup_note then
-                    note = dup_note
+    parse_parameter = function(val_string)
+        if "\"" == val_string:sub(1, 1) and "\"" == val_string:sub(#val_string, #val_string) then
+            return string.gsub(val_string, "\"(.+)\"", "%1")
+        elseif "'" == val_string:sub(1, 1) and "'" == val_string:sub(#val_string, #val_string) then
+            return string.gsub(val_string, "'(.+)'", "%1")
+        elseif "{" == val_string:sub(1, 1) and "}" == val_string:sub(#val_string, #val_string) then
+            return load("return " .. val_string)()
+        elseif "true" == val_string then
+            return true
+        elseif "false" == val_string then
+            return false
+        end
+        return tonumber(val_string)
+    end
+    local get_parameters_from_file = function(file_path, parameter_list)
+        local file_parameters = {}
+        if not file_exists(file_path) then
+            return false
+        end
+        for line in io.lines(file_path) do
+            local comment_at = string.find(line, comment_marker, 1, true)
+            if nil ~= comment_at then
+                line = string.sub(line, 1, comment_at - 1)
+            end
+            local delimiter_at = string.find(line, parameter_delimiter, 1, true)
+            if nil ~= delimiter_at then
+                local name = strip_leading_trailing_whitespace(string.sub(line, 1, delimiter_at - 1))
+                local val_string = strip_leading_trailing_whitespace(string.sub(line, delimiter_at + 1))
+                file_parameters[name] = parse_parameter(val_string)
+            end
+        end
+        local function process_table(param_table, param_prefix)
+            param_prefix = param_prefix and param_prefix.."." or ""
+            for param_name, param_val in pairs(param_table) do
+                local file_param_name = param_prefix .. param_name
+                local file_param_val = file_parameters[file_param_name]
+                if nil ~= file_param_val then
+                    param_table[param_name] = file_param_val
+                elseif type(param_val) == "table" then
+                        process_table(param_val, param_prefix..param_name)
                 end
             end
-            if not transposition.chromatic_transpose(note, interval, alteration, simplify) then
-                success = false
+        end
+        process_table(parameter_list)
+        return true
+    end
+
+    function configuration.get_parameters(file_name, parameter_list)
+        local path = ""
+        if finenv.IsRGPLua then
+            path = finenv.RunningLuaFolderPath()
+        else
+            local str = finale.FCString()
+            str:SetRunningLuaFolderPath()
+            path = str.LuaString
+        end
+        local file_path = path .. script_settings_dir .. path_delimiter .. file_name
+        return get_parameters_from_file(file_path, parameter_list)
+    end
+
+
+    local calc_preferences_filepath = function(script_name)
+        local str = finale.FCString()
+        str:SetUserOptionsPath()
+        local folder_name = str.LuaString
+        if not finenv.IsRGPLua and finenv.UI():IsOnMac() then
+
+            folder_name = os.getenv("HOME") .. folder_name:sub(2)
+        end
+        if finenv.UI():IsOnWindows() then
+            folder_name = folder_name .. path_delimiter .. "FinaleLua"
+        end
+        local file_path = folder_name .. path_delimiter
+        if finenv.UI():IsOnMac() then
+            file_path = file_path .. "com.finalelua."
+        end
+        file_path = file_path .. script_name .. ".settings.txt"
+        return file_path, folder_name
+    end
+
+    function configuration.save_user_settings(script_name, parameter_list)
+        local file_path, folder_path = calc_preferences_filepath(script_name)
+        local file = io.open(file_path, "w")
+        if not file and finenv.UI():IsOnWindows() then
+            os.execute('mkdir "' .. folder_path ..'"')
+            file = io.open(file_path, "w")
+        end
+        if not file then
+            return false
+        end
+        file:write("-- User settings for " .. script_name .. ".lua\n\n")
+        for k,v in pairs(parameter_list) do
+            if type(v) == "string" then
+                v = "\"" .. v .."\""
+            else
+                v = tostring(v)
             end
-            transposition.change_octave(note, plus_octaves)
+            file:write(k, " = ", v, "\n")
+        end
+        file:close()
+        return true
+    end
+
+    function configuration.get_user_settings(script_name, parameter_list, create_automatically)
+        if create_automatically == nil then create_automatically = true end
+        local exists = get_parameters_from_file(calc_preferences_filepath(script_name), parameter_list)
+        if not exists and create_automatically then
+            configuration.save_user_settings(script_name, parameter_list)
+        end
+        return exists
+    end
+    return configuration
+end
+__imports["library.layer"] = __imports["library.layer"] or function()
+
+    local layer = {}
+
+
+    function layer.copy(region, source_layer, destination_layer, clone_articulations)
+        local start = region.StartMeasure
+        local stop = region.EndMeasure
+        local sysstaves = finale.FCSystemStaves()
+        sysstaves:LoadAllForRegion(region)
+        source_layer = source_layer - 1
+        destination_layer = destination_layer - 1
+        for sysstaff in each(sysstaves) do
+            staffNum = sysstaff.Staff
+            local noteentry_source_layer = finale.FCNoteEntryLayer(source_layer, staffNum, start, stop)
+            noteentry_source_layer:SetUseVisibleLayer(false)
+            noteentry_source_layer:Load()
+            local noteentry_destination_layer = noteentry_source_layer:CreateCloneEntries(
+                destination_layer, staffNum, start)
+            noteentry_destination_layer:Save()
+            noteentry_destination_layer:CloneTuplets(noteentry_source_layer)
+
+            if clone_articulations and noteentry_source_layer.Count == noteentry_destination_layer.Count then
+                for index = 0, noteentry_destination_layer.Count - 1 do
+                    local source_entry = noteentry_source_layer:GetItemAt(index)
+                    local destination_entry = noteentry_destination_layer:GetItemAt(index)
+                    local source_artics = source_entry:CreateArticulations()
+                    for articulation in each (source_artics) do
+                        articulation:SetNoteEntry(destination_entry)
+                        articulation:SaveNew()
+                    end
+                end
+            end
+            noteentry_destination_layer:Save()
         end
     end
-    if finenv.EndUndoBlock then
-        finenv.EndUndoBlock(true)
-        finenv.Region():Redraw()
-    else
-        finenv.StartNewUndoBlock(undostr, true)
+
+
+    function layer.clear(region, layer_to_clear)
+        layer_to_clear = layer_to_clear - 1
+        local start = region.StartMeasure
+        local stop = region.EndMeasure
+        local sysstaves = finale.FCSystemStaves()
+        sysstaves:LoadAllForRegion(region)
+        for sysstaff in each(sysstaves) do
+            staffNum = sysstaff.Staff
+            local  noteentry_layer = finale.FCNoteEntryLayer(layer_to_clear, staffNum, start, stop)
+            noteentry_layer:SetUseVisibleLayer(false)
+            noteentry_layer:Load()
+            noteentry_layer:ClearAllEntries()
+        end
     end
-    if not success then
-        finenv.UI():AlertError("Finale is unable to represent some of the transposed pitches. These pitches were left at their original value.", "Transposition Error")
+
+
+    function layer.swap(region, swap_a, swap_b)
+
+        swap_a = swap_a - 1
+        swap_b = swap_b - 1
+        for measure, staff_number in eachcell(region) do
+            local cell_frame_hold = finale.FCCellFrameHold()
+            cell_frame_hold:ConnectCell(finale.FCCell(measure, staff_number))
+            local loaded = cell_frame_hold:Load()
+            local cell_clef_changes = loaded and cell_frame_hold.IsClefList and cell_frame_hold:CreateCellClefChanges() or nil
+            local  noteentry_layer_one = finale.FCNoteEntryLayer(swap_a, staff_number, measure, measure)
+            noteentry_layer_one:SetUseVisibleLayer(false)
+            noteentry_layer_one:Load()
+            noteentry_layer_one.LayerIndex = swap_b
+
+            local  noteentry_layer_two = finale.FCNoteEntryLayer(swap_b, staff_number, measure, measure)
+            noteentry_layer_two:SetUseVisibleLayer(false)
+            noteentry_layer_two:Load()
+            noteentry_layer_two.LayerIndex = swap_a
+            noteentry_layer_one:Save()
+            noteentry_layer_two:Save()
+            if loaded then
+                local new_cell_frame_hold = finale.FCCellFrameHold()
+                new_cell_frame_hold:ConnectCell(finale.FCCell(measure, staff_number))
+                if new_cell_frame_hold:Load() then
+                    if cell_frame_hold.IsClefList then
+                        if new_cell_frame_hold.SetCellClefChanges then
+                            new_cell_frame_hold:SetCellClefChanges(cell_clef_changes)
+                        end
+
+                    else
+                        new_cell_frame_hold.ClefIndex = cell_frame_hold.ClefIndex
+                    end
+                    new_cell_frame_hold:Save()
+                end
+            end
+        end
     end
-    return success
+
+
+
+    function layer.max_layers()
+        return finale.FCLayerPrefs.GetMaxLayers and finale.FCLayerPrefs.GetMaxLayers() or 4
+    end
+
+    return layer
 end
-function create_dialog_box()
-    local dialog = mixin.FCXCustomLuaWindow():SetTitle("Transpose Chromatic")
-    local current_y = 0
-    local y_increment = 26
-    local x_increment = 85
-
-    dialog:CreateStatic(0, current_y + 2):SetText("Direction:")
-    dialog:CreatePopup(x_increment, current_y, "direction_choice"):AddStrings("Up", "Down"):SetWidth(x_increment):SetSelectedItem(0)
-    current_y = current_y + y_increment
-
-    static = dialog:CreateStatic(0, current_y + 2):SetText("Interval:")
-    dialog:CreatePopup(x_increment, current_y, "interval_choice"):AddStrings(table.unpack(interval_names)):SetWidth(140):SetSelectedItem(0)
-    current_y = current_y + y_increment
-
-    dialog:CreateCheckbox(0, current_y + 2, "do_simplify"):SetText("Simplify Spelling"):SetWidth(140):SetCheck(0)
-    current_y = current_y + y_increment
-
-    dialog:CreateStatic(0, current_y + 2):SetText("Plus Octaves:")
-    local edit_x = x_increment + (finenv.UI():IsOnMac() and 4 or 0)
-    dialog:CreateEdit(edit_x, current_y, "plus_octaves"):SetText("")
-    current_y = current_y + y_increment
-
-    dialog:CreateCheckbox(0, current_y + 2, "do_preserve"):SetText("Preserve Existing Notes"):SetWidth(140):SetCheck(0)
-    current_y = current_y + y_increment
-
+function plugindef()
+    finaleplugin.RequireSelection = true
+    finaleplugin.Author = "Carl Vine"
+    finaleplugin.AuthorURL = "http://carlvine.com/lua/"
+    finaleplugin.Copyright = "https://creativecommons.org/licenses/by/4.0/"
+    finaleplugin.Version = "v0.12"
+    finaleplugin.Date = "2023/02/10"
+    finaleplugin.MinJWLuaVersion = 0.62
+    finaleplugin.Notes = [[
+        Change notehead shapes on a specific layer of the current selection to one of these shapes:
+        X / Diamond / Diamond (Guitar) / Square Triangle / Slash / Wedge
+        Strikethrough / Circled / Round / Hidden / Number / Default
+        In SMuFL fonts like Finale Maestro, shapes will correspond to appropriate duration values.
+        Most duration-dependent shapes are not available in Finale's old (non-SMuFL) Maestro font.
+        "Diamond (Guitar)" is like "Diamond" except quarter notes and shorter use filled diamonds.
+        "Number" lets you specify any shape character numerically including SMuFL numbers like "0xe0e1".
+        This script offers the same functionality as "noteheads_change.lua" but offers
+        layer filtering with one menu item and a single confirmation dialog.
+    ]]
+    return "Noteheads Change by Layer...", "Noteheads Change by Layer", "Change notehead shapes on a specific layer of the current selection"
+end
+local notehead = require("library.notehead")
+local mixin = require("library.mixin")
+local configuration = require("library.configuration")
+local layer = require("library.layer")
+local config = {
+    layer = 0,
+    shape = "default",
+    glyph = "0xe0e1",
+    window_pos_x = false,
+    window_pos_y = false
+}
+function user_chooses_glyph()
+    local dlg = mixin.FCXCustomLuaWindow():SetTitle(plugindef())
+    local x, y = 200, 10
+    local y_diff = finenv.UI():IsOnMac() and 3 or 0
+    dlg:CreateStatic(0, y):SetWidth(x + 100)
+        :SetText("Enter required character (glyph) number:")
+    dlg:CreateStatic(0, y + 20):SetWidth(x + 100)
+        :SetText("(as plain integer, or hex value like \"0xe0e1\")")
+    local glyph = tonumber(config.glyph)
+    if glyph >= 0xe000 then
+        config.glyph = string.format("0x%x", glyph)
+    else
+        config.glyph = tostring(glyph)
+    end
+    local answer = dlg:CreateEdit(x + 30, y - y_diff):SetText(config.glyph)
+    dlg:CreateOkButton()
+    dlg:CreateCancelButton()
+    if config.window_pos_x and config.window_pos_y then
+        dlg:StorePosition()
+        dlg:SetRestorePositionOnlyData(config.window_pos_x, config.window_pos_y)
+        dlg:RestorePosition()
+    end
+    local ok = dlg:ExecuteModal(nil)
+    config.glyph = answer:GetText()
+    return (ok == finale.EXECMODAL_OK)
+end
+function user_chooses_shape()
+    local shapes = { "circled", "default", "diamond", "diamond_guitar", "hidden",
+        "number", "round", "slash", "square", "strikethrough", "triangle", "wedge", "x"
+    }
+    local x_offset = 190
+    local y_step = 20
+    local mac_offset = finenv.UI():IsOnMac() and 3 or 0
+    local dialog = mixin.FCXCustomLuaWindow():SetTitle(plugindef())
+    dialog:CreateStatic(0, 0):SetText("Select note shape:"):SetWidth(150)
+    local shape_list = dialog:CreateListBox(0, y_step):SetWidth(x_offset - 20):SetHeight(y_step * 11)
+    for i, v in ipairs(shapes) do
+        shape_list:AddString(v)
+        if v == config.shape then
+            shape_list:SetSelectedItem(i - 1)
+        end
+    end
+    dialog:CreateStatic(x_offset, y_step * 4):SetText("Layer number (0-4):"):SetWidth(150)
+    dialog:CreateEdit(x_offset, (y_step * 5) - mac_offset, "layer"):SetWidth(50):SetInteger(config.layer or 0)
+    dialog:CreateStatic(x_offset, y_step * 6):SetText("(\"0\" = all layers)"):SetWidth(150)
     dialog:CreateOkButton()
     dialog:CreateCancelButton()
+    if config.window_pos_x and config.window_pos_y then
+        dialog:StorePosition()
+        dialog:SetRestorePositionOnlyData(config.window_pos_x, config.window_pos_y)
+        dialog:RestorePosition()
+    end
     dialog:RegisterHandleOkButtonPressed(function(self)
-            local direction = 1
-            if self:GetControl("direction_choice"):GetSelectedItem() > 0 then
-                direction = -1
-            end
-            local interval_choice = 1 + self:GetControl("interval_choice"):GetSelectedItem()
-            local do_simplify = (0 ~= self:GetControl("do_simplify"):GetCheck())
-            local plus_octaves = self:GetControl("plus_octaves"):GetInteger()
-            local preserve_originals = (0 ~= self:GetControl("do_preserve"):GetCheck())
-            do_transpose_chromatic(direction, interval_choice, do_simplify, plus_octaves, preserve_originals)
+        config.shape = shapes[shape_list:GetSelectedItem() + 1]
+        config.layer = self:GetControl("layer"):GetInteger()
+        if config.layer < 0 or config.layer > layer.max_layers() then
+            config.layer = 0
         end
-    )
-    return dialog
+        dialog:StorePosition()
+        config.window_pos_x = self.StoredX
+        config.window_pos_y = self.StoredY
+        configuration.save_user_settings("noteheads_change_by_layer", config)
+    end)
+    local ok = dialog:ExecuteModal(nil)
+    return (ok == finale.EXECMODAL_OK)
 end
-function transpose_chromatic()
-    global_dialog = global_dialog or create_dialog_box()
-    global_dialog:RunModeless()
+function change_noteheads()
+    configuration.get_user_settings("noteheads_change_by_layer", config, true)
+    if not user_chooses_shape() then return end
+
+    if config.shape == "number" then
+        local ok = user_chooses_glyph()
+        if not ok then return end
+        configuration.save_user_settings("noteheads_change_by_layer", config)
+
+        config.shape = tonumber(config.glyph)
+    end
+    for entry in eachentrysaved(finenv.Region(), config.layer) do
+        if entry:IsNote() then
+            for note in each(entry) do
+                notehead.change_shape(note, config.shape)
+            end
+        end
+    end
 end
-transpose_chromatic()
+change_noteheads()
