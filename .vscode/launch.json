@@ -13,6 +13,17 @@
             "listenPublicly": false,
             "listenPort": 56789,
             "encoding": "UTF-8"
+        },
+        {
+            "name": "launch-lua",
+            "type": "lua",
+            "request": "launch",
+            "workingDirectory": "${fileDirname}",
+            "executable": "C:/Program Files (x86)/Lua/5.1/lua.exe",
+            "arguments": "${file}",
+            "listenPublicly": false,
+            "listenPort": 56789,
+            "encoding": "UTF-8"
         }
     ]
 }
