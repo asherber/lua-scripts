@@ -5,25 +5,29 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "wait",
-            "type": "lua",
+            "name": "Lua: Listen",
+            "type": "luaMobDebug",
             "request": "attach",
-            "workingDirectory": "${workspaceRoot}",
-            "sourceBasePath": "${workspaceRoot}",
+            "workingDirectory": "${workspaceFolder}",
+            "sourceBasePath": "${workspaceFolder}",
             "listenPublicly": false,
-            "listenPort": 56789,
-            "encoding": "UTF-8"
+            "listenPort": 8172,
+            "stopOnEntry": true,
+            "sourceEncoding": "UTF-8"
         },
         {
-            "name": "launch-lua",
-            "type": "lua",
+            "name": "Lua: Run",
+            "type": "luaMobDebug",
             "request": "launch",
-            "workingDirectory": "${fileDirname}",
-            "executable": "C:/Program Files (x86)/Lua/5.1/lua.exe",
-            "arguments": "${file}",
-            "listenPublicly": false,
-            "listenPort": 56789,
-            "encoding": "UTF-8"
+            "workingDirectory": "${workspaceFolder}",
+            "sourceBasePath": "${workspaceFolder}",
+            "listenPort": 8172,
+            "stopOnEntry": true,
+            "sourceEncoding": "UTF-8",
+            "interpreter": "lua",
+            "arguments": [
+                "${relativeFile}"
+            ]
         }
     ]
 }
