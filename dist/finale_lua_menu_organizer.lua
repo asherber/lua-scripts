@@ -1,8 +1,9 @@
 __imports = __imports or {}
 __import_results = __import_results or {}
+__aaa_original_require_for_deployment__ = __aaa_original_require_for_deployment__ or require
 function require(item)
     if not __imports[item] then
-        error("module '" .. item .. "' not found")
+        return __aaa_original_require_for_deployment__(item)
     end
     if __import_results[item] == nil then
         __import_results[item] = __imports[item]()
@@ -15,6 +16,9 @@ end
 __imports["library.utils"] = __imports["library.utils"] or function()
 
     local utils = {}
+
+
+
 
     function utils.copy_table(t)
         if type(t) == "table" then
@@ -96,8 +100,64 @@ __imports["library.utils"] = __imports["library.utils"] or function()
         return string.match(str, "(.-)%s*$")
     end
 
-    function utils.lrtrim(str)
+    function utils.trim(str)
         return utils.ltrim(utils.rtrim(str))
+    end
+
+    local pcall_wrapper
+    local rethrow_placeholder = "tryfunczzz"
+    local pcall_line = debug.getinfo(1, "l").currentline + 2
+    function utils.call_and_rethrow(levels, tryfunczzz, ...)
+        return pcall_wrapper(levels, pcall(function(...) return 1, tryfunczzz(...) end, ...))
+
+    end
+
+    local source = debug.getinfo(1, "S").source
+    local source_is_file = source:sub(1, 1) == "@"
+    if source_is_file then
+        source = source:sub(2)
+    end
+
+    pcall_wrapper = function(levels, success, result, ...)
+        if not success then
+            local file
+            local line
+            local msg
+            file, line, msg = result:match("([a-zA-Z]-:?[^:]+):([0-9]+): (.+)")
+            msg = msg or result
+            local file_is_truncated = file and file:sub(1, 3) == "..."
+            file = file_is_truncated and file:sub(4) or file
+
+
+
+            if file
+                and line
+                and source_is_file
+                and (file_is_truncated and source:sub(-1 * file:len()) == file or file == source)
+                and tonumber(line) == pcall_line
+            then
+                local d = debug.getinfo(levels, "n")
+
+                msg = msg:gsub("'" .. rethrow_placeholder .. "'", "'" .. (d.name or "") .. "'")
+
+                if d.namewhat == "method" then
+                    local arg = msg:match("^bad argument #(%d+)")
+                    if arg then
+                        msg = msg:gsub("#" .. arg, "#" .. tostring(tonumber(arg) - 1), 1)
+                    end
+                end
+                error(msg, levels + 1)
+
+
+            else
+                error(result, 0)
+            end
+        end
+        return ...
+    end
+
+    function utils.rethrow_placeholder()
+        return "'" .. rethrow_placeholder .. "'"
     end
     return utils
 end
@@ -257,7 +317,7 @@ parse_layout_file_to_menu = function(file, from_menu, to_menu)
         return success
     end
     local function extract_keyword_value(keyword, line)
-        local result = utils.lrtrim(line:sub(#keyword + 1))
+        local result = utils.trim(line:sub(#keyword + 1))
         if not finenv.UI():IsOnWindows() then
             result = result:gsub("&", "")
         end
@@ -273,7 +333,7 @@ parse_layout_file_to_menu = function(file, from_menu, to_menu)
         if comment_start then
             line = line:sub(1, comment_start-1)
         end
-        line = utils.lrtrim(line)
+        line = utils.trim(line)
         if #line > 0 then
             if line:find(menuname_keyword, 1, true) == 1 then
                 line = extract_keyword_value(menuname_keyword, line)
@@ -309,8 +369,8 @@ parse_layout_file_to_menu = function(file, from_menu, to_menu)
                     else
                         local found = line:find(replacement_indicator, -#line, true)
                         if found then
-                            local original_text = utils.lrtrim(line:sub(1, found - 1))
-                            local replacement_text = utils.lrtrim(line:sub(found + #replacement_indicator))
+                            local original_text = utils.trim(line:sub(1, found - 1))
+                            local replacement_text = utils.trim(line:sub(found + #replacement_indicator))
                             if #replacement_text > 0 then
                                 item_menu, item_index = menu.find_item(from_menu, original_text)
                                 if item_menu then
