@@ -1,8 +1,9 @@
 __imports = __imports or {}
 __import_results = __import_results or {}
+__aaa_original_require_for_deployment__ = __aaa_original_require_for_deployment__ or require
 function require(item)
     if not __imports[item] then
-        error("module '" .. item .. "' not found")
+        return __aaa_original_require_for_deployment__(item)
     end
     if __import_results[item] == nil then
         __import_results[item] = __imports[item]()
