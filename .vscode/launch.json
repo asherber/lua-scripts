@@ -12,7 +12,7 @@
             "sourceBasePath": "${workspaceFolder}",
             "listenPublicly": false,
             "listenPort": 8172,
-            "stopOnEntry": true,
+            "stopOnEntry": false,
             "sourceEncoding": "UTF-8"
         },
         {
@@ -22,7 +22,7 @@
             "workingDirectory": "${workspaceFolder}",
             "sourceBasePath": "${workspaceFolder}",
             "listenPort": 8172,
-            "stopOnEntry": true,
+            "stopOnEntry": false,
             "sourceEncoding": "UTF-8",
             "interpreter": "lua",
             "arguments": [
