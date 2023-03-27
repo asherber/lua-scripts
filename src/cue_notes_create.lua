@@ -120,7 +120,7 @@ function new_cue_name(source_staff)
 
     local staff = finale.FCStaff() -- copy the source Staff Name
     staff:Load(source_staff)
-    local the_name = dialog:CreateEdit(0, 40):SetWidth(200):SetText(staff:CreateDisplayFullNameString())
+    local the_name = dialog:CreateEdit(0, 40):SetWidth(200):SetText(staff:CreateDisplayAbbreviatedNameString())
     dialog:CreateOkButton()
     dialog:CreateCancelButton()
     dialog_set_position(dialog)
