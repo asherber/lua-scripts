@@ -1,19 +1,4 @@
-__imports = __imports or {}
-__import_results = __import_results or {}
-__aaa_original_require_for_deployment__ = __aaa_original_require_for_deployment__ or require
-function require(item)
-    if not __imports[item] then
-        return __aaa_original_require_for_deployment__(item)
-    end
-    if __import_results[item] == nil then
-        __import_results[item] = __imports[item]()
-        if __import_results[item] == nil then
-            __import_results[item] = true
-        end
-    end
-    return __import_results[item]
-end
-__imports["library.layer"] = __imports["library.layer"] or function()
+package.preload["library.layer"] = package.preload["library.layer"] or function()
 
     local layer = {}
 
@@ -124,6 +109,7 @@ function plugindef()
     finaleplugin.Notes = [[
         Swaps layers 1 and 2 for the selected region.
     ]]
+    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/layers_swap_1_2.hash"
     return "Layer: Swap 1 & 2", "Layer: Swap 1 & 2", "Swaps layers 1 and 2"
 end
 local layers = require("library.layer")

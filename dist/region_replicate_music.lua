@@ -1,13 +1,15 @@
 function plugindef()
     finaleplugin.Author = "Michael McClennan"
-    finaleplugin.Version = 1.0
+    finaleplugin.Version = "1.0.1"
     finaleplugin.Copyright = "2022/01/03"
     finaleplugin.HandlesUndo = true
+    finaleplugin.RequireSelection = true
     finaleplugin.Notes = [[
     Inspired by the 'r' key in Sibelius, this script copies the selected music, and pastes it directly to the right.
 Works with a single or multiple measures.
 When activated with a shortcut or hotkey, ultra fast replication is possible.
 ]]
+    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/region_replicate_music.hash"
 return "Replicate Music", "Replicate Music", "Inspired by the 'r' key in Sibelius, this script copies the selected music, and pastes it directly to the right"
 end
 local function replicate_music()

@@ -25,7 +25,7 @@
 fcmtextexpressiondef.SaveNewTextBlock(self, str)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMTextExpressionDef.lua#L36)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMTextExpressionDef.lua#L36)
 
 **[Breaking Change] [Fluid] [Override]**
 
@@ -44,7 +44,7 @@ Override Changes:
 fcmtextexpressiondef.AssignToCategory(self, cat_def)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMTextExpressionDef.lua#L55)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMTextExpressionDef.lua#L55)
 
 **[Breaking Change] [Fluid] [Override]**
 
@@ -62,7 +62,7 @@ Override Changes:
 fcmtextexpressiondef.SetUseCategoryPos(self, enable)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMTextExpressionDef.lua#L73)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMTextExpressionDef.lua#L73)
 
 **[Breaking Change] [Fluid] [Override]**
 
@@ -80,7 +80,7 @@ Override Changes:
 fcmtextexpressiondef.SetUseCategoryFont(self, enable)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMTextExpressionDef.lua#L91)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMTextExpressionDef.lua#L91)
 
 **[Breaking Change] [Fluid] [Override]**
 
@@ -98,7 +98,7 @@ Override Changes:
 fcmtextexpressiondef.MakeRehearsalMark(self, str, measure)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMTextExpressionDef.lua#L112)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMTextExpressionDef.lua#L112)
 
 **[Breaking Change] [Fluid] [Override]**
 
@@ -122,7 +122,7 @@ Override Changes:
 fcmtextexpressiondef.SaveTextString(self, str)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMTextExpressionDef.lua#L146)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMTextExpressionDef.lua#L146)
 
 **[Breaking Change] [Fluid] [Override]**
 
@@ -141,7 +141,7 @@ Override Changes:
 fcmtextexpressiondef.DeleteTextBlock(self)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMTextExpressionDef.lua#L165)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMTextExpressionDef.lua#L165)
 
 **[Breaking Change] [Fluid] [Override]**
 
@@ -158,9 +158,9 @@ Override Changes:
 fcmtextexpressiondef.SetDescription(self, str)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMTextExpressionDef.lua#L182)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMTextExpressionDef.lua#L182)
 
-**[Breaking Change] [Fluid] [Override]**
+**[Fluid] [Override]**
 
 Override Changes:
 - Accepts Lua `string` in addition to `FCString`.
@@ -176,9 +176,9 @@ Override Changes:
 fcmtextexpressiondef.GetDescription(self, str)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMTextExpressionDef.lua#L202)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMTextExpressionDef.lua#L202)
 
-**[Breaking Change] [Fluid] [Override]**
+**[?Fluid] [Override]**
 
 Override Changes:
 - Passing an `FCString` is optional. If omitted, the result is returned as a Lua `string`. If passed, nothing is returned and the method is fluid.
@@ -190,7 +190,7 @@ Override Changes:
 
 | Return type | Description |
 | ----------- | ----------- |
-| `string` | If `FCString` is omitted. |
+| `string` | Returned if `str` is omitted. |
 
 ### DeepSaveAs
 
@@ -198,7 +198,7 @@ Override Changes:
 fcmtextexpressiondef.DeepSaveAs(self, item_num)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMTextExpressionDef.lua#L226)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMTextExpressionDef.lua#L226)
 
 **[Breaking Change] [Fluid] [Override]**
 
@@ -216,7 +216,7 @@ Override Changes:
 fcmtextexpressiondef.DeepDeleteData(self)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMTextExpressionDef.lua#L243)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMTextExpressionDef.lua#L243)
 
 **[Breaking Change] [Fluid] [Override]**
 

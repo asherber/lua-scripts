@@ -1,19 +1,4 @@
-__imports = __imports or {}
-__import_results = __import_results or {}
-__aaa_original_require_for_deployment__ = __aaa_original_require_for_deployment__ or require
-function require(item)
-    if not __imports[item] then
-        return __aaa_original_require_for_deployment__(item)
-    end
-    if __import_results[item] == nil then
-        __import_results[item] = __imports[item]()
-        if __import_results[item] == nil then
-            __import_results[item] = true
-        end
-    end
-    return __import_results[item]
-end
-__imports["library.articulation"] = __imports["library.articulation"] or function()
+package.preload["library.articulation"] = package.preload["library.articulation"] or function()
 
     local articulation = {}
     local note_entry = require("library.note_entry")
@@ -61,7 +46,7 @@ __imports["library.articulation"] = __imports["library.articulation"] or functio
     end
     return articulation
 end
-__imports["library.transposition"] = __imports["library.transposition"] or function()
+package.preload["library.transposition"] = package.preload["library.transposition"] or function()
 
 
 
@@ -205,13 +190,13 @@ __imports["library.transposition"] = __imports["library.transposition"] or funct
         return true
     end
 
-    function transposition.enharmonic_transpose_default(note, ignore_error)
+    function transposition.enharmonic_transpose_default(note)
         if note.RaiseLower ~= 0 then
-            return transposition.enharmonic_transpose(note, sign(note.RaiseLower), ignore_error)
+            return transposition.enharmonic_transpose(note, sign(note.RaiseLower))
         end
         local original_displacement = note.Displacement
         local original_raiselower = note.RaiseLower
-        if not transposition.enharmonic_transpose(note, 1, ignore_error) then
+        if not transposition.enharmonic_transpose(note, 1) then
             return false
         end
 
@@ -224,7 +209,7 @@ __imports["library.transposition"] = __imports["library.transposition"] or funct
         local up_raiselower = note.RaiseLower
         note.Displacement = original_displacement
         note.RaiseLower = original_raiselower
-        if not transposition.enharmonic_transpose(note, -1, ignore_error) then
+        if not transposition.enharmonic_transpose(note, -1) then
             return false
         end
         if math.abs(note.RaiseLower) < math.abs(up_raiselower) then
@@ -288,7 +273,144 @@ __imports["library.transposition"] = __imports["library.transposition"] or funct
     end
     return transposition
 end
-__imports["library.utils"] = __imports["library.utils"] or function()
+package.preload["library.configuration"] = package.preload["library.configuration"] or function()
+
+
+
+    local configuration = {}
+    local utils = require("library.utils")
+    local script_settings_dir = "script_settings"
+    local comment_marker = "--"
+    local parameter_delimiter = "="
+    local path_delimiter = "/"
+    local file_exists = function(file_path)
+        local f = io.open(file_path, "r")
+        if nil ~= f then
+            io.close(f)
+            return true
+        end
+        return false
+    end
+    parse_parameter = function(val_string)
+        if "\"" == val_string:sub(1, 1) and "\"" == val_string:sub(#val_string, #val_string) then
+            return string.gsub(val_string, "\"(.+)\"", "%1")
+        elseif "'" == val_string:sub(1, 1) and "'" == val_string:sub(#val_string, #val_string) then
+            return string.gsub(val_string, "'(.+)'", "%1")
+        elseif "{" == val_string:sub(1, 1) and "}" == val_string:sub(#val_string, #val_string) then
+            return load("return " .. val_string)()
+        elseif "true" == val_string then
+            return true
+        elseif "false" == val_string then
+            return false
+        end
+        return tonumber(val_string)
+    end
+    local get_parameters_from_file = function(file_path, parameter_list)
+        local file_parameters = {}
+        if not file_exists(file_path) then
+            return false
+        end
+        for line in io.lines(file_path) do
+            local comment_at = string.find(line, comment_marker, 1, true)
+            if nil ~= comment_at then
+                line = string.sub(line, 1, comment_at - 1)
+            end
+            local delimiter_at = string.find(line, parameter_delimiter, 1, true)
+            if nil ~= delimiter_at then
+                local name = utils.trim(string.sub(line, 1, delimiter_at - 1))
+                local val_string = utils.trim(string.sub(line, delimiter_at + 1))
+                file_parameters[name] = parse_parameter(val_string)
+            end
+        end
+        local function process_table(param_table, param_prefix)
+            param_prefix = param_prefix and param_prefix.."." or ""
+            for param_name, param_val in pairs(param_table) do
+                local file_param_name = param_prefix .. param_name
+                local file_param_val = file_parameters[file_param_name]
+                if nil ~= file_param_val then
+                    param_table[param_name] = file_param_val
+                elseif type(param_val) == "table" then
+                        process_table(param_val, param_prefix..param_name)
+                end
+            end
+        end
+        process_table(parameter_list)
+        return true
+    end
+
+    function configuration.get_parameters(file_name, parameter_list)
+        local path = ""
+        if finenv.IsRGPLua then
+            path = finenv.RunningLuaFolderPath()
+        else
+            local str = finale.FCString()
+            str:SetRunningLuaFolderPath()
+            path = str.LuaString
+        end
+        local file_path = path .. script_settings_dir .. path_delimiter .. file_name
+        return get_parameters_from_file(file_path, parameter_list)
+    end
+
+
+    local calc_preferences_filepath = function(script_name)
+        local str = finale.FCString()
+        str:SetUserOptionsPath()
+        local folder_name = str.LuaString
+        if not finenv.IsRGPLua and finenv.UI():IsOnMac() then
+
+            folder_name = os.getenv("HOME") .. folder_name:sub(2)
+        end
+        if finenv.UI():IsOnWindows() then
+            folder_name = folder_name .. path_delimiter .. "FinaleLua"
+        end
+        local file_path = folder_name .. path_delimiter
+        if finenv.UI():IsOnMac() then
+            file_path = file_path .. "com.finalelua."
+        end
+        file_path = file_path .. script_name .. ".settings.txt"
+        return file_path, folder_name
+    end
+
+    function configuration.save_user_settings(script_name, parameter_list)
+        local file_path, folder_path = calc_preferences_filepath(script_name)
+        local file = io.open(file_path, "w")
+        if not file and finenv.UI():IsOnWindows() then
+
+            local osutils = finenv.EmbeddedLuaOSUtils and utils.require_embedded("luaosutils")
+            if osutils then
+                osutils.process.make_dir(folder_path)
+            else
+                os.execute('mkdir "' .. folder_path ..'"')
+            end
+            file = io.open(file_path, "w")
+        end
+        if not file then
+            return false
+        end
+        file:write("-- User settings for " .. script_name .. ".lua\n\n")
+        for k,v in pairs(parameter_list) do
+            if type(v) == "string" then
+                v = "\"" .. v .."\""
+            else
+                v = tostring(v)
+            end
+            file:write(k, " = ", v, "\n")
+        end
+        file:close()
+        return true
+    end
+
+    function configuration.get_user_settings(script_name, parameter_list, create_automatically)
+        if create_automatically == nil then create_automatically = true end
+        local exists = get_parameters_from_file(calc_preferences_filepath(script_name), parameter_list)
+        if not exists and create_automatically then
+            configuration.save_user_settings(script_name, parameter_list)
+        end
+        return exists
+    end
+    return configuration
+end
+package.preload["library.utils"] = package.preload["library.utils"] or function()
 
     local utils = {}
 
@@ -328,7 +450,14 @@ __imports["library.utils"] = __imports["library.utils"] or function()
     function utils.round(value, places)
         places = places or 0
         local multiplier = 10^places
-        return math.floor(value * multiplier + 0.5) / multiplier
+        local ret = math.floor(value * multiplier + 0.5)
+
+        return places == 0 and ret or ret / multiplier
+    end
+
+    function utils.to_integer_if_whole(value)
+        local int = math.floor(value)
+        return value == int and int or value
     end
 
     function utils.calc_roman_numeral(num)
@@ -434,140 +563,13 @@ __imports["library.utils"] = __imports["library.utils"] or function()
     function utils.rethrow_placeholder()
         return "'" .. rethrow_placeholder .. "'"
     end
+
+    function utils.require_embedded(library_name)
+        return require(library_name)
+    end
     return utils
 end
-__imports["library.configuration"] = __imports["library.configuration"] or function()
-
-
-
-    local configuration = {}
-    local utils = require("library.utils")
-    local script_settings_dir = "script_settings"
-    local comment_marker = "--"
-    local parameter_delimiter = "="
-    local path_delimiter = "/"
-    local file_exists = function(file_path)
-        local f = io.open(file_path, "r")
-        if nil ~= f then
-            io.close(f)
-            return true
-        end
-        return false
-    end
-    parse_parameter = function(val_string)
-        if "\"" == val_string:sub(1, 1) and "\"" == val_string:sub(#val_string, #val_string) then
-            return string.gsub(val_string, "\"(.+)\"", "%1")
-        elseif "'" == val_string:sub(1, 1) and "'" == val_string:sub(#val_string, #val_string) then
-            return string.gsub(val_string, "'(.+)'", "%1")
-        elseif "{" == val_string:sub(1, 1) and "}" == val_string:sub(#val_string, #val_string) then
-            return load("return " .. val_string)()
-        elseif "true" == val_string then
-            return true
-        elseif "false" == val_string then
-            return false
-        end
-        return tonumber(val_string)
-    end
-    local get_parameters_from_file = function(file_path, parameter_list)
-        local file_parameters = {}
-        if not file_exists(file_path) then
-            return false
-        end
-        for line in io.lines(file_path) do
-            local comment_at = string.find(line, comment_marker, 1, true)
-            if nil ~= comment_at then
-                line = string.sub(line, 1, comment_at - 1)
-            end
-            local delimiter_at = string.find(line, parameter_delimiter, 1, true)
-            if nil ~= delimiter_at then
-                local name = utils.trim(string.sub(line, 1, delimiter_at - 1))
-                local val_string = utils.trim(string.sub(line, delimiter_at + 1))
-                file_parameters[name] = parse_parameter(val_string)
-            end
-        end
-        local function process_table(param_table, param_prefix)
-            param_prefix = param_prefix and param_prefix.."." or ""
-            for param_name, param_val in pairs(param_table) do
-                local file_param_name = param_prefix .. param_name
-                local file_param_val = file_parameters[file_param_name]
-                if nil ~= file_param_val then
-                    param_table[param_name] = file_param_val
-                elseif type(param_val) == "table" then
-                        process_table(param_val, param_prefix..param_name)
-                end
-            end
-        end
-        process_table(parameter_list)
-        return true
-    end
-
-    function configuration.get_parameters(file_name, parameter_list)
-        local path = ""
-        if finenv.IsRGPLua then
-            path = finenv.RunningLuaFolderPath()
-        else
-            local str = finale.FCString()
-            str:SetRunningLuaFolderPath()
-            path = str.LuaString
-        end
-        local file_path = path .. script_settings_dir .. path_delimiter .. file_name
-        return get_parameters_from_file(file_path, parameter_list)
-    end
-
-
-    local calc_preferences_filepath = function(script_name)
-        local str = finale.FCString()
-        str:SetUserOptionsPath()
-        local folder_name = str.LuaString
-        if not finenv.IsRGPLua and finenv.UI():IsOnMac() then
-
-            folder_name = os.getenv("HOME") .. folder_name:sub(2)
-        end
-        if finenv.UI():IsOnWindows() then
-            folder_name = folder_name .. path_delimiter .. "FinaleLua"
-        end
-        local file_path = folder_name .. path_delimiter
-        if finenv.UI():IsOnMac() then
-            file_path = file_path .. "com.finalelua."
-        end
-        file_path = file_path .. script_name .. ".settings.txt"
-        return file_path, folder_name
-    end
-
-    function configuration.save_user_settings(script_name, parameter_list)
-        local file_path, folder_path = calc_preferences_filepath(script_name)
-        local file = io.open(file_path, "w")
-        if not file and finenv.UI():IsOnWindows() then
-            os.execute('mkdir "' .. folder_path ..'"')
-            file = io.open(file_path, "w")
-        end
-        if not file then
-            return false
-        end
-        file:write("-- User settings for " .. script_name .. ".lua\n\n")
-        for k,v in pairs(parameter_list) do
-            if type(v) == "string" then
-                v = "\"" .. v .."\""
-            else
-                v = tostring(v)
-            end
-            file:write(k, " = ", v, "\n")
-        end
-        file:close()
-        return true
-    end
-
-    function configuration.get_user_settings(script_name, parameter_list, create_automatically)
-        if create_automatically == nil then create_automatically = true end
-        local exists = get_parameters_from_file(calc_preferences_filepath(script_name), parameter_list)
-        if not exists and create_automatically then
-            configuration.save_user_settings(script_name, parameter_list)
-        end
-        return exists
-    end
-    return configuration
-end
-__imports["library.client"] = __imports["library.client"] or function()
+package.preload["library.client"] = package.preload["library.client"] or function()
 
     local client = {}
     local function to_human_string(feature)
@@ -665,9 +667,10 @@ __imports["library.client"] = __imports["library.client"] or function()
     end
     return client
 end
-__imports["library.general_library"] = __imports["library.general_library"] or function()
+package.preload["library.general_library"] = package.preload["library.general_library"] or function()
 
     local library = {}
+    local utils = require("library.utils")
     local client = require("library.client")
 
     function library.group_overlaps_region(staff_group, region)
@@ -862,22 +865,29 @@ __imports["library.general_library"] = __imports["library.general_library"] or f
     end
 
     function library.get_smufl_font_list()
+        local osutils = finenv.EmbeddedLuaOSUtils and utils.require_embedded("luaosutils")
         local font_names = {}
         local add_to_table = function(for_user)
             local smufl_directory = calc_smufl_directory(for_user)
             local get_dirs = function()
-                if finenv.UI():IsOnWindows() then
-                    return io.popen("dir \"" .. smufl_directory .. "\" /b /ad")
-                else
-                    return io.popen("ls \"" .. smufl_directory .. "\"")
+                local options = finenv.UI():IsOnWindows() and "/b /ad" or "-1"
+                if osutils then
+                    return osutils.process.list_dir(smufl_directory, options)
                 end
+
+                local cmd = finenv.UI():IsOnWindows() and "dir " or "ls "
+                local handle = io.popen(cmd .. options .. " \"" .. smufl_directory .. "\"")
+                local retval = handle:read("*a")
+                handle:close()
+                return retval
             end
             local is_font_available = function(dir)
                 local fc_dir = finale.FCString()
                 fc_dir.LuaString = dir
                 return finenv.UI():IsFontAvailable(fc_dir)
             end
-            for dir in get_dirs():lines() do
+            local dirs = get_dirs() or ""
+            for dir in dirs:gmatch("([^\r\n]*)[\r\n]?") do
                 if not dir:find("%.") then
                     dir = dir:gsub(" Bold", "")
                     dir = dir:gsub(" Italic", "")
@@ -889,8 +899,8 @@ __imports["library.general_library"] = __imports["library.general_library"] or f
                 end
             end
         end
-        add_to_table(true)
         add_to_table(false)
+        add_to_table(true)
         return font_names
     end
 
@@ -1072,7 +1082,7 @@ __imports["library.general_library"] = __imports["library.general_library"] or f
     end
     return library
 end
-__imports["library.notehead"] = __imports["library.notehead"] or function()
+package.preload["library.notehead"] = package.preload["library.notehead"] or function()
 
     local notehead = {}
     local configuration = require("library.configuration")
@@ -1311,7 +1321,7 @@ __imports["library.notehead"] = __imports["library.notehead"] or function()
     end
     return notehead
 end
-__imports["library.note_entry"] = __imports["library.note_entry"] or function()
+package.preload["library.note_entry"] = package.preload["library.note_entry"] or function()
 
     local note_entry = {}
 
@@ -1503,6 +1513,7 @@ __imports["library.note_entry"] = __imports["library.note_entry"] or function()
         finale.FCNoteheadMod():EraseAt(note)
         finale.FCPercussionNoteMod():EraseAt(note)
         finale.FCTablatureNoteMod():EraseAt(note)
+        finale.FCPerformanceMod():EraseAt(note)
         if finale.FCTieMod then
             finale.FCTieMod(finale.TIEMODTYPE_TIESTART):EraseAt(note)
             finale.FCTieMod(finale.TIEMODTYPE_TIEEND):EraseAt(note)
@@ -1578,25 +1589,21 @@ __imports["library.note_entry"] = __imports["library.note_entry"] or function()
         if entry:IsNote() then
             return false
         end
-        if offset == 0 then
-            entry:SetFloatingRest(true)
-        else
-            local rest_prop = "OtherRestPosition"
-            if entry.Duration >= finale.BREVE then
-                rest_prop = "DoubleWholeRestPosition"
-            elseif entry.Duration >= finale.WHOLE_NOTE then
-                rest_prop = "WholeRestPosition"
-            elseif entry.Duration >= finale.HALF_NOTE then
-                rest_prop = "HalfRestPosition"
-            end
-            entry:MakeMovableRest()
-            local rest = entry:GetItemAt(0)
-            local curr_staffpos = rest:CalcStaffPosition()
-            local staff_spec = finale.FCCurrentStaffSpec()
-            staff_spec:LoadForEntry(entry)
-            local total_offset = staff_spec[rest_prop] + offset - curr_staffpos
-            entry:SetRestDisplacement(entry:GetRestDisplacement() + total_offset)
+        local rest_prop = "OtherRestPosition"
+        if entry.Duration >= finale.BREVE then
+            rest_prop = "DoubleWholeRestPosition"
+        elseif entry.Duration >= finale.WHOLE_NOTE then
+            rest_prop = "WholeRestPosition"
+        elseif entry.Duration >= finale.HALF_NOTE then
+            rest_prop = "HalfRestPosition"
         end
+        entry:MakeMovableRest()
+        local rest = entry:GetItemAt(0)
+        local curr_staffpos = rest:CalcStaffPosition()
+        local staff_spec = finale.FCCurrentStaffSpec()
+        staff_spec:LoadForEntry(entry)
+        local total_offset = staff_spec[rest_prop] + offset - curr_staffpos
+        entry:SetRestDisplacement(entry:GetRestDisplacement() + total_offset)
         return true
     end
     return note_entry
@@ -1609,6 +1616,7 @@ function plugindef()
     finaleplugin.Date = "March 30, 2021"
     finaleplugin.CategoryTags = "Pitch"
     finaleplugin.AuthorURL = "https://nickmazuk.com"
+    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/pitch_transform_harmonics_fourth.hash"
     return "String Harmonics 4th - Sounding Pitch", "String Harmonics 4th - Sounding Pitch",
            "Takes a sounding pitch, then creates the artificial harmonic that would produce that pitch"
 end

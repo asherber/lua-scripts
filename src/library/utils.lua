@@ -75,7 +75,23 @@ Rounds a number to the nearest integer or the specified number of decimal places
 function utils.round(value, places)
     places = places or 0
     local multiplier = 10^places
-    return math.floor(value * multiplier + 0.5) / multiplier
+    local ret = math.floor(value * multiplier + 0.5)
+    -- Ensures that a real integer type is returned as needed
+    return places == 0 and ret or ret / multiplier
+end
+
+--[[
+% to_integer_if_whole
+
+Takes a number and if it is an integer or whole float (eg 12 or 12.0), returns an integer.
+All other floats will be returned as passed.
+
+@ value (number)
+: (number)
+]]
+function utils.to_integer_if_whole(value)
+    local int = math.floor(value)
+    return value == int and int or value
 end
 
 --[[ 
@@ -274,6 +290,17 @@ Use this in error messages where the function name is variable or unknown (eg be
 ]]
 function utils.rethrow_placeholder()
     return "'" .. rethrow_placeholder .. "'"
+end
+
+--[[
+% require_embedded
+
+Bypasses the deployment rewrite of `require` to allow for requiring of libraries embedded in RGP Lua.
+
+: (string) The name of the embedded library to require.
+]]
+function utils.require_embedded(library_name)
+    return require(library_name)
 end
 
 return utils

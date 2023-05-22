@@ -1,19 +1,4 @@
-__imports = __imports or {}
-__import_results = __import_results or {}
-__aaa_original_require_for_deployment__ = __aaa_original_require_for_deployment__ or require
-function require(item)
-    if not __imports[item] then
-        return __aaa_original_require_for_deployment__(item)
-    end
-    if __import_results[item] == nil then
-        __import_results[item] = __imports[item]()
-        if __import_results[item] == nil then
-            __import_results[item] = true
-        end
-    end
-    return __import_results[item]
-end
-__imports["library.client"] = __imports["library.client"] or function()
+package.preload["library.client"] = package.preload["library.client"] or function()
 
     local client = {}
     local function to_human_string(feature)
@@ -111,9 +96,10 @@ __imports["library.client"] = __imports["library.client"] or function()
     end
     return client
 end
-__imports["library.general_library"] = __imports["library.general_library"] or function()
+package.preload["library.general_library"] = package.preload["library.general_library"] or function()
 
     local library = {}
+    local utils = require("library.utils")
     local client = require("library.client")
 
     function library.group_overlaps_region(staff_group, region)
@@ -308,22 +294,29 @@ __imports["library.general_library"] = __imports["library.general_library"] or f
     end
 
     function library.get_smufl_font_list()
+        local osutils = finenv.EmbeddedLuaOSUtils and utils.require_embedded("luaosutils")
         local font_names = {}
         local add_to_table = function(for_user)
             local smufl_directory = calc_smufl_directory(for_user)
             local get_dirs = function()
-                if finenv.UI():IsOnWindows() then
-                    return io.popen("dir \"" .. smufl_directory .. "\" /b /ad")
-                else
-                    return io.popen("ls \"" .. smufl_directory .. "\"")
+                local options = finenv.UI():IsOnWindows() and "/b /ad" or "-1"
+                if osutils then
+                    return osutils.process.list_dir(smufl_directory, options)
                 end
+
+                local cmd = finenv.UI():IsOnWindows() and "dir " or "ls "
+                local handle = io.popen(cmd .. options .. " \"" .. smufl_directory .. "\"")
+                local retval = handle:read("*a")
+                handle:close()
+                return retval
             end
             local is_font_available = function(dir)
                 local fc_dir = finale.FCString()
                 fc_dir.LuaString = dir
                 return finenv.UI():IsFontAvailable(fc_dir)
             end
-            for dir in get_dirs():lines() do
+            local dirs = get_dirs() or ""
+            for dir in dirs:gmatch("([^\r\n]*)[\r\n]?") do
                 if not dir:find("%.") then
                     dir = dir:gsub(" Bold", "")
                     dir = dir:gsub(" Italic", "")
@@ -335,8 +328,8 @@ __imports["library.general_library"] = __imports["library.general_library"] or f
                 end
             end
         end
-        add_to_table(true)
         add_to_table(false)
+        add_to_table(true)
         return font_names
     end
 
@@ -518,7 +511,7 @@ __imports["library.general_library"] = __imports["library.general_library"] or f
     end
     return library
 end
-__imports["library.measurement"] = __imports["library.measurement"] or function()
+package.preload["library.measurement"] = package.preload["library.measurement"] or function()
 
     local measurement = {}
     local unit_names = {
@@ -598,7 +591,7 @@ __imports["library.measurement"] = __imports["library.measurement"] or function(
     end
     return measurement
 end
-__imports["library.score"] = __imports["library.score"] or function()
+package.preload["library.score"] = package.preload["library.score"] or function()
 
     local library = require("library.general_library")
     local configuration = require("library.configuration")
@@ -1112,7 +1105,7 @@ __imports["library.score"] = __imports["library.score"] or function()
     end
     return score
 end
-__imports["library.utils"] = __imports["library.utils"] or function()
+package.preload["library.utils"] = package.preload["library.utils"] or function()
 
     local utils = {}
 
@@ -1152,7 +1145,14 @@ __imports["library.utils"] = __imports["library.utils"] or function()
     function utils.round(value, places)
         places = places or 0
         local multiplier = 10^places
-        return math.floor(value * multiplier + 0.5) / multiplier
+        local ret = math.floor(value * multiplier + 0.5)
+
+        return places == 0 and ret or ret / multiplier
+    end
+
+    function utils.to_integer_if_whole(value)
+        local int = math.floor(value)
+        return value == int and int or value
     end
 
     function utils.calc_roman_numeral(num)
@@ -1258,9 +1258,13 @@ __imports["library.utils"] = __imports["library.utils"] or function()
     function utils.rethrow_placeholder()
         return "'" .. rethrow_placeholder .. "'"
     end
+
+    function utils.require_embedded(library_name)
+        return require(library_name)
+    end
     return utils
 end
-__imports["library.configuration"] = __imports["library.configuration"] or function()
+package.preload["library.configuration"] = package.preload["library.configuration"] or function()
 
 
 
@@ -1362,7 +1366,13 @@ __imports["library.configuration"] = __imports["library.configuration"] or funct
         local file_path, folder_path = calc_preferences_filepath(script_name)
         local file = io.open(file_path, "w")
         if not file and finenv.UI():IsOnWindows() then
-            os.execute('mkdir "' .. folder_path ..'"')
+
+            local osutils = finenv.EmbeddedLuaOSUtils and utils.require_embedded("luaosutils")
+            if osutils then
+                osutils.process.make_dir(folder_path)
+            else
+                os.execute('mkdir "' .. folder_path ..'"')
+            end
             file = io.open(file_path, "w")
         end
         if not file then
@@ -1409,6 +1419,7 @@ function plugindef()
         All existing staffs will be deleted. And in their place, the brass quintet will be created.
         This script uses the standard ensemble creation configuration options.
     ]]
+    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/score_create_brass_quintet.hash"
     return "Create brass quintet score", "Create brass quintet score", "Creates the score setup correctly for brass quintet"
 end
 local score = require("library.score")

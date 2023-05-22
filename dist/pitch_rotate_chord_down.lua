@@ -1,19 +1,4 @@
-__imports = __imports or {}
-__import_results = __import_results or {}
-__aaa_original_require_for_deployment__ = __aaa_original_require_for_deployment__ or require
-function require(item)
-    if not __imports[item] then
-        return __aaa_original_require_for_deployment__(item)
-    end
-    if __import_results[item] == nil then
-        __import_results[item] = __imports[item]()
-        if __import_results[item] == nil then
-            __import_results[item] = true
-        end
-    end
-    return __import_results[item]
-end
-__imports["library.client"] = __imports["library.client"] or function()
+package.preload["library.client"] = package.preload["library.client"] or function()
 
     local client = {}
     local function to_human_string(feature)
@@ -111,7 +96,7 @@ __imports["library.client"] = __imports["library.client"] or function()
     end
     return client
 end
-__imports["library.utils"] = __imports["library.utils"] or function()
+package.preload["library.utils"] = package.preload["library.utils"] or function()
 
     local utils = {}
 
@@ -151,7 +136,14 @@ __imports["library.utils"] = __imports["library.utils"] or function()
     function utils.round(value, places)
         places = places or 0
         local multiplier = 10^places
-        return math.floor(value * multiplier + 0.5) / multiplier
+        local ret = math.floor(value * multiplier + 0.5)
+
+        return places == 0 and ret or ret / multiplier
+    end
+
+    function utils.to_integer_if_whole(value)
+        local int = math.floor(value)
+        return value == int and int or value
     end
 
     function utils.calc_roman_numeral(num)
@@ -257,9 +249,13 @@ __imports["library.utils"] = __imports["library.utils"] or function()
     function utils.rethrow_placeholder()
         return "'" .. rethrow_placeholder .. "'"
     end
+
+    function utils.require_embedded(library_name)
+        return require(library_name)
+    end
     return utils
 end
-__imports["library.configuration"] = __imports["library.configuration"] or function()
+package.preload["library.configuration"] = package.preload["library.configuration"] or function()
 
 
 
@@ -361,7 +357,13 @@ __imports["library.configuration"] = __imports["library.configuration"] or funct
         local file_path, folder_path = calc_preferences_filepath(script_name)
         local file = io.open(file_path, "w")
         if not file and finenv.UI():IsOnWindows() then
-            os.execute('mkdir "' .. folder_path ..'"')
+
+            local osutils = finenv.EmbeddedLuaOSUtils and utils.require_embedded("luaosutils")
+            if osutils then
+                osutils.process.make_dir(folder_path)
+            else
+                os.execute('mkdir "' .. folder_path ..'"')
+            end
             file = io.open(file_path, "w")
         end
         if not file then
@@ -390,7 +392,7 @@ __imports["library.configuration"] = __imports["library.configuration"] or funct
     end
     return configuration
 end
-__imports["library.transposition"] = __imports["library.transposition"] or function()
+package.preload["library.transposition"] = package.preload["library.transposition"] or function()
 
 
 
@@ -534,13 +536,13 @@ __imports["library.transposition"] = __imports["library.transposition"] or funct
         return true
     end
 
-    function transposition.enharmonic_transpose_default(note, ignore_error)
+    function transposition.enharmonic_transpose_default(note)
         if note.RaiseLower ~= 0 then
-            return transposition.enharmonic_transpose(note, sign(note.RaiseLower), ignore_error)
+            return transposition.enharmonic_transpose(note, sign(note.RaiseLower))
         end
         local original_displacement = note.Displacement
         local original_raiselower = note.RaiseLower
-        if not transposition.enharmonic_transpose(note, 1, ignore_error) then
+        if not transposition.enharmonic_transpose(note, 1) then
             return false
         end
 
@@ -553,7 +555,7 @@ __imports["library.transposition"] = __imports["library.transposition"] or funct
         local up_raiselower = note.RaiseLower
         note.Displacement = original_displacement
         note.RaiseLower = original_raiselower
-        if not transposition.enharmonic_transpose(note, -1, ignore_error) then
+        if not transposition.enharmonic_transpose(note, -1) then
             return false
         end
         if math.abs(note.RaiseLower) < math.abs(up_raiselower) then
@@ -617,7 +619,7 @@ __imports["library.transposition"] = __imports["library.transposition"] or funct
     end
     return transposition
 end
-__imports["library.note_entry"] = __imports["library.note_entry"] or function()
+package.preload["library.note_entry"] = package.preload["library.note_entry"] or function()
 
     local note_entry = {}
 
@@ -809,6 +811,7 @@ __imports["library.note_entry"] = __imports["library.note_entry"] or function()
         finale.FCNoteheadMod():EraseAt(note)
         finale.FCPercussionNoteMod():EraseAt(note)
         finale.FCTablatureNoteMod():EraseAt(note)
+        finale.FCPerformanceMod():EraseAt(note)
         if finale.FCTieMod then
             finale.FCTieMod(finale.TIEMODTYPE_TIESTART):EraseAt(note)
             finale.FCTieMod(finale.TIEMODTYPE_TIEEND):EraseAt(note)
@@ -884,25 +887,21 @@ __imports["library.note_entry"] = __imports["library.note_entry"] or function()
         if entry:IsNote() then
             return false
         end
-        if offset == 0 then
-            entry:SetFloatingRest(true)
-        else
-            local rest_prop = "OtherRestPosition"
-            if entry.Duration >= finale.BREVE then
-                rest_prop = "DoubleWholeRestPosition"
-            elseif entry.Duration >= finale.WHOLE_NOTE then
-                rest_prop = "WholeRestPosition"
-            elseif entry.Duration >= finale.HALF_NOTE then
-                rest_prop = "HalfRestPosition"
-            end
-            entry:MakeMovableRest()
-            local rest = entry:GetItemAt(0)
-            local curr_staffpos = rest:CalcStaffPosition()
-            local staff_spec = finale.FCCurrentStaffSpec()
-            staff_spec:LoadForEntry(entry)
-            local total_offset = staff_spec[rest_prop] + offset - curr_staffpos
-            entry:SetRestDisplacement(entry:GetRestDisplacement() + total_offset)
+        local rest_prop = "OtherRestPosition"
+        if entry.Duration >= finale.BREVE then
+            rest_prop = "DoubleWholeRestPosition"
+        elseif entry.Duration >= finale.WHOLE_NOTE then
+            rest_prop = "WholeRestPosition"
+        elseif entry.Duration >= finale.HALF_NOTE then
+            rest_prop = "HalfRestPosition"
         end
+        entry:MakeMovableRest()
+        local rest = entry:GetItemAt(0)
+        local curr_staffpos = rest:CalcStaffPosition()
+        local staff_spec = finale.FCCurrentStaffSpec()
+        staff_spec:LoadForEntry(entry)
+        local total_offset = staff_spec[rest_prop] + offset - curr_staffpos
+        entry:SetRestDisplacement(entry:GetRestDisplacement() + total_offset)
         return true
     end
     return note_entry
@@ -915,6 +914,7 @@ function plugindef()
     finaleplugin.Date = "March 30, 2021"
     finaleplugin.CategoryTags = "Pitch"
     finaleplugin.AuthorURL = "https://nickmazuk.com"
+    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/pitch_rotate_chord_down.hash"
     return "Rotate Chord Down", "Rotate Chord Down",
            "Rotates the chord upwards, taking the top note and moving it below the rest of the chord"
 end

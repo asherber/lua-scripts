@@ -1,19 +1,4 @@
-__imports = __imports or {}
-__import_results = __import_results or {}
-__aaa_original_require_for_deployment__ = __aaa_original_require_for_deployment__ or require
-function require(item)
-    if not __imports[item] then
-        return __aaa_original_require_for_deployment__(item)
-    end
-    if __import_results[item] == nil then
-        __import_results[item] = __imports[item]()
-        if __import_results[item] == nil then
-            __import_results[item] = true
-        end
-    end
-    return __import_results[item]
-end
-__imports["library.utils"] = __imports["library.utils"] or function()
+package.preload["library.utils"] = package.preload["library.utils"] or function()
 
     local utils = {}
 
@@ -53,7 +38,14 @@ __imports["library.utils"] = __imports["library.utils"] or function()
     function utils.round(value, places)
         places = places or 0
         local multiplier = 10^places
-        return math.floor(value * multiplier + 0.5) / multiplier
+        local ret = math.floor(value * multiplier + 0.5)
+
+        return places == 0 and ret or ret / multiplier
+    end
+
+    function utils.to_integer_if_whole(value)
+        local int = math.floor(value)
+        return value == int and int or value
     end
 
     function utils.calc_roman_numeral(num)
@@ -159,9 +151,13 @@ __imports["library.utils"] = __imports["library.utils"] or function()
     function utils.rethrow_placeholder()
         return "'" .. rethrow_placeholder .. "'"
     end
+
+    function utils.require_embedded(library_name)
+        return require(library_name)
+    end
     return utils
 end
-__imports["library.configuration"] = __imports["library.configuration"] or function()
+package.preload["library.configuration"] = package.preload["library.configuration"] or function()
 
 
 
@@ -263,7 +259,13 @@ __imports["library.configuration"] = __imports["library.configuration"] or funct
         local file_path, folder_path = calc_preferences_filepath(script_name)
         local file = io.open(file_path, "w")
         if not file and finenv.UI():IsOnWindows() then
-            os.execute('mkdir "' .. folder_path ..'"')
+
+            local osutils = finenv.EmbeddedLuaOSUtils and utils.require_embedded("luaosutils")
+            if osutils then
+                osutils.process.make_dir(folder_path)
+            else
+                os.execute('mkdir "' .. folder_path ..'"')
+            end
             file = io.open(file_path, "w")
         end
         if not file then
@@ -300,6 +302,7 @@ function plugindef()
     finaleplugin.AuthorURL = "www.michaelmcclennan.com"
     finaleplugin.AuthorEmail = "info@michaelmcclennan.com"
     finaleplugin.CategoryTags = "Chord"
+    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/chord_accidental_adjust_down.hash"
     return "Chord Accidental - Move Down", "Adjust Chord Accidental Down", "Adjust the accidental of chord symbol down"
 end
 local configuration = require("library.configuration")

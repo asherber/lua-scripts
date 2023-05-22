@@ -5,6 +5,7 @@ function plugindef()
     finaleplugin.RequireSelection = false
     finaleplugin.NoStore = true
     finaleplugin.ExecuteAtStartup = true
+    finaleplugin.ModifyFinaleMenus = true
     finaleplugin.IncludeInPluginMenu = false
     finaleplugin.LoadLuaOSUtils = true
     finaleplugin.Author = "Robert Patterson"
@@ -94,10 +95,9 @@ end
 local create_template_if_not_found = false      -- change this value to `true` if you want the script to create a template file.
 
 local utils = require("library.utils")
+local library = require("library.general_library")
 
--- Fool lua-scripts repo
-local osutils_name = "luaosutils"
-local osutils = require(osutils_name)
+local osutils = utils.require_embedded("luaosutils")
 local menu = osutils.menu
 
 local layout_file_name = "finale_lua_menus.txt"

@@ -1,19 +1,4 @@
-__imports = __imports or {}
-__import_results = __import_results or {}
-__aaa_original_require_for_deployment__ = __aaa_original_require_for_deployment__ or require
-function require(item)
-    if not __imports[item] then
-        return __aaa_original_require_for_deployment__(item)
-    end
-    if __import_results[item] == nil then
-        __import_results[item] = __imports[item]()
-        if __import_results[item] == nil then
-            __import_results[item] = true
-        end
-    end
-    return __import_results[item]
-end
-__imports["library.layer"] = __imports["library.layer"] or function()
+package.preload["library.layer"] = package.preload["library.layer"] or function()
 
     local layer = {}
 
@@ -113,27 +98,31 @@ __imports["library.layer"] = __imports["library.layer"] or function()
 
     return layer
 end
-__imports["mixin.FCMControl"] = __imports["mixin.FCMControl"] or function()
+package.preload["mixin.FCMControl"] = package.preload["mixin.FCMControl"] or function()
 
 
 
     local mixin = require("library.mixin")
     local mixin_helper = require("library.mixin_helper")
+    local class = {Methods = {}}
+    local methods = class.Methods
+    local private = setmetatable({}, {__mode = "k"})
 
     local parent = setmetatable({}, {__mode = "kv"})
-    local private = setmetatable({}, {__mode = "k"})
-    local props = {}
     local temp_str = finale.FCString()
 
-    function props:Init()
-        private[self] = private[self] or {}
+    function class:Init()
+        if private[self] then
+            return
+        end
+        private[self] = {}
     end
 
-    function props:GetParent()
+    function methods:GetParent()
         return parent[self]
     end
 
-    function props:RegisterParent(window)
+    function methods:RegisterParent(window)
         mixin_helper.assert_argument_type(2, window, "FCMCustomWindow", "FCMCustomLuaWindow")
         if parent[self] then
             error("This method is for internal use only.", 2)
@@ -160,168 +149,167 @@ __imports["mixin.FCMControl"] = __imports["mixin.FCMControl"] or function()
         Height = {"number"},
         Width = {"number"},
     }) do
-        props["Get" .. method] = function(self)
+        methods["Get" .. method] = function(self)
             if mixin.FCMControl.UseStoredState(self) then
                 return private[self][method]
             end
-            return self["Get" .. method .. "_"](self)
+            return self["Get" .. method .. "__"](self)
         end
-        props["Set" .. method] = function(self, value)
+        methods["Set" .. method] = function(self, value)
             mixin_helper.assert_argument_type(2, value, table.unpack(valid_types))
             if mixin.FCMControl.UseStoredState(self) then
                 private[self][method] = value
             else
 
                 if (method == "Enable" or method == "Visible") and finenv.UI():IsOnMac() and finenv.MajorVersion == 0 and finenv.MinorVersion < 63 then
-                    self:GetText_(temp_str)
-                    self:SetText_(temp_str)
+                    self:GetText__(temp_str)
+                    self:SetText__(temp_str)
                 end
-                self["Set" .. method .. "_"](self, value)
+                self["Set" .. method .. "__"](self, value)
             end
         end
     end
 
-    function props:GetText(str)
+    function methods:GetText(str)
         mixin_helper.assert_argument_type(2, str, "nil", "FCString")
+        local do_return = false
         if not str then
             str = temp_str
+            do_return = true
         end
         if mixin.FCMControl.UseStoredState(self) then
             str.LuaString = private[self].Text
         else
-            self:GetText_(str)
+            self:GetText__(str)
         end
-        return str.LuaString
+        if do_return then
+            return str.LuaString
+        end
     end
 
-    function props:SetText(str)
+    function methods:SetText(str)
         mixin_helper.assert_argument_type(2, str, "string", "number", "FCString")
-        if type(str) ~= "userdata" then
-            temp_str.LuaString = tostring(str)
-            str = temp_str
-        end
+        str = mixin_helper.to_fcstring(str, temp_str)
         if mixin.FCMControl.UseStoredState(self) then
             private[self].Text = str.LuaString
         else
-            self:SetText_(str)
+            self:SetText__(str)
         end
     end
 
-    function props:UseStoredState()
+    function methods:UseStoredState()
         local parent = self:GetParent()
         return mixin_helper.is_instance_of(parent, "FCMCustomLuaWindow") and parent:GetRestoreControlState() and not parent:WindowExists() and parent:HasBeenShown()
     end
 
-    function props:StoreState()
-        self:GetText_(temp_str)
+    function methods:StoreState()
+        self:GetText__(temp_str)
         private[self].Text = temp_str.LuaString
-        private[self].Enable = self:GetEnable_()
-        private[self].Visible = self:GetVisible_()
-        private[self].Left = self:GetLeft_()
-        private[self].Top = self:GetTop_()
-        private[self].Height = self:GetHeight_()
-        private[self].Width = self:GetWidth_()
+        private[self].Enable = self:GetEnable__()
+        private[self].Visible = self:GetVisible__()
+        private[self].Left = self:GetLeft__()
+        private[self].Top = self:GetTop__()
+        private[self].Height = self:GetHeight__()
+        private[self].Width = self:GetWidth__()
     end
 
-    function props:RestoreState()
-        self:SetEnable_(private[self].Enable)
-        self:SetVisible_(private[self].Visible)
-        self:SetLeft_(private[self].Left)
-        self:SetTop_(private[self].Top)
-        self:SetHeight_(private[self].Height)
-        self:SetWidth_(private[self].Width)
+    function methods:RestoreState()
+        self:SetEnable__(private[self].Enable)
+        self:SetVisible__(private[self].Visible)
+        self:SetLeft__(private[self].Left)
+        self:SetTop__(private[self].Top)
+        self:SetHeight__(private[self].Height)
+        self:SetWidth__(private[self].Width)
 
         temp_str.LuaString = private[self].Text
-        self:SetText_(temp_str)
+        self:SetText__(temp_str)
     end
 
 
-    props.AddHandleCommand, props.RemoveHandleCommand = mixin_helper.create_standard_control_event("HandleCommand")
-    return props
+    methods.AddHandleCommand, methods.RemoveHandleCommand = mixin_helper.create_standard_control_event("HandleCommand")
+    return class
 end
-__imports["mixin.FCMCtrlButton"] = __imports["mixin.FCMCtrlButton"] or function()
+package.preload["mixin.FCMCtrlButton"] = package.preload["mixin.FCMCtrlButton"] or function()
 
 
 
-    local mixin_helper = require("library.mixin_helper")
-    local props = {}
-    mixin_helper.disable_methods(props, "AddHandleCheckChange", "RemoveHandleCheckChange")
-    return props
+    local class = {}
+    class.Disabled = {"AddHandleCheckChange", "RemoveHandleCheckChange"}
+    return class
 end
-__imports["mixin.FCMCtrlCheckbox"] = __imports["mixin.FCMCtrlCheckbox"] or function()
+package.preload["mixin.FCMCtrlCheckbox"] = package.preload["mixin.FCMCtrlCheckbox"] or function()
 
 
 
     local mixin = require("library.mixin")
     local mixin_helper = require("library.mixin_helper")
-    local props = {}
+    local class = {Methods = {}}
+    local methods = class.Methods
     local trigger_check_change
     local each_last_check_change
 
-    function props:SetCheck(checked)
+    function methods:SetCheck(checked)
         mixin_helper.assert_argument_type(2, checked, "number")
-        self:SetCheck_(checked)
+        self:SetCheck__(checked)
         trigger_check_change(self)
     end
 
 
 
-    props.AddHandleCheckChange, props.RemoveHandleCheckChange, trigger_check_change, each_last_check_change =
-        mixin_helper.create_custom_control_change_event(
+    methods.AddHandleCheckChange, methods.RemoveHandleCheckChange, trigger_check_change, each_last_check_change = mixin_helper.create_custom_control_change_event(
 
 
-            {name = "last_check", get = "GetCheck_", initial = 0})
-    return props
+        {
+            name = "last_check",
+            get = "GetCheck__",
+            initial = 0,
+        }
+    )
+    return class
 end
-__imports["mixin.FCMCtrlDataList"] = __imports["mixin.FCMCtrlDataList"] or function()
+package.preload["mixin.FCMCtrlDataList"] = package.preload["mixin.FCMCtrlDataList"] or function()
 
 
 
     local mixin = require("library.mixin")
     local mixin_helper = require("library.mixin_helper")
-    local props = {}
+    local class = {Methods = {}}
+    local methods = class.Methods
     local temp_str = finale.FCString()
 
-    function props:AddColumn(title, columnwidth)
+    function methods:AddColumn(title, columnwidth)
         mixin_helper.assert_argument_type(2, title, "string", "number", "FCString")
         mixin_helper.assert_argument_type(3, columnwidth, "number")
-        if type(title) ~= "userdata" then
-            temp_str.LuaString = tostring(title)
-            title = temp_str
-        end
-        self:AddColumn_(title, columnwidth)
+        self:AddColumn__(mixin_helper.to_fcstring(title, temp_str), columnwidth)
     end
 
-    function props:SetColumnTitle(columnindex, title)
+    function methods:SetColumnTitle(columnindex, title)
         mixin_helper.assert_argument_type(2, columnindex, "number")
         mixin_helper.assert_argument_type(3, title, "string", "number", "FCString")
-        if type(title) ~= "userdata" then
-            temp_str.LuaString = tostring(title)
-            title = temp_str
-        end
-        self:SetColumnTitle_(columnindex, title)
+        self:SetColumnTitle__(columnindex, mixin_helper.to_fcstring(title, temp_str))
     end
 
 
-    props.AddHandleCheck, props.RemoveHandleCheck = mixin_helper.create_standard_control_event("HandleDataListCheck")
+    methods.AddHandleCheck, methods.RemoveHandleCheck = mixin_helper.create_standard_control_event("HandleDataListCheck")
 
 
-    props.AddHandleSelect, props.RemoveHandleSelect = mixin_helper.create_standard_control_event("HandleDataListSelect")
-    return props
+    methods.AddHandleSelect, methods.RemoveHandleSelect = mixin_helper.create_standard_control_event("HandleDataListSelect")
+    return class
 end
-__imports["mixin.FCMCtrlEdit"] = __imports["mixin.FCMCtrlEdit"] or function()
+package.preload["mixin.FCMCtrlEdit"] = package.preload["mixin.FCMCtrlEdit"] or function()
 
 
 
     local mixin = require("library.mixin")
     local mixin_helper = require("library.mixin_helper")
     local utils = require("library.utils")
-    local props = {}
+    local class = {Methods = {}}
+    local methods = class.Methods
     local trigger_change
     local each_last_change
     local temp_str = mixin.FCMString()
 
-    function props:SetText(str)
+    function methods:SetText(str)
         mixin_helper.assert_argument_type(2, str, "string", "number", "FCString")
         mixin.FCMControl.SetText(self, str)
         trigger_change(self)
@@ -334,12 +322,12 @@ __imports["mixin.FCMCtrlEdit"] = __imports["mixin.FCMCtrlEdit"] or function()
         Integer = {"number"},
         Float = {"number"},
     }) do
-        props["Get" .. method] = function(self)
+        methods["Get" .. method] = function(self)
 
             mixin.FCMControl.GetText(self, temp_str)
             return temp_str["Get" .. method](temp_str, 0)
         end
-        props["Set" .. method] = function(self, value)
+        methods["Set" .. method] = function(self, value)
             mixin_helper.assert_argument_type(2, value, table.unpack(valid_types))
             temp_str["Set" .. method](temp_str, value)
             mixin.FCMControl.SetText(self, temp_str)
@@ -364,19 +352,19 @@ __imports["mixin.FCMCtrlEdit"] = __imports["mixin.FCMCtrlEdit"] or function()
         MeasurementInteger = {"number"},
         Measurement10000th = {"number"},
     }) do
-        props["Get" .. method] = function(self, measurementunit)
+        methods["Get" .. method] = function(self, measurementunit)
             mixin_helper.assert_argument_type(2, measurementunit, "number")
             mixin.FCMControl.GetText(self, temp_str)
             return temp_str["Get" .. method](temp_str, measurementunit)
         end
-        props["GetRange" .. method] = function(self, measurementunit, minimum, maximum)
+        methods["GetRange" .. method] = function(self, measurementunit, minimum, maximum)
             mixin_helper.assert_argument_type(2, measurementunit, "number")
             mixin_helper.assert_argument_type(3, minimum, "number")
             mixin_helper.assert_argument_type(4, maximum, "number")
             mixin.FCMControl.GetText(self, temp_str)
             return temp_str["GetRange" .. method](temp_str, measurementunit, minimum, maximum)
         end
-        props["Set" .. method] = function(self, value, measurementunit)
+        methods["Set" .. method] = function(self, value, measurementunit)
             mixin_helper.assert_argument_type(2, value, table.unpack(valid_types))
             mixin_helper.assert_argument_type(3, measurementunit, "number")
             temp_str["Set" .. method](temp_str, value, measurementunit)
@@ -385,7 +373,7 @@ __imports["mixin.FCMCtrlEdit"] = __imports["mixin.FCMCtrlEdit"] or function()
         end
     end
 
-    function props:GetRangeInteger(minimum, maximum)
+    function methods:GetRangeInteger(minimum, maximum)
         mixin_helper.assert_argument_type(2, minimum, "number")
         mixin_helper.assert_argument_type(3, maximum, "number")
         return utils.clamp(mixin.FCMCtrlEdit.GetInteger(self), math.ceil(minimum), math.floor(maximum))
@@ -393,16 +381,16 @@ __imports["mixin.FCMCtrlEdit"] = __imports["mixin.FCMCtrlEdit"] or function()
 
 
 
-    props.AddHandleChange, props.RemoveHandleChange, trigger_change, each_last_change = mixin_helper.create_custom_control_change_event(
+    methods.AddHandleChange, methods.RemoveHandleChange, trigger_change, each_last_change = mixin_helper.create_custom_control_change_event(
         {
             name = "last_value",
             get = mixin.FCMControl.GetText,
             initial = ""
         }
     )
-    return props
+    return class
 end
-__imports["mixin.FCMCtrlListBox"] = __imports["mixin.FCMCtrlListBox"] or function()
+package.preload["mixin.FCMCtrlListBox"] = package.preload["mixin.FCMCtrlListBox"] or function()
 
 
 
@@ -410,36 +398,40 @@ __imports["mixin.FCMCtrlListBox"] = __imports["mixin.FCMCtrlListBox"] or functio
     local mixin_helper = require("library.mixin_helper")
     local library = require("library.general_library")
     local utils = require("library.utils")
+    local class = {Methods = {}}
+    local methods = class.Methods
     local private = setmetatable({}, {__mode = "k"})
-    local props = {}
     local trigger_selection_change
     local each_last_selection_change
     local temp_str = finale.FCString()
 
-    function props:Init()
-        private[self] = private[self] or {
+    function class:Init()
+        if private[self] then
+            return
+        end
+        private[self] = {
             Items = {},
         }
     end
 
-    function props:StoreState()
+    function methods:StoreState()
         mixin.FCMControl.StoreState(self)
-        private[self].SelectedItem = self:GetSelectedItem_()
+        private[self].SelectedItem = self:GetSelectedItem__()
     end
 
-    function props:RestoreState()
+    function methods:RestoreState()
         mixin.FCMControl.RestoreState(self)
-        self:Clear_()
+        self:Clear__()
         for _, str in ipairs(private[self].Items) do
             temp_str.LuaString = str
-            self:AddString_(temp_str)
+            self:AddString__(temp_str)
         end
-        self:SetSelectedItem_(private[self].SelectedItem)
+        self:SetSelectedItem__(private[self].SelectedItem)
     end
 
-    function props:Clear()
+    function methods:Clear()
         if not mixin.FCMControl.UseStoredState(self) then
-            self:Clear_()
+            self:Clear__()
         end
         private[self].Items = {}
         for v in each_last_selection_change(self) do
@@ -450,66 +442,63 @@ __imports["mixin.FCMCtrlListBox"] = __imports["mixin.FCMCtrlListBox"] or functio
         trigger_selection_change(self)
     end
 
-    function props:GetCount()
+    function methods:GetCount()
         if mixin.FCMControl.UseStoredState(self) then
             return #private[self].Items
         end
-        return self:GetCount_()
+        return self:GetCount__()
     end
 
-    function props:GetSelectedItem()
+    function methods:GetSelectedItem()
         if mixin.FCMControl.UseStoredState(self) then
             return private[self].SelectedItem
         end
-        return self:GetSelectedItem_()
+        return self:GetSelectedItem__()
     end
 
-    function props:SetSelectedItem(index)
+    function methods:SetSelectedItem(index)
         mixin_helper.assert_argument_type(2, index, "number")
         if mixin.FCMControl.UseStoredState(self) then
             private[self].SelectedItem = index
         else
-            self:SetSelectedItem_(index)
+            self:SetSelectedItem__(index)
         end
         trigger_selection_change(self)
     end
 
-    function props:SetSelectedLast()
+    function methods:SetSelectedLast()
         local return_value
         if mixin.FCMControl.UseStoredState(self) then
             local count = mixin.FCMCtrlListBox.GetCount(self)
-            mixin.FCMCtrlListBox.SetSelectedItem(count - 1)
+            mixin.FCMCtrlListBox.SetSelectedItem(self, count - 1)
             return_value = count > 0 and true or false
         else
-            return_value = self:SetSelectedLast_()
+            return_value = self:SetSelectedLast__()
         end
         trigger_selection_change(self)
         return return_value
     end
 
-    function props:IsItemSelected()
+    function methods:HasSelection()
         return mixin.FCMCtrlListBox.GetSelectedItem(self) >= 0
     end
 
-    function props:ItemExists(index)
+    function methods:ItemExists(index)
         mixin_helper.assert_argument_type(2, index, "number")
         return private[self].Items[index + 1] and true or false
     end
 
-    function props:AddString(str)
+    function methods:AddString(str)
         mixin_helper.assert_argument_type(2, str, "string", "number", "FCString")
-        if type(str) ~= "userdata" then
-            temp_str.LuaString = tostring(str)
-            str = temp_str
-        end
+        str = mixin_helper.to_fcstring(str, temp_str)
         if not mixin.FCMControl.UseStoredState(self) then
-            self:AddString_(str)
+            self:AddString__(str)
         end
 
         table.insert(private[self].Items, str.LuaString)
     end
 
-    function props:AddStrings(...)
+    function methods:AddStrings(...)
         for i = 1, select("#", ...) do
             local v = select(i, ...)
             mixin_helper.assert_argument_type(i + 1, v, "string", "number", "FCString", "FCStrings")
@@ -523,32 +512,29 @@ __imports["mixin.FCMCtrlListBox"] = __imports["mixin.FCMCtrlListBox"] or functio
         end
     end
 
-    function props:GetStrings(strs)
+    function methods:GetStrings(strs)
         mixin_helper.assert_argument_type(2, strs, "nil", "FCStrings")
         if strs then
-            strs:ClearAll()
-            for _, v in ipairs(private[self].Items) do
-                temp_str.LuaString = v
-                strs:AddCopy(temp_str)
-            end
+            mixin.FCMStrings.CopyFromStringTable(strs, private[self].Items)
+        else
+            return utils.copy_table(private[self].Items)
         end
-        return utils.copy_table(private[self].Items)
     end
 
-    function props:SetStrings(...)
-
+    function methods:SetStrings(...)
+        for i = 1, select("#", ...) do
+            mixin_helper.assert_argument_type(i + 1, select(i, ...), "FCStrings", "FCString", "string", "number")
+        end
         local strs = select(1, ...)
-        if select("#", ...) ~= 1 or not library.is_finale_object(strs) or strs:ClassName() ~= "FCStrings" then
+        if select("#", ...) ~= 1 or not mixin_helper.is_instance_of(strs, "FCStrings") then
             strs = mixin.FCMStrings()
-            strs:CopyFrom(...)
+            strs:AddCopies(...)
         end
         if not mixin.FCMControl.UseStoredState(self) then
-            self:SetStrings_(strs)
+            self:SetStrings__(strs)
         end
-        private[self].Items = {}
-        for str in each(strs) do
-            table.insert(private[self].Items, str.LuaString)
-        end
+
+        private[self].Items = mixin.FCMStrings.CreateStringTable(strs)
         for v in each_last_selection_change(self) do
             if v.last_item >= 0 then
                 v.is_deleted = true
@@ -557,7 +543,7 @@ __imports["mixin.FCMCtrlListBox"] = __imports["mixin.FCMCtrlListBox"] or functio
         trigger_selection_change(self)
     end
 
-    function props:GetItemText(index, str)
+    function methods:GetItemText(index, str)
         mixin_helper.assert_argument_type(2, index, "number")
         mixin_helper.assert_argument_type(3, str, "nil", "FCString")
         if not mixin.FCMCtrlListBox.ItemExists(self, index) then
@@ -565,58 +551,47 @@ __imports["mixin.FCMCtrlListBox"] = __imports["mixin.FCMCtrlListBox"] or functio
         end
         if str then
             str.LuaString = private[self].Items[index + 1]
+        else
+            return private[self].Items[index + 1]
         end
-        return private[self].Items[index + 1]
     end
 
-    function props:SetItemText(index, str)
+    function methods:SetItemText(index, str)
         mixin_helper.assert_argument_type(2, index, "number")
         mixin_helper.assert_argument_type(3, str, "string", "number", "FCString")
         if not private[self].Items[index + 1] then
             error("No item at index " .. tostring(index), 2)
         end
-        str = type(str) == "userdata" and str.LuaString or tostring(str)
+        str = mixin_helper.to_fcstring(str, temp_str)
 
         if private[self].Items[index + 1] == str then
             return
         end
-        private[self].Items[index + 1] = str
+        private[self].Items[index + 1] = str.LuaString
         if not mixin.FCMControl.UseStoredState(self) then
 
-            if self.SetItemText_ and self:GetParent():WindowExists_() then
-                temp_str.LuaString = private[self].Items[index + 1]
-                self:SetItemText_(index, temp_str)
+            if self.SetItemText__ and self:GetParent():WindowExists__() then
+                self:SetItemText__(index, str)
 
             else
-                local strs = finale.FCStrings()
-                for _, v in ipairs(private[self].Items) do
-                    temp_str.LuaString = v
-                    strs:AddCopy(temp_str)
-                end
                 local curr_item = mixin.FCMCtrlListBox.GetSelectedItem(self)
-                self:SetStrings_(strs)
-                self:SetSelectedItem_(curr_item)
+                self:SetStrings__(mixin.FCMStrings():CopyFromStringTable(private[self].Items))
+                self:SetSelectedItem__(curr_item)
             end
         end
     end
 
-    function props:GetSelectedString(str)
+    function methods:GetSelectedString(str)
         mixin_helper.assert_argument_type(2, str, "nil", "FCString")
         local index = mixin.FCMCtrlListBox.GetSelectedItem(self)
-        if index ~= -1 then
-            if str then
-                str.LuaString = private[self].Items[index + 1]
-            end
-            return private[self].Items[index + 1]
+        if str then
+            str.LuaString = index ~= -1 and private[self].Items[index + 1] or ""
         else
-            if str then
-                str.LuaString = ""
-            end
-            return nil
+            return index ~= -1 and private[self].Items[index + 1] or nil
         end
     end
 
-    function props:SetSelectedString(str)
+    function methods:SetSelectedString(str)
         mixin_helper.assert_argument_type(2, str, "string", "number", "FCString")
         str = type(str) == "userdata" and str.LuaString or tostring(str)
         for k, v in ipairs(private[self].Items) do
@@ -627,7 +602,7 @@ __imports["mixin.FCMCtrlListBox"] = __imports["mixin.FCMCtrlListBox"] or functio
         end
     end
 
-    function props:InsertItem(index, str)
+    function methods:InsertItem(index, str)
         mixin_helper.assert_argument_type(2, index, "number")
         mixin_helper.assert_argument_type(3, str, "string", "number", "FCString")
         if index < 0 then
@@ -639,14 +614,9 @@ __imports["mixin.FCMCtrlListBox"] = __imports["mixin.FCMCtrlListBox"] or functio
         table.insert(private[self].Items, index + 1, type(str) == "userdata" and str.LuaString or tostring(str))
         local current_selection = mixin.FCMCtrlListBox.GetSelectedItem(self)
         if not mixin.FCMControl.UseStoredState(self) then
-            local strs = finale.FCStrings()
-            for _, v in ipairs(private[self].Items) do
-                temp_str.LuaString = v
-                strs:AddCopy(temp_str)
-            end
-            self:SetStrings_(strs)
+            self:SetStrings__(mixin.FCMStrings():CopyFromStringTable(private[self].Items))
         end
-        local new_selection = current_selection >= index and current_selection + 1 or current_selection
+        local new_selection = current_selection + (index <= current_selection and 1 or 0)
         mixin.FCMCtrlListBox.SetSelectedItem(self, new_selection)
         for v in each_last_selection_change(self) do
             if v.last_item >= index then
@@ -655,7 +625,7 @@ __imports["mixin.FCMCtrlListBox"] = __imports["mixin.FCMCtrlListBox"] or functio
         end
     end
 
-    function props:DeleteItem(index)
+    function methods:DeleteItem(index)
         mixin_helper.assert_argument_type(2, index, "number")
         if index < 0 or index >= mixin.FCMCtrlListBox.GetCount(self) then
             return
@@ -664,17 +634,12 @@ __imports["mixin.FCMCtrlListBox"] = __imports["mixin.FCMCtrlListBox"] or functio
 
         local current_selection = mixin.FCMCtrlListBox.GetSelectedItem(self)
         if not mixin.FCMControl.UseStoredState(self) then
-            local strs = finale.FCStrings()
-            for _, v in ipairs(private[self].Items) do
-                temp_str.LuaString = v
-                strs:AddCopy(temp_str)
-            end
-            self:SetStrings_(strs)
+            self:SetStrings__(mixin.FCMStrings():CopyFromStringTable(private[self].Items))
         end
         local new_selection
-        if current_selection > index then
+        if index < current_selection then
             new_selection = current_selection - 1
-        elseif current_selection == index then
+        elseif index == current_selection then
             new_selection = -1
         else
             new_selection = current_selection
@@ -688,14 +653,14 @@ __imports["mixin.FCMCtrlListBox"] = __imports["mixin.FCMCtrlListBox"] or functio
             end
         end
 
-        if current_selection == index then
+        if index == current_selection then
             trigger_selection_change(self)
         end
     end
 
 
 
-    props.AddHandleSelectionChange, props.RemoveHandleSelectionChange, trigger_selection_change, each_last_selection_change = mixin_helper.create_custom_control_change_event(
+    methods.AddHandleSelectionChange, methods.RemoveHandleSelectionChange, trigger_selection_change, each_last_selection_change = mixin_helper.create_custom_control_change_event(
         {
             name = "last_item",
             get = function(ctrl)
@@ -716,9 +681,9 @@ __imports["mixin.FCMCtrlListBox"] = __imports["mixin.FCMCtrlListBox"] or functio
             initial = false,
         }
     )
-    return props
+    return class
 end
-__imports["mixin.FCMCtrlPopup"] = __imports["mixin.FCMCtrlPopup"] or function()
+package.preload["mixin.FCMCtrlPopup"] = package.preload["mixin.FCMCtrlPopup"] or function()
 
 
 
@@ -726,36 +691,40 @@ __imports["mixin.FCMCtrlPopup"] = __imports["mixin.FCMCtrlPopup"] or function()
     local mixin_helper = require("library.mixin_helper")
     local library = require("library.general_library")
     local utils = require("library.utils")
+    local class = {Methods = {}}
+    local methods = class.Methods
     local private = setmetatable({}, {__mode = "k"})
-    local props = {}
     local trigger_selection_change
     local each_last_selection_change
     local temp_str = finale.FCString()
 
-    function props:Init()
-        private[self] = private[self] or {
+    function class:Init()
+        if private[self] then
+            return
+        end
+        private[self] = {
             Items = {},
         }
     end
 
-    function props:StoreState()
+    function methods:StoreState()
         mixin.FCMControl.StoreState(self)
-        private[self].SelectedItem = self:GetSelectedItem_()
+        private[self].SelectedItem = self:GetSelectedItem__()
     end
 
-    function props:RestoreState()
+    function methods:RestoreState()
         mixin.FCMControl.RestoreState(self)
-        self:Clear_()
+        self:Clear__()
         for _, str in ipairs(private[self].Items) do
             temp_str.LuaString = str
-            self:AddString_(temp_str)
+            self:AddString__(temp_str)
         end
-        self:SetSelectedItem_(private[self].SelectedItem)
+        self:SetSelectedItem__(private[self].SelectedItem)
     end
 
-    function props:Clear()
+    function methods:Clear()
         if not mixin.FCMControl.UseStoredState(self) then
-            self:Clear_()
+            self:Clear__()
         end
         private[self].Items = {}
         for v in each_last_selection_change(self) do
@@ -767,57 +736,54 @@ __imports["mixin.FCMCtrlPopup"] = __imports["mixin.FCMCtrlPopup"] or function()
         trigger_selection_change(self)
     end
 
-    function props:GetCount()
+    function methods:GetCount()
         if mixin.FCMControl.UseStoredState(self) then
             return #private[self].Items
         end
-        return self:GetCount_()
+        return self:GetCount__()
     end
 
-    function props:GetSelectedItem()
+    function methods:GetSelectedItem()
         if mixin.FCMControl.UseStoredState(self) then
             return private[self].SelectedItem
         end
-        return self:GetSelectedItem_()
+        return self:GetSelectedItem__()
     end
 
-    function props:SetSelectedItem(index)
+    function methods:SetSelectedItem(index)
         mixin_helper.assert_argument_type(2, index, "number")
         if mixin.FCMControl.UseStoredState(self) then
             private[self].SelectedItem = index
         else
-            self:SetSelectedItem_(index)
+            self:SetSelectedItem__(index)
         end
         trigger_selection_change(self)
     end
 
-    function props:SetSelectedLast()
+    function methods:SetSelectedLast()
         mixin.FCMCtrlPopup.SetSelectedItem(self, mixin.FCMCtrlPopup.GetCount(self) - 1)
     end
 
-    function props:IsItemSelected()
+    function methods:HasSelection()
         return mixin.FCMCtrlPopup.GetSelectedItem(self) >= 0
     end
 
-    function props:ItemExists(index)
+    function methods:ItemExists(index)
         mixin_helper.assert_argument_type(2, index, "number")
         return private[self].Items[index + 1] and true or false
     end
 
-    function props:AddString(str)
+    function methods:AddString(str)
         mixin_helper.assert_argument_type(2, str, "string", "number", "FCString")
-        if type(str) ~= "userdata" then
-            temp_str.LuaString = tostring(str)
-            str = temp_str
-        end
+        str = mixin_helper.to_fcstring(str, temp_str)
         if not mixin.FCMControl.UseStoredState(self) then
-            self:AddString_(str)
+            self:AddString__(str)
         end
 
         table.insert(private[self].Items, str.LuaString)
     end
 
-    function props:AddStrings(...)
+    function methods:AddStrings(...)
         for i = 1, select("#", ...) do
             local v = select(i, ...)
             mixin_helper.assert_argument_type(i + 1, v, "string", "number", "FCString", "FCStrings")
@@ -831,32 +797,29 @@ __imports["mixin.FCMCtrlPopup"] = __imports["mixin.FCMCtrlPopup"] or function()
         end
     end
 
-    function props:GetStrings(strs)
+    function methods:GetStrings(strs)
         mixin_helper.assert_argument_type(2, strs, "nil", "FCStrings")
         if strs then
-            strs:ClearAll()
-            for _, v in ipairs(private[self].Items) do
-                temp_str.LuaString = v
-                strs:AddCopy(temp_str)
-            end
+            mixin.FCMStrings.CopyFromStringTable(strs, private[self].Items)
+        else
+            return utils.copy_table(private[self].Items)
         end
-        return utils.copy_table(private[self].Items)
     end
 
-    function props:SetStrings(...)
-
+    function methods:SetStrings(...)
+        for i = 1, select("#", ...) do
+            mixin_helper.assert_argument_type(i + 1, select(i, ...), "FCStrings", "FCString", "string", "number")
+        end
         local strs = select(1, ...)
-        if select("#", ...) ~= 1 or not library.is_finale_object(strs) or strs:ClassName() ~= "FCStrings" then
+        if select("#", ...) ~= 1 or not mixin_helper.is_instance_of(strs, "FCStrings") then
             strs = mixin.FCMStrings()
-            strs:CopyFrom(...)
+            strs:AddCopies(...)
         end
         if not mixin.FCMControl.UseStoredState(self) then
-            self:SetStrings_(strs)
+            self:SetStrings__(strs)
         end
-        private[self].Items = {}
-        for str in each(strs) do
-            table.insert(private[self].Items, str.LuaString)
-        end
+
+        private[self].Items = mixin.FCMStrings.CreateStringTable(strs)
         for v in each_last_selection_change(self) do
             if v.last_item >= 0 then
                 v.is_deleted = true
@@ -865,7 +828,7 @@ __imports["mixin.FCMCtrlPopup"] = __imports["mixin.FCMCtrlPopup"] or function()
         trigger_selection_change(self)
     end
 
-    function props:GetItemText(index, str)
+    function methods:GetItemText(index, str)
         mixin_helper.assert_argument_type(2, index, "number")
         mixin_helper.assert_argument_type(3, str, "nil", "FCString")
         if not mixin.FCMCtrlPopup.ItemExists(self, index) then
@@ -873,11 +836,12 @@ __imports["mixin.FCMCtrlPopup"] = __imports["mixin.FCMCtrlPopup"] or function()
         end
         if str then
             str.LuaString = private[self].Items[index + 1]
+        else
+            return private[self].Items[index + 1]
         end
-        return private[self].Items[index + 1]
     end
 
-    function props:SetItemText(index, str)
+    function methods:SetItemText(index, str)
         mixin_helper.assert_argument_type(2, index, "number")
         mixin_helper.assert_argument_type(3, str, "string", "number", "FCString")
         if not mixin.FCMCtrlPopup.ItemExists(self, index) then
@@ -890,34 +854,23 @@ __imports["mixin.FCMCtrlPopup"] = __imports["mixin.FCMCtrlPopup"] or function()
         end
         private[self].Items[index + 1] = str
         if not mixin.FCMControl.UseStoredState(self) then
-            local strs = finale.FCStrings()
-            for _, v in ipairs(private[self].Items) do
-                temp_str.LuaString = v
-                strs:AddCopy(temp_str)
-            end
             local curr_item = self:GetSelectedItem_()
-            self:SetStrings_(strs)
-            self:SetSelectedItem_(curr_item)
+            self:SetStrings__(mixin.FCMStrings():CopyFromStringTable(private[self].Items))
+            self:SetSelectedItem__(curr_item)
         end
     end
 
-    function props:GetSelectedString(str)
+    function methods:GetSelectedString(str)
         mixin_helper.assert_argument_type(2, str, "nil", "FCString")
         local index = mixin.FCMCtrlPopup.GetSelectedItem(self)
-        if mixin.FCMCtrlPopup.ItemExists(self, index) then
-            if str then
-                str.LuaString = private[self].Items[index + 1]
-            end
-            return private[self].Items[index + 1]
+        if str then
+            str.LuaString = index ~= -1 and private[self].Items[index + 1] or ""
         else
-            if str then
-                str.LuaString = ""
-            end
-            return nil
+            return index ~= -1 and private[self].Items[index + 1] or nil
         end
     end
 
-    function props:SetSelectedString(str)
+    function methods:SetSelectedString(str)
         mixin_helper.assert_argument_type(2, str, "string", "number", "FCString")
         str = type(str) == "userdata" and str.LuaString or tostring(str)
         for k, v in ipairs(private[self].Items) do
@@ -928,7 +881,7 @@ __imports["mixin.FCMCtrlPopup"] = __imports["mixin.FCMCtrlPopup"] or function()
         end
     end
 
-    function props:InsertString(index, str)
+    function methods:InsertString(index, str)
         mixin_helper.assert_argument_type(2, index, "number")
         mixin_helper.assert_argument_type(3, str, "string", "number", "FCString")
         if index < 0 then
@@ -940,14 +893,9 @@ __imports["mixin.FCMCtrlPopup"] = __imports["mixin.FCMCtrlPopup"] or function()
         table.insert(private[self].Items, index + 1, type(str) == "userdata" and str.LuaString or tostring(str))
         local current_selection = mixin.FCMCtrlPopup.GetSelectedItem(self)
         if not mixin.FCMControl.UseStoredState(self) then
-            local strs = finale.FCStrings()
-            for _, v in ipairs(private[self].Items) do
-                temp_str.LuaString = v
-                strs:AddCopy(temp_str)
-            end
-            self:SetStrings_(strs)
+            self:SetStrings__(mixin.FCMStrings():CopyFromStringTable(private[self].Items))
         end
-        local new_selection = current_selection >= index and current_selection + 1 or current_selection
+        local new_selection = current_selection + (index <= current_selection and 1 or 0)
         mixin.FCMCtrlPopup.SetSelectedItem(self, new_selection)
         for v in each_last_selection_change(self) do
             if v.last_item >= index then
@@ -956,7 +904,7 @@ __imports["mixin.FCMCtrlPopup"] = __imports["mixin.FCMCtrlPopup"] or function()
         end
     end
 
-    function props:DeleteItem(index)
+    function methods:DeleteItem(index)
         mixin_helper.assert_argument_type(2, index, "number")
         if index < 0 or index >= mixin.FCMCtrlPopup.GetCount(self) then
             return
@@ -964,17 +912,12 @@ __imports["mixin.FCMCtrlPopup"] = __imports["mixin.FCMCtrlPopup"] or function()
         table.remove(private[self].Items, index + 1)
         local current_selection = mixin.FCMCtrlPopup.GetSelectedItem(self)
         if not mixin.FCMControl.UseStoredState(self) then
-            local strs = finale.FCStrings()
-            for _, v in ipairs(private[self].Items) do
-                temp_str.LuaString = v
-                strs:AddCopy(temp_str)
-            end
-            self:SetStrings_(strs)
+            self:SetStrings__(mixin.FCMStrings():CopyFromStringTable(private[self].Items))
         end
         local new_selection
-        if current_selection > index then
+        if index < current_selection then
             new_selection = current_selection - 1
-        elseif current_selection == index then
+        elseif index == current_selection then
             new_selection = -1
         else
             new_selection = current_selection
@@ -988,14 +931,14 @@ __imports["mixin.FCMCtrlPopup"] = __imports["mixin.FCMCtrlPopup"] or function()
             end
         end
 
-        if current_selection == index then
+        if index == current_selection then
             trigger_selection_change(self)
         end
     end
 
 
 
-    props.AddHandleSelectionChange, props.RemoveHandleSelectionChange, trigger_selection_change, each_last_selection_change = mixin_helper.create_custom_control_change_event(
+    methods.AddHandleSelectionChange, methods.RemoveHandleSelectionChange, trigger_selection_change, each_last_selection_change = mixin_helper.create_custom_control_change_event(
         {
             name = "last_item",
             get = function(ctrl)
@@ -1016,16 +959,17 @@ __imports["mixin.FCMCtrlPopup"] = __imports["mixin.FCMCtrlPopup"] or function()
             initial = false,
         }
     )
-    return props
+    return class
 end
-__imports["mixin.FCMCtrlSlider"] = __imports["mixin.FCMCtrlSlider"] or function()
+package.preload["mixin.FCMCtrlSlider"] = package.preload["mixin.FCMCtrlSlider"] or function()
 
 
 
     local mixin = require("library.mixin")
     local mixin_helper = require("library.mixin_helper")
+    local class = {Methods = {}}
+    local methods = class.Methods
     local windows = setmetatable({}, {__mode = "k"})
-    local props = {}
     local trigger_thumb_position_change
     local each_last_thumb_position_change
     local using_timer_fix = false
@@ -1046,9 +990,9 @@ __imports["mixin.FCMCtrlSlider"] = __imports["mixin.FCMCtrlSlider"] or function(
         bootstrap_timer(timerid, window)
     end
 
-    function props:RegisterParent(window)
+    function methods:RegisterParent(window)
         mixin.FCMControl.RegisterParent(self, window)
-        if not windows[window] then
+        if finenv.MajorVersion == 0 and finenv.MinorVersion < 64 and not windows[window] and mixin_helper.is_instance_of(window, "FCMCustomLuaWindow") then
 
             window:AddHandleCommand(bootstrap_command)
             if window.SetTimer_ then
@@ -1059,241 +1003,36 @@ __imports["mixin.FCMCtrlSlider"] = __imports["mixin.FCMCtrlSlider"] or function(
         end
     end
 
-    function props:SetThumbPosition(position)
+    function methods:SetThumbPosition(position)
         mixin_helper.assert_argument_type(2, position, "number")
-        self:SetThumbPosition_(position)
+        self:SetThumbPosition__(position)
         trigger_thumb_position_change(self)
     end
 
-    function props:SetMinValue(minvalue)
+    function methods:SetMinValue(minvalue)
         mixin_helper.assert_argument_type(2, minvalue, "number")
-        self:SetMinValue_(minvalue)
+        self:SetMinValue__(minvalue)
         trigger_thumb_position_change(self)
     end
 
-    function props:SetMaxValue(maxvalue)
+    function methods:SetMaxValue(maxvalue)
         mixin_helper.assert_argument_type(2, maxvalue, "number")
-        self:SetMaxValue_(maxvalue)
+        self:SetMaxValue__(maxvalue)
         trigger_thumb_position_change(self)
     end
 
 
 
-    props.AddHandleThumbPositionChange, props.RemoveHandleThumbPositionChange, trigger_thumb_position_change, each_last_thumb_position_change =
-        mixin_helper.create_custom_control_change_event(
-            {name = "last_position", get = "GetThumbPosition_", initial = -1})
-    return props
+    methods.AddHandleThumbPositionChange, methods.RemoveHandleThumbPositionChange, trigger_thumb_position_change, each_last_thumb_position_change = mixin_helper.create_custom_control_change_event(
+        {
+            name = "last_position",
+            get = "GetThumbPosition__",
+            initial = -1,
+        }
+    )
+    return class
 end
-__imports["mixin.FCMCtrlStatic"] = __imports["mixin.FCMCtrlStatic"] or function()
-
-
-
-    local mixin = require("library.mixin")
-    local mixin_helper = require("library.mixin_helper")
-    local utils = require("library.utils")
-    local private = setmetatable({}, {__mode = "k"})
-    local props = {}
-    local temp_str = finale.FCString()
-
-    function props:Init()
-        private[self] = private[self] or {}
-    end
-
-    function props:SetTextColor(red, green, blue)
-        mixin_helper.assert_argument_type(2, red, "number")
-        mixin_helper.assert_argument_type(3, green, "number")
-        mixin_helper.assert_argument_type(4, blue, "number")
-        private[self].TextColor = {red, green, blue}
-        if not mixin.FCMControl.UseStoredState(self) then
-            self:SetTextColor_(red, green, blue)
-
-
-            mixin.FCMControl.SetText(self, mixin.FCMControl.GetText(self))
-        end
-    end
-
-    function props:RestoreState()
-        mixin.FCMControl.RestoreState(self)
-        if private[self].TextColor then
-            mixin.FCMCtrlStatic.SetTextColor(self, private[self].TextColor[1], private[self].TextColor[2], private[self].TextColor[3])
-        end
-    end
-    return props
-end
-__imports["mixin.FCMCtrlSwitcher"] = __imports["mixin.FCMCtrlSwitcher"] or function()
-
-
-
-    local mixin = require("library.mixin")
-    local mixin_helper = require("library.mixin_helper")
-    local library = require("library.general_library")
-    local private = setmetatable({}, {__mode = "k"})
-    local props = {}
-    local trigger_page_change
-    local each_last_page_change
-    local temp_str = finale.FCString()
-
-    function props:Init()
-        private[self] = private[self] or {Index = {}}
-    end
-
-    function props:AddPage(title)
-        mixin_helper.assert_argument_type(2, title, "string", "number", "FCString")
-        if type(title) ~= "userdata" then
-            temp_str.LuaString = tostring(title)
-            title = temp_str
-        end
-        self:AddPage_(title)
-        table.insert(private[self].Index, title.LuaString)
-    end
-
-    function props:AddPages(...)
-        for i = 1, select("#", ...) do
-            local v = select(i, ...)
-            mixin_helper.assert_argument_type(i + 1, v, "string", "number", "FCString")
-            mixin.FCMCtrlSwitcher.AddPage(self, v)
-        end
-    end
-
-    function props:AttachControlByTitle(control, title)
-        mixin_helper.assert_argument_type(2, control, "FCControl", "FCMControl")
-        mixin_helper.assert_argument_type(3, title, "string", "number", "FCString")
-        title = type(title) == "userdata" and title.LuaString or tostring(title)
-        local index = -1
-        for k, v in ipairs(private[self].Index) do
-            if v == title then
-                index = k - 1
-            end
-        end
-        mixin_helper.force_assert(index ~= -1, "No page titled '" .. title .. "'")
-        return self:AttachControl_(control, index)
-    end
-
-    function props:SetSelectedPage(index)
-        mixin_helper.assert_argument_type(2, index, "number")
-        self:SetSelectedPage_(index)
-        trigger_page_change(self)
-    end
-
-    function props:SetSelectedPageByTitle(title)
-        mixin_helper.assert_argument_type(2, title, "string", "number", "FCString")
-        title = type(title) == "userdata" and title.LuaString or tostring(title)
-        for k, v in ipairs(private[self].Index) do
-            if v == title then
-                mixin.FCMCtrlSwitcher.SetSelectedPage(self, k - 1)
-                return
-            end
-        end
-        error("No page titled '" .. title .. "'", 2)
-    end
-
-    function props:GetSelectedPageTitle(title)
-        mixin_helper.assert_argument_type(2, title, "nil", "FCString")
-        local index = self:GetSelectedPage_()
-        if index == -1 then
-            if title then
-                title.LuaString = ""
-            end
-            return nil
-        else
-            local text = private[self].Index[self:GetSelectedPage_() + 1]
-            if title then
-                title.LuaString = text
-            end
-            return text
-        end
-    end
-
-    function props:GetPageTitle(index, str)
-        mixin_helper.assert_argument_type(2, index, "number")
-        mixin_helper.assert_argument_type(3, str, "nil", "FCString")
-        local text = private[self].Index[index + 1]
-        mixin.force_assert(text, "No page at index " .. tostring(index))
-        if str then
-            str.LuaString = text
-        end
-        return text
-    end
-
-
-
-    props.AddHandlePageChange, props.RemoveHandlePageChange, trigger_page_change, each_last_page_change =
-        mixin_helper.create_custom_control_change_event(
-            {name = "last_page", get = "GetSelectedPage_", initial = -1}, {
-                name = "last_page_title",
-                get = function(ctrl)
-                    return mixin.FCMCtrlSwitcher.GetSelectedPageTitle(ctrl)
-                end,
-                initial = "",
-            }
-        )
-    return props
-end
-__imports["mixin.FCMCtrlTree"] = __imports["mixin.FCMCtrlTree"] or function()
-
-
-
-    local mixin = require("library.mixin")
-    local mixin_helper = require("library.mixin_helper")
-    local props = {}
-    local temp_str = finale.FCString()
-
-    function props:AddNode(parentnode, iscontainer, text)
-        mixin_helper.assert_argument_type(2, parentnode, "nil", "FCTreeNode")
-        mixin_helper.assert_argument_type(3, iscontainer, "boolean")
-        mixin_helper.assert_argument_type(4, text, "string", "number", "FCString")
-        if not text.ClassName then
-            temp_str.LuaString = tostring(text)
-            text = temp_str
-        end
-        return self:AddNode_(parentnode, iscontainer, text)
-    end
-    return props
-end
-__imports["mixin.FCMCtrlUpDown"] = __imports["mixin.FCMCtrlUpDown"] or function()
-
-
-
-    local mixin = require("library.mixin")
-    local mixin_helper = require("library.mixin_helper")
-    local private = setmetatable({}, {__mode = "k"})
-    local props = {}
-
-    function props:Init()
-        private[self] = private[self] or {}
-    end
-
-    function props:GetConnectedEdit()
-        return private[self].ConnectedEdit
-    end
-
-    function props:ConnectIntegerEdit(control, minvalue, maxvalue)
-        mixin_helper.assert_argument_type(2, control, "FCMCtrlEdit")
-        mixin_helper.assert_argument_type(3, minvalue, "number")
-        mixin_helper.assert_argument_type(4, maxvalue, "number")
-        local ret = self:ConnectIntegerEdit_(control, minvalue, maxvalue)
-        if ret then
-            private[self].ConnectedEdit = control
-        end
-        return ret
-    end
-
-    function props:ConnectMeasurementEdit(control, minvalue, maxvalue)
-        mixin_helper.assert_argument_type(2, control, "FCMCtrlEdit")
-        mixin_helper.assert_argument_type(3, minvalue, "number")
-        mixin_helper.assert_argument_type(4, maxvalue, "number")
-        local ret = self:ConnectMeasurementEdit_(control, minvalue, maxvalue)
-        if ret then
-            private[self].ConnectedEdit = control
-        end
-        return ret
-    end
-
-
-    props.AddHandlePress, props.RemoveHandlePress = mixin_helper.create_standard_control_event("HandleUpDownPressed")
-    return props
-end
-__imports["mixin.FCMCustomLuaWindow"] = __imports["mixin.FCMCustomLuaWindow"] or function()
+package.preload["mixin.FCMCtrlStatic"] = package.preload["mixin.FCMCtrlStatic"] or function()
 
 
 
@@ -1301,8 +1040,311 @@ __imports["mixin.FCMCustomLuaWindow"] = __imports["mixin.FCMCustomLuaWindow"] or
     local mixin_helper = require("library.mixin_helper")
     local utils = require("library.utils")
     local measurement = require("library.measurement")
+    local class = {Methods = {}}
+    local methods = class.Methods
     local private = setmetatable({}, {__mode = "k"})
-    local props = {}
+    local temp_str = mixin.FCMString()
+    local function get_suffix(unit, suffix_type)
+        if suffix_type == 1 then
+            return measurement.get_unit_suffix(unit)
+        elseif suffix_type == 2 then
+            return measurement.get_unit_abbreviation(unit)
+        elseif suffix_type == 3 then
+            return " " .. string.lower(measurement.get_unit_name(unit))
+        end
+    end
+    local function set_measurement(self, measurementtype, measurementunit, value)
+        mixin_helper.force_assert(private[self].MeasurementEnabled or measurementunit, "'measurementunit' can only be omitted if parent window is an instance of 'FCMCustomLuaWindow'", 3)
+        private[self].MeasurementAutoUpdate = not measurementunit and true or false
+        measurementunit = measurementunit or self:GetParent():GetMeasurementUnit()
+        temp_str["Set" .. measurementtype](temp_str, value, measurementunit)
+        temp_str:AppendLuaString(private[self].ShowMeasurementSuffix and get_suffix(measurementunit, private[self].MeasurementSuffixType) or "")
+        mixin.FCMControl.SetText(self, temp_str)
+        private[self].Measurement = value
+        private[self].MeasurementType = measurementtype
+    end
+
+    function class:Init()
+        if private[self] then
+            return
+        end
+        private[self] = {
+            ShowMeasurementSuffix = true,
+            MeasurementSuffixType = 2,
+            MeasurementEnabled = false,
+        }
+    end
+
+    function methods:RegisterParent(window)
+        mixin.FCMControl.RegisterParent(self, window)
+        private[self].MeasurementEnabled = mixin_helper.is_instance_of(window, "FCMCustomLuaWindow")
+    end
+
+    function methods:SetTextColor(red, green, blue)
+        mixin_helper.assert_argument_type(2, red, "number")
+        mixin_helper.assert_argument_type(3, green, "number")
+        mixin_helper.assert_argument_type(4, blue, "number")
+        private[self].TextColor = {red, green, blue}
+        if not mixin.FCMControl.UseStoredState(self) then
+            self:SetTextColor__(red, green, blue)
+
+
+            mixin.FCMControl.SetText(self, mixin.FCMControl.GetText(self))
+        end
+    end
+
+    function methods:RestoreState()
+        mixin.FCMControl.RestoreState(self)
+
+        if private[self].TextColor then
+            mixin.FCMCtrlStatic.SetTextColor(self, private[self].TextColor[1], private[self].TextColor[2], private[self].TextColor[3])
+        end
+    end
+
+    function methods:SetText(str)
+        mixin_helper.assert_argument_type(2, str, "string", "number", "FCString")
+        mixin.FCMControl.SetText(self, str)
+        private[self].Measurement = nil
+        private[self].MeasurementType = nil
+    end
+
+    function methods:SetMeasurement(value, measurementunit)
+        mixin_helper.assert_argument_type(2, value, "number")
+        mixin_helper.assert_argument_type(3, measurementunit, "number", "nil")
+        set_measurement(self, "Measurement", measurementunit, value)
+    end
+
+    function methods:SetMeasurementInteger(value, measurementunit)
+        mixin_helper.assert_argument_type(2, value, "number")
+        mixin_helper.assert_argument_type(3, measurementunit, "number", "nil")
+        set_measurement(self, "MeasurementInteger", measurementunit, value)
+    end
+
+    function methods:SetMeasurementEfix(value, measurementunit)
+        mixin_helper.assert_argument_type(2, value, "number")
+        mixin_helper.assert_argument_type(3, measurementunit, "number", "nil")
+        set_measurement(self, "MeasurementEfix", measurementunit, value)
+    end
+
+    function methods:SetMeasurementEfix(value, measurementunit)
+        mixin_helper.assert_argument_type(2, value, "number")
+        mixin_helper.assert_argument_type(3, measurementunit, "number", "nil")
+        set_measurement(self, "Measurement10000th", measurementunit, value)
+    end
+
+    function methods:SetShowMeasurementSuffix(enabled)
+        mixin_helper.assert_argument_type(2, enabled, "boolean")
+        private[self].ShowMeasurementSuffix = enabled and true or false
+        mixin.FCMCtrlStatic.UpdateMeasurementUnit(self)
+    end
+
+    function methods:SetMeasurementSuffixShort()
+        private[self].MeasurementSuffixType = 1
+        mixin.FCMCtrlStatic.UpdateMeasurementUnit(self)
+    end
+
+    function methods:SetMeasurementSuffixAbbreviated()
+        private[self].MeasurementSuffixType = 2
+        mixin.FCMCtrlStatic.UpdateMeasurementUnit(self)
+    end
+
+    function methods:SetMeasurementSuffixFull()
+        private[self].MeasurementSuffixType = 3
+        mixin.FCMCtrlStatic.UpdateMeasurementUnit(self)
+    end
+
+    function methods:UpdateMeasurementUnit()
+        if private[self].Measurement then
+            mixin.FCMCtrlStatic["Set" .. private[self].MeasurementType](self, private[self].Measurement)
+        end
+    end
+    return class
+end
+package.preload["mixin.FCMCtrlSwitcher"] = package.preload["mixin.FCMCtrlSwitcher"] or function()
+
+
+
+    local mixin = require("library.mixin")
+    local mixin_helper = require("library.mixin_helper")
+    local class = {Methods = {}}
+    local methods = class.Methods
+    local private = setmetatable({}, {__mode = "k"})
+    local trigger_page_change
+    local each_last_page_change
+    local temp_str = finale.FCString()
+
+    function class:Init()
+        if private[self] then
+            return
+        end
+        private[self] = {
+            Index = {},
+            TitleIndex = {},
+        }
+    end
+
+    function methods:AddPage(title)
+        mixin_helper.assert_argument_type(2, title, "string", "number", "FCString")
+        title = mixin_helper.to_fcstring(title, temp_str)
+        self:AddPage__(title)
+        table.insert(private[self].Index, title.LuaString)
+        private[self].TitleIndex[title.LuaString] = #private[self].Index - 1
+    end
+
+    function methods:AddPages(...)
+        for i = 1, select("#", ...) do
+            local v = select(i, ...)
+            mixin_helper.assert_argument_type(i + 1, v, "string", "number", "FCString")
+            mixin.FCMCtrlSwitcher.AddPage(self, v)
+        end
+    end
+
+    function methods:AttachControl(control, pageindex)
+        mixin_helper.assert_argument_type(2, control, "FCControl", "FCMControl")
+        mixin_helper.assert_argument_type(3, pageindex, "number")
+        mixin_helper.boolean_to_error(self, "AttachControl", control, pageindex)
+    end
+
+    function methods:AttachControlByTitle(control, title)
+        mixin_helper.assert_argument_type(2, control, "FCControl", "FCMControl")
+        mixin_helper.assert_argument_type(3, title, "string", "number", "FCString")
+        title = type(title) == "userdata" and title.LuaString or tostring(title)
+        local index = private[self].TitleIndex[title] or -1
+        mixin_helper.force_assert(index ~= -1, "No page titled '" .. title .. "'")
+        mixin.FCMCtrlSwitcher.AttachControl(self, control, index)
+    end
+
+    function methods:SetSelectedPage(index)
+        mixin_helper.assert_argument_type(2, index, "number")
+        self:SetSelectedPage__(index)
+        trigger_page_change(self)
+    end
+
+    function methods:SetSelectedPageByTitle(title)
+        mixin_helper.assert_argument_type(2, title, "string", "number", "FCString")
+        title = type(title) == "userdata" and title.LuaString or tostring(title)
+        local index = private[self].TitleIndex[title] or -1
+        mixin_helper.force_assert(index ~= -1, "No page titled '" .. title .. "'")
+        mixin.FCMCtrlSwitcher.SetSelectedPage(self, index)
+    end
+
+    function methods:GetSelectedPageTitle(title)
+        mixin_helper.assert_argument_type(2, title, "nil", "FCString")
+        local index = self:GetSelectedPage__()
+        if index == -1 then
+            if title then
+                title.LuaString = ""
+            else
+                return nil
+            end
+        else
+            return mixin.FCMCtrlSwitcher.GetPageTitle(self, index, title)
+        end
+    end
+
+    function methods:GetPageTitle(index, str)
+        mixin_helper.assert_argument_type(2, index, "number")
+        mixin_helper.assert_argument_type(3, str, "nil", "FCString")
+        local text = private[self].Index[index + 1]
+        mixin_helper.force_assert(text, "No page at index " .. tostring(index))
+        if str then
+            str.LuaString = text
+        else
+            return text
+        end
+    end
+
+
+
+    methods.AddHandlePageChange, methods.RemoveHandlePageChange, trigger_page_change, each_last_page_change = mixin_helper.create_custom_control_change_event(
+        {
+            name = "last_page",
+            get = "GetSelectedPage__",
+            initial = -1
+        },
+        {
+            name = "last_page_title",
+
+            get = function(ctrl)
+                return mixin.FCMCtrlSwitcher.GetSelectedPageTitle(ctrl)
+            end,
+            initial = "",
+        }
+    )
+    return class
+end
+package.preload["mixin.FCMCtrlTree"] = package.preload["mixin.FCMCtrlTree"] or function()
+
+
+
+    local mixin = require("library.mixin")
+    local mixin_helper = require("library.mixin_helper")
+    local class = {Methods = {}}
+    local methods = class.Methods
+    local temp_str = finale.FCString()
+
+    function methods:AddNode(parentnode, iscontainer, text)
+        mixin_helper.assert_argument_type(2, parentnode, "nil", "FCTreeNode")
+        mixin_helper.assert_argument_type(3, iscontainer, "boolean")
+        mixin_helper.assert_argument_type(4, text, "string", "number", "FCString")
+        return self:AddNode__(parentnode, iscontainer, mixin_helper.to_fcstring(text, temp_str))
+    end
+    return class
+end
+package.preload["mixin.FCMCtrlUpDown"] = package.preload["mixin.FCMCtrlUpDown"] or function()
+
+
+
+    local mixin = require("library.mixin")
+    local mixin_helper = require("library.mixin_helper")
+    local class = {Methods = {}}
+    local methods = class.Methods
+    local private = setmetatable({}, {__mode = "k"})
+
+    function class:Init()
+        if private[self] then
+            return
+        end
+        private[self] = {}
+    end
+
+    function methods:GetConnectedEdit()
+        return private[self].ConnectedEdit
+    end
+
+    function methods:ConnectIntegerEdit(control, minvalue, maxvalue)
+        mixin_helper.assert_argument_type(2, control, "FCMCtrlEdit")
+        mixin_helper.assert_argument_type(3, minvalue, "number")
+        mixin_helper.assert_argument_type(4, maxvalue, "number")
+        mixin_helper.boolean_to_error(self, "ConnectIntegerEdit", control, minvalue, maxvalue)
+
+        private[self].ConnectedEdit = control
+    end
+
+    function methods:ConnectMeasurementEdit(control, minvalue, maxvalue)
+        mixin_helper.assert_argument_type(2, control, "FCMCtrlEdit")
+        mixin_helper.assert_argument_type(3, minvalue, "number")
+        mixin_helper.assert_argument_type(4, maxvalue, "number")
+        mixin_helper.boolean_to_error(self, "ConnectMeasurementEdit", control, minvalue, maxvalue)
+
+        private[self].ConnectedEdit = control
+    end
+
+
+    methods.AddHandlePress, methods.RemoveHandlePress = mixin_helper.create_standard_control_event("HandleUpDownPressed")
+    return class
+end
+package.preload["mixin.FCMCustomLuaWindow"] = package.preload["mixin.FCMCustomLuaWindow"] or function()
+
+
+
+    local mixin = require("library.mixin")
+    local mixin_helper = require("library.mixin_helper")
+    local utils = require("library.utils")
+    local measurement = require("library.measurement")
+    local class = {Methods = {}}
+    local methods = class.Methods
+    local private = setmetatable({}, {__mode = "k"})
     local trigger_measurement_unit_change
     local each_last_measurement_unit_change
 
@@ -1318,7 +1360,7 @@ __imports["mixin.FCMCustomLuaWindow"] = __imports["mixin.FCMCustomLuaWindow"] or
     local function restore_position(self)
         if private[self].HasBeenShown and private[self].EnableAutoRestorePosition and self.StorePosition then
             self:StorePosition(false)
-            self:SetRestorePositionOnlyData_(private[self].StoredX, private[self].StoredY)
+            self:SetRestorePositionOnlyData__(private[self].StoredX, private[self].StoredY)
             self:RestorePosition()
         end
     end
@@ -1334,22 +1376,25 @@ __imports["mixin.FCMCustomLuaWindow"] = __imports["mixin.FCMCustomLuaWindow"] or
     end
     local function create_handle_methods(event)
 
-        props["Register" .. event] = function(self, callback)
+        methods["Register" .. event] = function(self, callback)
             mixin_helper.assert_argument_type(2, callback, "function")
             private[self][event].Registered = callback
         end
-        props["Add" .. event] = function(self, callback)
+        methods["Add" .. event] = function(self, callback)
             mixin_helper.assert_argument_type(2, callback, "function")
             table.insert(private[self][event].Added, callback)
         end
-        props["Remove" .. event] = function(self, callback)
+        methods["Remove" .. event] = function(self, callback)
             mixin_helper.assert_argument_type(2, callback, "function")
             utils.table_remove_first(private[self][event].Added, callback)
         end
     end
 
-    function props:Init()
-        private[self] = private[self] or {
+    function class:Init()
+        if private[self] then
+            return
+        end
+        private[self] = {
             HandleTimer = {},
             HandleCustomQueue = {},
             HasBeenShown = false,
@@ -1364,10 +1409,10 @@ __imports["mixin.FCMCustomLuaWindow"] = __imports["mixin.FCMCustomLuaWindow"] or
 
         for _, event in ipairs(control_events) do
             private[self][event] = {Added = {}}
-            if self["Register" .. event .. "_"] then
+            if self["Register" .. event .. "__"] then
 
                 local is_running = false
-                self["Register" .. event .. "_"](self, function(control, ...)
+                self["Register" .. event .. "__"](self, function(control, ...)
                     if is_running then
                         return
                     end
@@ -1391,11 +1436,11 @@ __imports["mixin.FCMCustomLuaWindow"] = __imports["mixin.FCMCustomLuaWindow"] or
 
         for _, event in ipairs(window_events) do
             private[self][event] = {Added = {}}
-            if not self["Register" .. event .. "_"] then
+            if not self["Register" .. event .. "__"] then
                 goto continue
             end
             if event == "InitWindow" then
-                self["Register" .. event .. "_"](self, function(...)
+                self["Register" .. event .. "__"](self, function(...)
                     if private[self].HasBeenShown and private[self].RestoreControlState then
                         for control in each(self) do
                             control:RestoreState()
@@ -1404,7 +1449,7 @@ __imports["mixin.FCMCustomLuaWindow"] = __imports["mixin.FCMCustomLuaWindow"] or
                     dispatch_event_handlers(self, event, self, ...)
                 end)
             elseif event == "CloseWindow" then
-                self["Register" .. event .. "_"](self, function(...)
+                self["Register" .. event .. "__"](self, function(...)
                     if private[self].EnableDebugClose and finenv.RetainLuaState ~= nil then
                         if finenv.DebugEnabled and (self:QueryLastCommandModifierKeys(finale.CMDMODKEY_ALT) or self:QueryLastCommandModifierKeys(finale.CMDMODKEY_SHIFT)) then
                             finenv.RetainLuaState = false
@@ -1428,15 +1473,15 @@ __imports["mixin.FCMCustomLuaWindow"] = __imports["mixin.FCMCustomLuaWindow"] or
                     end
                 end)
             else
-                self["Register" .. event .. "_"](self, function(...)
+                self["Register" .. event .. "__"](self, function(...)
                     dispatch_event_handlers(self, event, self, ...)
                 end)
             end
             :: continue ::
         end
 
-        if self.RegisterHandleTimer_ then
-            self:RegisterHandleTimer_(function(timerid)
+        if self.RegisterHandleTimer__ then
+            self:RegisterHandleTimer__(function(timerid)
 
                 if private[self].HandleTimer.Registered then
 
@@ -1487,13 +1532,13 @@ __imports["mixin.FCMCustomLuaWindow"] = __imports["mixin.FCMCustomLuaWindow"] or
         create_handle_methods(event)
     end
 
-    function props:QueueHandleCustom(callback)
+    function methods:QueueHandleCustom(callback)
         mixin_helper.assert_argument_type(2, callback, "function")
         table.insert(private[self].HandleCustomQueue, callback)
     end
     if finenv.MajorVersion > 0 or finenv.MinorVersion >= 56 then
 
-        function props:RegisterHandleControlEvent(control, callback)
+        function methods:RegisterHandleControlEvent(control, callback)
             mixin_helper.assert_argument_type(2, control, "FCControl", "FCMControl")
             mixin_helper.assert_argument_type(3, callback, "function")
             if not self:RegisterHandleControlEvent_(control, function(ctrl)
@@ -1506,19 +1551,19 @@ __imports["mixin.FCMCustomLuaWindow"] = __imports["mixin.FCMCustomLuaWindow"] or
     if finenv.MajorVersion > 0 or finenv.MinorVersion >= 56 then
 
 
-        function props:RegisterHandleTimer(callback)
+        function methods:RegisterHandleTimer(callback)
             mixin_helper.assert_argument_type(2, callback, "function")
             private[self].HandleTimer.Registered = callback
         end
 
-        function props:AddHandleTimer(timerid, callback)
+        function methods:AddHandleTimer(timerid, callback)
             mixin_helper.assert_argument_type(2, timerid, "number")
             mixin_helper.assert_argument_type(3, callback, "function")
             private[self].HandleTimer[timerid] = private[self].HandleTimer[timerid] or {}
             table.insert(private[self].HandleTimer[timerid], callback)
         end
 
-        function props:RemoveHandleTimer(timerid, callback)
+        function methods:RemoveHandleTimer(timerid, callback)
             mixin_helper.assert_argument_type(2, timerid, "number")
             mixin_helper.assert_argument_type(3, callback, "function")
             if not private[self].HandleTimer[timerid] then
@@ -1527,21 +1572,21 @@ __imports["mixin.FCMCustomLuaWindow"] = __imports["mixin.FCMCustomLuaWindow"] or
             utils.table_remove_first(private[self].HandleTimer[timerid], callback)
         end
 
-        function props:SetTimer(timerid, msinterval)
+        function methods:SetTimer(timerid, msinterval)
             mixin_helper.assert_argument_type(2, timerid, "number")
             mixin_helper.assert_argument_type(3, msinterval, "number")
-            self:SetTimer_(timerid, msinterval)
+            self:SetTimer__(timerid, msinterval)
             private[self].HandleTimer[timerid] = private[self].HandleTimer[timerid] or {}
         end
 
-        function props:GetNextTimerID()
+        function methods:GetNextTimerID()
             while private[self].HandleTimer[private[self].NextTimerID] do
                 private[self].NextTimerID = private[self].NextTimerID + 1
             end
             return private[self].NextTimerID
         end
 
-        function props:SetNextTimer(msinterval)
+        function methods:SetNextTimer(msinterval)
             mixin_helper.assert_argument_type(2, msinterval, "number")
             local timerid = mixin.FCMCustomLuaWindow.GetNextTimerID(self)
             mixin.FCMCustomLuaWindow.SetTimer(self, timerid, msinterval)
@@ -1550,31 +1595,31 @@ __imports["mixin.FCMCustomLuaWindow"] = __imports["mixin.FCMCustomLuaWindow"] or
     end
     if finenv.MajorVersion > 0 or finenv.MinorVersion >= 60 then
 
-        function props:SetEnableAutoRestorePosition(enabled)
+        function methods:SetEnableAutoRestorePosition(enabled)
             mixin_helper.assert_argument_type(2, enabled, "boolean")
             private[self].EnableAutoRestorePosition = enabled
         end
 
-        function props:GetEnableAutoRestorePosition()
+        function methods:GetEnableAutoRestorePosition()
             return private[self].EnableAutoRestorePosition
         end
 
-        function props:SetRestorePositionData(x, y, width, height)
+        function methods:SetRestorePositionData(x, y, width, height)
             mixin_helper.assert_argument_type(2, x, "number")
             mixin_helper.assert_argument_type(3, y, "number")
             mixin_helper.assert_argument_type(4, width, "number")
             mixin_helper.assert_argument_type(5, height, "number")
-            self:SetRestorePositionOnlyData_(x, y, width, height)
+            self:SetRestorePositionOnlyData__(x, y, width, height)
             if private[self].HasBeenShown and not self:WindowExists() then
                 private[self].StoredX = x
                 private[self].StoredY = y
             end
         end
 
-        function props:SetRestorePositionOnlyData(x, y)
+        function methods:SetRestorePositionOnlyData(x, y)
             mixin_helper.assert_argument_type(2, x, "number")
             mixin_helper.assert_argument_type(3, y, "number")
-            self:SetRestorePositionOnlyData_(x, y)
+            self:SetRestorePositionOnlyData__(x, y)
             if private[self].HasBeenShown and not self:WindowExists() then
                 private[self].StoredX = x
                 private[self].StoredY = y
@@ -1582,29 +1627,29 @@ __imports["mixin.FCMCustomLuaWindow"] = __imports["mixin.FCMCustomLuaWindow"] or
         end
     end
 
-    function props:SetEnableDebugClose(enabled)
+    function methods:SetEnableDebugClose(enabled)
         mixin_helper.assert_argument_type(2, enabled, "boolean")
         private[self].EnableDebugClose = enabled and true or false
     end
 
-    function props:GetEnableDebugClose()
+    function methods:GetEnableDebugClose()
         return private[self].EnableDebugClose
     end
 
-    function props:SetRestoreControlState(enabled)
+    function methods:SetRestoreControlState(enabled)
         mixin_helper.assert_argument_type(2, enabled, "boolean")
         private[self].RestoreControlState = enabled and true or false
     end
 
-    function props:GetRestoreControlState()
+    function methods:GetRestoreControlState()
         return private[self].RestoreControlState
     end
 
-    function props:HasBeenShown()
+    function methods:HasBeenShown()
         return private[self].HasBeenShown
     end
 
-    function props:ExecuteModal(parent)
+    function methods:ExecuteModal(parent)
         if mixin_helper.is_instance_of(parent, "FCMCustomLuaWindow") and private[self].UseParentMeasurementUnit then
             self:SetMeasurementUnit(parent:GetMeasurementUnit())
         end
@@ -1612,13 +1657,13 @@ __imports["mixin.FCMCustomLuaWindow"] = __imports["mixin.FCMCustomLuaWindow"] or
         return mixin.FCMCustomWindow.ExecuteModal(self, parent)
     end
 
-    function props:ShowModeless()
+    function methods:ShowModeless()
         finenv.RegisterModelessDialog(self)
         restore_position(self)
-        return self:ShowModeless_()
+        return self:ShowModeless__()
     end
 
-    function props:RunModeless(selection_not_required, default_action_override)
+    function methods:RunModeless(selection_not_required, default_action_override)
         local modifier_keys_on_invoke = finenv.QueryInvokedModifierKeys and (finenv.QueryInvokedModifierKeys(finale.CMDMODKEY_ALT) or finenv.QueryInvokedModifierKeys(finale.CMDMODKEY_SHIFT))
         local default_action = default_action_override == nil and private[self].HandleOkButtonPressed.Registered or default_action_override
         if modifier_keys_on_invoke and self:HasBeenShown() and default_action then
@@ -1642,11 +1687,11 @@ __imports["mixin.FCMCustomLuaWindow"] = __imports["mixin.FCMCustomLuaWindow"] or
         end
     end
 
-    function props:GetMeasurementUnit()
+    function methods:GetMeasurementUnit()
         return private[self].MeasurementUnit
     end
 
-    function props:SetMeasurementUnit(unit)
+    function methods:SetMeasurementUnit(unit)
         mixin_helper.assert_argument_type(2, unit, "number")
         if unit == private[self].MeasurementUnit then
             return
@@ -1654,7 +1699,7 @@ __imports["mixin.FCMCustomLuaWindow"] = __imports["mixin.FCMCustomLuaWindow"] or
         if unit == finale.MEASUREMENTUNIT_DEFAULT then
             unit = measurement.get_real_default_unit()
         end
-        mixin.force_assert(measurement.is_valid_unit(unit), "Measurement unit is not valid.")
+        mixin_helper.force_assert(measurement.is_valid_unit(unit), "Measurement unit is not valid.")
         private[self].MeasurementUnit = unit
 
         for ctrl in each(self) do
@@ -1666,22 +1711,22 @@ __imports["mixin.FCMCustomLuaWindow"] = __imports["mixin.FCMCustomLuaWindow"] or
         trigger_measurement_unit_change(self)
     end
 
-    function props:GetMeasurementUnitName()
+    function methods:GetMeasurementUnitName()
         return measurement.get_unit_name(private[self].MeasurementUnit)
     end
 
-    function props:GetUseParentMeasurementUnit(enabled)
+    function methods:GetUseParentMeasurementUnit(enabled)
         return private[self].UseParentMeasurementUnit
     end
 
-    function props:SetUseParentMeasurementUnit(enabled)
+    function methods:SetUseParentMeasurementUnit(enabled)
         mixin_helper.assert_argument_type(2, enabled, "boolean")
         private[self].UseParentMeasurementUnit = enabled and true or false
     end
 
 
 
-    props.AddHandleMeasurementUnitChange, props.RemoveHandleMeasurementUnitChange, trigger_measurement_unit_change, each_last_measurement_unit_change = mixin_helper.create_custom_window_change_event(
+    methods.AddHandleMeasurementUnitChange, methods.RemoveHandleMeasurementUnitChange, trigger_measurement_unit_change, each_last_measurement_unit_change = mixin_helper.create_custom_window_change_event(
         {
             name = "last_unit",
             get = function(window)
@@ -1691,7 +1736,7 @@ __imports["mixin.FCMCustomLuaWindow"] = __imports["mixin.FCMCustomLuaWindow"] or
         }
     )
 
-    function props:CreateMeasurementEdit(x, y, control_name)
+    function methods:CreateMeasurementEdit(x, y, control_name)
         mixin_helper.assert_argument_type(2, x, "number")
         mixin_helper.assert_argument_type(3, y, "number")
         mixin_helper.assert_argument_type(4, control_name, "string", "nil")
@@ -1699,7 +1744,7 @@ __imports["mixin.FCMCustomLuaWindow"] = __imports["mixin.FCMCustomLuaWindow"] or
         return mixin.subclass(edit, "FCXCtrlMeasurementEdit")
     end
 
-    function props:CreateMeasurementUnitPopup(x, y, control_name)
+    function methods:CreateMeasurementUnitPopup(x, y, control_name)
         mixin_helper.assert_argument_type(2, x, "number")
         mixin_helper.assert_argument_type(3, y, "number")
         mixin_helper.assert_argument_type(4, control_name, "string", "nil")
@@ -1707,26 +1752,44 @@ __imports["mixin.FCMCustomLuaWindow"] = __imports["mixin.FCMCustomLuaWindow"] or
         return mixin.subclass(popup, "FCXCtrlMeasurementUnitPopup")
     end
 
-    function props:CreatePageSizePopup(x, y, control_name)
+    function methods:CreatePageSizePopup(x, y, control_name)
         mixin_helper.assert_argument_type(2, x, "number")
         mixin_helper.assert_argument_type(3, y, "number")
         mixin_helper.assert_argument_type(4, control_name, "string", "nil")
         local popup = mixin.FCMCustomWindow.CreatePopup(self, x, y, control_name)
         return mixin.subclass(popup, "FCXCtrlPageSizePopup")
     end
-    return props
+    return class
 end
-__imports["mixin.FCMCustomWindow"] = __imports["mixin.FCMCustomWindow"] or function()
+package.preload["mixin.FCMCustomWindow"] = package.preload["mixin.FCMCustomWindow"] or function()
 
 
 
     local mixin = require("library.mixin")
     local mixin_helper = require("library.mixin_helper")
+    local class = {Methods = {}}
+    local methods = class.Methods
     local private = setmetatable({}, {__mode = "k"})
-    local props = {}
+    local function create_control(self, func, num_args, ...)
+        local control = self["Create" .. func .. "__"](self, ...)
+        private[self].Controls[control:GetControlID()] = control
+        control:RegisterParent(self)
+        local control_name = select(num_args + 1, ...)
+        if control_name then
+            control_name = type(control_name) == "userdata" and control_name.LuaString or control_name
+            if private[self].NamedControls[control_name] then
+                error("A control is already registered with the name '" .. control_name .. "'", 2)
+            end
+            private[self].NamedControls[control_name] = control
+        end
+        return control
+    end
 
-    function props:Init()
-        private[self] = private[self] or {
+    function class:Init()
+        if private[self] then
+            return
+        end
+        private[self] = {
             Controls = {},
             NamedControls = {},
         }
@@ -1735,87 +1798,53 @@ __imports["mixin.FCMCustomWindow"] = __imports["mixin.FCMCustomWindow"] or funct
 
 
 
-    for _, f in ipairs({"CancelButton", "OkButton"}) do
-        props["Create" .. f] = function(self, control_name)
-            mixin_helper.assert_argument_type(2, control_name, "string", "nil", "FCString")
-            local control = self["Create" .. f .. "_"](self)
-            private[self].Controls[control:GetControlID()] = control
-            control:RegisterParent(self)
-            if control_name then
-                control_name = type(control_name) == "userdata" and control_name.LuaString or control_name
-                if private[self].NamedControls[control_name] then
-                    error("A control is already registered with the name '" .. control_name .. "'", 2)
-                end
-                private[self].NamedControls[control_name] = control
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    for num_args, ctrl_types in pairs({
+        [0] = {"CancelButton", "OkButton",},
+        [2] = {"Button", "Checkbox", "CloseButton", "DataList", "Edit",
+            "ListBox", "Popup", "Slider", "Static", "Switcher", "Tree", "UpDown",
+        },
+        [3] = {"HorizontalLine", "VerticalLine",},
+    }) do
+        for _, control_type in pairs(ctrl_types) do
+            if not finale.FCCustomWindow.__class["Create" .. control_type] then
+                goto continue
             end
-            return control
+            methods["Create" .. control_type] = function(self, ...)
+                for i = 1, num_args do
+                    mixin_helper.assert_argument_type(i + 1, select(i, ...), "number")
+                end
+                mixin_helper.assert_argument_type(num_args + 2, select(num_args + 1, ...), "string", "nil", "FCString")
+                return create_control(self, control_type, num_args, ...)
+            end
+            :: continue ::
         end
     end
 
-
-
-
-
-
-
-
-
-
-
-    for _, f in ipairs(
-                    {
-            "Button", "Checkbox", "DataList", "Edit", "ListBox", "Popup", "Slider", "Static", "Switcher", "Tree", "UpDown",
-        }) do
-        props["Create" .. f] = function(self, x, y, control_name)
-            mixin_helper.assert_argument_type(2, x, "number")
-            mixin_helper.assert_argument_type(3, y, "number")
-            mixin_helper.assert_argument_type(4, control_name, "string", "nil", "FCString")
-            local control = self["Create" .. f .. "_"](self, x, y)
-            private[self].Controls[control:GetControlID()] = control
-            control:RegisterParent(self)
-            if control_name then
-                control_name = type(control_name) == "userdata" and control_name.LuaString or control_name
-                if private[self].NamedControls[control_name] then
-                    error("A control is already registered with the name '" .. control_name .. "'", 2)
-                end
-                private[self].NamedControls[control_name] = control
-            end
-            return control
-        end
-    end
-
-
-    for _, f in ipairs({"HorizontalLine", "VerticalLine"}) do
-        props["Create" .. f] = function(self, x, y, length, control_name)
-            mixin_helper.assert_argument_type(2, x, "number")
-            mixin_helper.assert_argument_type(3, y, "number")
-            mixin_helper.assert_argument_type(4, length, "number")
-            mixin_helper.assert_argument_type(5, control_name, "string", "nil", "FCString")
-            local control = self["Create" .. f .. "_"](self, x, y, length)
-            private[self].Controls[control:GetControlID()] = control
-            control:RegisterParent(self)
-            if control_name then
-                control_name = type(control_name) == "userdata" and control_name.LuaString or control_name
-                if private[self].NamedControls[control_name] then
-                    error("A control is already registered with the name '" .. control_name .. "'", 2)
-                end
-                private[self].NamedControls[control_name] = control
-            end
-            return control
-        end
-    end
-
-    function props:FindControl(control_id)
+    function methods:FindControl(control_id)
         mixin_helper.assert_argument_type(2, control_id, "number")
         return private[self].Controls[control_id]
     end
 
-    function props:GetControl(control_name)
+    function methods:GetControl(control_name)
         mixin_helper.assert_argument_type(2, control_name, "string", "FCString")
         return private[self].NamedControls[control_name]
     end
 
-    function props:Each(class_filter)
+    function methods:Each(class_filter)
         local i = -1
         local v
         local iterator = function()
@@ -1828,110 +1857,97 @@ __imports["mixin.FCMCustomWindow"] = __imports["mixin.FCMCustomWindow"] or funct
         return iterator
     end
 
-    function props:GetItemAt(index)
-        local item = self:GetItemAt_(index)
+    function methods:GetItemAt(index)
+        local item = self:GetItemAt__(index)
         return item and private[self].Controls[item:GetControlID()] or item
     end
 
-    if finenv.MajorVersion > 0 or finenv.MinorVersion >= 56 then
-        function props.CreateCloseButton(self, x, y, control_name)
-            mixin_helper.assert_argument_type(2, x, "number")
-            mixin_helper.assert_argument_type(3, y, "number")
-            mixin_helper.assert_argument_type(4, control_name, "string", "nil", "FCString")
-            local control = self:CreateCloseButton_(x, y)
-            private[self].Controls[control:GetControlID()] = control
-            control:RegisterParent(self)
-            if control_name then
-                control_name = type(control_name) == "userdata" and control_name.LuaString or control_name
-                if private[self].NamedControls[control_name] then
-                    error("A control is already registered with the name '" .. control_name .. "'", 2)
-                end
-                private[self].NamedControls[control_name] = control
-            end
-            return control
-        end
-    end
-
-    function props:GetParent()
+    function methods:GetParent()
         return private[self].Parent
     end
 
-    function props:ExecuteModal(parent)
+    function methods:ExecuteModal(parent)
         private[self].Parent = parent
-        local ret = self:ExecuteModal_(parent)
+        local ret = self:ExecuteModal__(parent)
         private[self].Parent = nil
         return ret
     end
-    return props
+    return class
 end
-__imports["mixin.FCMNoteEntry"] = __imports["mixin.FCMNoteEntry"] or function()
+package.preload["mixin.FCMNoteEntry"] = package.preload["mixin.FCMNoteEntry"] or function()
 
 
 
     local mixin = require("library.mixin")
     local mixin_helper = require("library.mixin_helper")
+    local class = {Methods = {}}
+    local methods = class.Methods
     local private = setmetatable({}, {__mode = "k"})
-    local props = {}
 
-    function props:Init()
-        private[self] = private[self] or {}
+    function class:Init()
+        if private[self] then
+            return
+        end
+        private[self] = {}
     end
 
-    function props:RegisterParent(parent)
+    function methods:RegisterParent(parent)
         mixin_helper.assert_argument_type(2, parent, "FCNoteEntryCell")
         if not private[self].Parent then
             private[self].Parent = parent
         end
     end
 
-    function props:GetParent()
+    function methods:GetParent()
         return private[self].Parent
     end
-    return props
+    return class
 end
-__imports["mixin.FCMNoteEntryCell"] = __imports["mixin.FCMNoteEntryCell"] or function()
+package.preload["mixin.FCMNoteEntryCell"] = package.preload["mixin.FCMNoteEntryCell"] or function()
 
 
 
     local mixin = require("library.mixin")
     local mixin_helper = require("library.mixin_helper")
-    local props = {}
+    local class = {Methods = {}}
+    local methods = class.Methods
 
-    function props:GetItemAt(index)
+    function methods:GetItemAt(index)
         mixin_helper.assert_argument_type(2, index, "number")
-        local item = self:GetItemAt_(index)
+        local item = self:GetItemAt__(index)
         if item then
             item:RegisterParent(self)
         end
         return item
     end
-    return props
+    return class
 end
-__imports["mixin.FCMPage"] = __imports["mixin.FCMPage"] or function()
+package.preload["mixin.FCMPage"] = package.preload["mixin.FCMPage"] or function()
 
 
 
     local mixin = require("library.mixin")
     local mixin_helper = require("library.mixin_helper")
     local page_size = require("library.page_size")
-    local props = {}
+    local class = {Methods = {}}
+    local methods = class.Methods
 
-    function props:GetSize()
+    function methods:GetSize()
         return page_size.get_page_size(self)
     end
 
-    function props:SetSize(size)
+    function methods:SetSize(size)
         mixin_helper.assert_argument_type(2, size, "string")
         mixin_helper.assert(page_size.is_size(size), "'" .. size .. "' is not a valid page size.")
         page_size.set_page_size(self, size)
     end
 
-    function props:IsBlank()
+    function methods:IsBlank()
         return self:GetFirstSystem() == -1
     end
-    return props
+    return class
 end
-__imports["mixin.FCMString"] = __imports["mixin.FCMString"] or function()
+package.preload["mixin.FCMString"] = package.preload["mixin.FCMString"] or function()
 
 
 
@@ -1939,7 +1955,8 @@ __imports["mixin.FCMString"] = __imports["mixin.FCMString"] or function()
     local mixin_helper = require("library.mixin_helper")
     local utils = require("library.utils")
     local measurement = require("library.measurement")
-    local props = {}
+    local class = {Methods = {}}
+    local methods = class.Methods
 
     local unit_overrides = {
         {unit = finale.MEASUREMENTUNIT_EVPUS, overrides = {"EVPUS", "evpus", "e"}},
@@ -1962,7 +1979,7 @@ __imports["mixin.FCMString"] = __imports["mixin.FCMString"] or function()
         return tonumber(whole) * 48 + tonumber(fractional) * 4
     end
 
-    function props:GetMeasurement(measurementunit)
+    function methods:GetMeasurement(measurementunit)
         mixin_helper.assert_argument_type(2, measurementunit, "number")
 
         local value = string.gsub(self.LuaString, "%" .. mixin.UI():GetDecimalSeparator(), '.')
@@ -2013,21 +2030,21 @@ __imports["mixin.FCMString"] = __imports["mixin.FCMString"] or function()
         return 0
     end
 
-    function props:GetRangeMeasurement(measurementunit, minimum, maximum)
+    function methods:GetRangeMeasurement(measurementunit, minimum, maximum)
         mixin_helper.assert_argument_type(2, measurementunit, "number")
         mixin_helper.assert_argument_type(3, minimum, "number")
         mixin_helper.assert_argument_type(4, maximum, "number")
         return utils.clamp(mixin.FCMString.GetMeasurement(measurementunit), minimum, maximum)
     end
 
-    function props:SetMeasurement(value, measurementunit)
+    function methods:SetMeasurement(value, measurementunit)
         mixin_helper.assert_argument_type(2, value, "number")
         mixin_helper.assert_argument_type(3, measurementunit, "number")
         if measurementunit == finale.MEASUREMENTUNIT_PICAS then
             local whole = math.floor(value / 48)
             local fractional = value - whole * 48
             fractional = fractional < 0 and fractional * -1 or fractional
-            self.LuaString = whole .. "p" .. utils.round(fractional / 4, 4)
+            self.LuaString = whole .. "p" .. utils.to_integer_if_whole(utils.round(fractional / 4, 4))
             return
         end
 
@@ -2042,210 +2059,187 @@ __imports["mixin.FCMString"] = __imports["mixin.FCMString"] or function()
         elseif measurementunit == finale.MEASUREMENTUNIT_MILLIMETERS then
             value = value / 288 * 25.4
         end
-        self.LuaString = tostring(utils.round(value, 5))
+        self.LuaString = tostring(utils.to_integer_if_whole(utils.round(value, 5)))
     end
 
-    function props:GetMeasurementInteger(measurementunit)
+    function methods:GetMeasurementInteger(measurementunit)
         mixin_helper.assert_argument_type(2, measurementunit, "number")
         return utils.round(mixin.FCMString.GetMeasurement(self, measurementunit))
     end
 
-    function props:GetRangeMeasurementInteger(measurementunit, minimum, maximum)
+    function methods:GetRangeMeasurementInteger(measurementunit, minimum, maximum)
         mixin_helper.assert_argument_type(2, measurementunit, "number")
         mixin_helper.assert_argument_type(3, minimum, "number")
         mixin_helper.assert_argument_type(4, maximum, "number")
         return utils.clamp(mixin.FCMString.GetMeasurementInteger(measurementunit), math.ceil(minimum), math.floor(maximum))
     end
 
-    function props:SetMeasurementInteger(value, measurementunit)
+    function methods:SetMeasurementInteger(value, measurementunit)
         mixin_helper.assert_argument_type(2, value, "number")
         mixin_helper.assert_argument_type(3, measurementunit, "number")
         mixin.FCMString.SetMeasurement(self, utils.round(value), measurementunit)
     end
 
-    function props:GetMeasurementEfix(measurementunit)
+    function methods:GetMeasurementEfix(measurementunit)
         mixin_helper.assert_argument_type(2, measurementunit, "number")
         return utils.round(mixin.FCMString.GetMeasurement(self, measurementunit) * 64)
     end
 
-    function props:GetRangeMeasurementEfix(measurementunit, minimum, maximum)
+    function methods:GetRangeMeasurementEfix(measurementunit, minimum, maximum)
         mixin_helper.assert_argument_type(2, measurementunit, "number")
         mixin_helper.assert_argument_type(3, minimum, "number")
         mixin_helper.assert_argument_type(4, maximum, "number")
         return utils.clamp(mixin.FCMString.GetMeasurementEfix(measurementunit), math.ceil(minimum), math.floor(maximum))
     end
 
-    function props:SetMeasurementEfix(value, measurementunit)
+    function methods:SetMeasurementEfix(value, measurementunit)
         mixin_helper.assert_argument_type(2, value, "number")
         mixin_helper.assert_argument_type(3, measurementunit, "number")
         mixin.FCMString.SetMeasurement(self, utils.round(value) / 64, measurementunit)
     end
 
-    function props:GetMeasurement10000th(measurementunit)
+    function methods:GetMeasurement10000th(measurementunit)
         mixin_helper.assert_argument_type(2, measurementunit, "number")
         return utils.round(mixin.FCMString.GetMeasurement(self, measurementunit) * 10000)
     end
 
-    function props:GetRangeMeasurement10000th(measurementunit, minimum, maximum)
+    function methods:GetRangeMeasurement10000th(measurementunit, minimum, maximum)
         mixin_helper.assert_argument_type(2, measurementunit, "number")
         mixin_helper.assert_argument_type(3, minimum, "number")
         mixin_helper.assert_argument_type(4, maximum, "number")
         return utils.clamp(mixin.FCMString.GetMeasurement10000th(self, measurementunit), math.ceil(minimum), math.floor(maximum))
     end
 
-    function props:SetMeasurement10000th(value, measurementunit)
+    function methods:SetMeasurement10000th(value, measurementunit)
         mixin_helper.assert_argument_type(2, value, "number")
         mixin_helper.assert_argument_type(3, measurementunit, "number")
         mixin.FCMString.SetMeasurement(self, utils.round(value) / 10000, measurementunit)
     end
-    return props
+    return class
 end
-__imports["mixin.FCMStrings"] = __imports["mixin.FCMStrings"] or function()
+package.preload["mixin.FCMStrings"] = package.preload["mixin.FCMStrings"] or function()
 
 
 
     local mixin = require("library.mixin")
     local mixin_helper = require("library.mixin_helper")
     local library = require("library.general_library")
-    local props = {}
+    local class = {Methods = {}}
+    local methods = class.Methods
     local temp_str = finale.FCString()
 
-    function props:AddCopy(str)
+    function methods:AddCopy(str)
         mixin_helper.assert_argument_type(2, str, "string", "number", "FCString")
-        if type(str) ~= "userdata" then
-            temp_str.LuaString = tostring(str)
-            str = temp_str
-        end
-        return self:AddCopy_(str)
+        mixin_helper.boolean_to_error(self, "AddCopy", mixin_helper.to_fcstring(str, temp_str))
     end
 
-    function props:AddCopies(...)
+    function methods:AddCopies(...)
         for i = 1, select("#", ...) do
             local v = select(i, ...)
             mixin_helper.assert_argument_type(i + 1, v, "FCStrings", "FCString", "string", "number")
-            if type(v) == "userdata" and v:ClassName() == "FCStrings" then
+            if mixin_helper.is_instance_of(v, "FCStrings") then
                 for str in each(v) do
-                    v:AddCopy_(str)
+                    self:AddCopy__(str)
                 end
             else
                 mixin.FCStrings.AddCopy(self, v)
             end
         end
-        return true
     end
 
-    function props:CopyFrom(...)
-        local num_args = select("#", ...)
-        local first = select(1, ...)
-        mixin_helper.assert_argument_type(2, first, "FCStrings", "FCString", "string", "number")
-        if library.is_finale_object(first) and first:ClassName() == "FCStrings" then
-            self:CopyFrom_(first)
-        else
-            self:ClearAll_()
-            mixin.FCMStrings.AddCopy(self, first)
-        end
-        for i = 2, num_args do
-            local v = select(i, ...)
-            mixin_helper.assert_argument_type(i + 1, v, "FCStrings", "FCString", "string", "number")
-            if type(v) == "userdata" then
-                if v:ClassName() == "FCString" then
-                    self:AddCopy_(v)
-                elseif v:ClassName() == "FCStrings" then
-                    for str in each(v) do
-                        v:AddCopy_(str)
-                    end
-                end
-            else
-                temp_str.LuaString = tostring(v)
-                self:AddCopy_(temp_str)
-            end
-        end
-        return true
-    end
-
-    function props:Find(str)
+    function methods:Find(str)
         mixin_helper.assert_argument_type(2, str, "string", "number", "FCString")
-        if type(str) ~= "userdata" then
-            temp_str.LuaString = tostring(str)
-            str = temp_str
-        end
-        return self:Find_(str)
+        return self:Find_(mixin_helper.to_fcstring(str, temp_str))
     end
 
-    function props:FindNocase(str)
+    function methods:FindNocase(str)
         mixin_helper.assert_argument_type(2, str, "string", "number", "FCString")
-        if type(str) ~= "userdata" then
-            temp_str.LuaString = tostring(str)
-            str = temp_str
-        end
-        return self:FindNocase_(str)
+        return self:FindNocase__(mixin_helper.to_fcstring(str, temp_str))
     end
 
-    function props:LoadFolderFiles(folderstring)
+    function methods:LoadFolderFiles(folderstring)
         mixin_helper.assert_argument_type(2, folderstring, "string", "FCString")
-        if type(folderstring) ~= "userdata" then
-            temp_str.LuaString = tostring(folderstring)
-            folderstring = temp_str
-        end
-        return self:LoadFolderFiles_(folderstring)
+        mixin_helper.boolean_to_error(self, "LoadFolderFiles", mixin_helper.to_fcstring(folderstring, temp_str))
     end
 
-    function props:LoadSubfolders(folderstring)
+    function methods:LoadSubfolders(folderstring)
         mixin_helper.assert_argument_type(2, folderstring, "string", "FCString")
-        if type(folderstring) ~= "userdata" then
-            temp_str.LuaString = tostring(folderstring)
-            folderstring = temp_str
-        end
-        return self:LoadSubfolders_(folderstring)
+        mixin_helper.boolean_to_error(self, "LoadSubfolders", mixin_helper.to_fcstring(folderstring, temp_str))
+    end
+
+    function methods:LoadSymbolFonts()
+        mixin_helper.boolean_to_error(self, "LoadSymbolFonts")
+    end
+
+    function methods:LoadSystemFontNames()
+        mixin_helper.boolean_to_error(self, "LoadSystemFontNames")
     end
 
     if finenv.MajorVersion > 0 or finenv.MinorVersion >= 59 then
-        function props:InsertStringAt(str, index)
+        function methods:InsertStringAt(str, index)
             mixin_helper.assert_argument_type(2, str, "string", "number", "FCString")
             mixin_helper.assert_argument_type(3, index, "number")
-            if type(str) ~= "userdata" then
-                temp_str.LuaString = tostring(str)
-                str = temp_str
-            end
-            self:InsertStringAt_(str, index)
+            self:InsertStringAt__(mixin_helper.to_fcstring(str, temp_str), index)
         end
     end
-    return props
+
+    function methods:CopyFromStringTable(strings)
+        mixin_helper.assert_argument_type(2, strings, "table")
+        local suffix = self.MixinClass and "__" or ""
+        if finenv.MajorVersion == 0 and finenv.MinorVersion < 64 then
+            self:ClearAll()
+            for _, v in pairs(strings) do
+                temp_str.LuaString = tostring(v)
+                self["AddCopy" .. suffix](self, temp_str)
+            end
+        else
+            self["CopyFromStringTable" .. suffix](self, strings)
+        end
+    end
+
+    function methods:CreateStringTable()
+        local t = {}
+        for str in each(self) do
+            table.insert(t, str.LuaString)
+        end
+        return t
+    end
+    return class
 end
-__imports["mixin.FCMTextExpressionDef"] = __imports["mixin.FCMTextExpressionDef"] or function()
+package.preload["mixin.FCMTextExpressionDef"] = package.preload["mixin.FCMTextExpressionDef"] or function()
 
 
 
 
     local mixin = require("library.mixin")
     local mixin_helper = require("library.mixin_helper")
-    local meta = {}
-    local public = {}
+    local class = {Methods = {}}
+    local methods = class.Methods
     local private = setmetatable({}, {__mode = "k"})
     local temp_str = finale.FCString()
 
-    function public:SaveNewTextBlock(str)
+    function methods:SaveNewTextBlock(str)
         mixin_helper.assert_argument_type(2, str, "string", "FCString")
         str = mixin_helper.to_fcstring(str, temp_str)
         mixin_helper.boolean_to_error(self, "SaveNewTextBlock", str)
     end
 
-    function public:AssignToCategory(cat_def)
+    function methods:AssignToCategory(cat_def)
         mixin_helper.assert_argument_type(2, cat_def, "FCCategoryDef")
         mixin_helper.boolean_to_error(self, "AssignToCategory", cat_def)
     end
 
-    function public:SetUseCategoryPos(enable)
+    function methods:SetUseCategoryPos(enable)
         mixin_helper.assert_argument_type(2, enable, "boolean")
         mixin_helper.boolean_to_error(self, "SetUseCategoryPos", enable)
     end
 
-    function public:SetUseCategoryFont(enable)
+    function methods:SetUseCategoryFont(enable)
         mixin_helper.assert_argument_type(2, enable, "boolean")
         mixin_helper.boolean_to_error(self, "SetUseCategoryFont", enable)
     end
 
-    function public:MakeRehearsalMark(str, measure)
+    function methods:MakeRehearsalMark(str, measure)
         local do_return = false
         if type(measure) == "nil" then
             measure = str
@@ -2261,98 +2255,105 @@ __imports["mixin.FCMTextExpressionDef"] = __imports["mixin.FCMTextExpressionDef"
         end
     end
 
-    function public:SaveTextString(str)
+    function methods:SaveTextString(str)
         mixin_helper.assert_argument_type(2, str, "string", "FCString")
         str = mixin_helper.to_fcstring(str, temp_str)
         mixin_helper.boolean_to_error(self, "SaveTextString", str)
     end
 
-    function public:DeleteTextBlock()
+    function methods:DeleteTextBlock()
         mixin_helper.boolean_to_error(self, "DeleteTextBlock")
     end
 
-    function public:SetDescription(str)
+    function methods:SetDescription(str)
         mixin_helper.assert_argument_type(2, str, "string", "FCString")
         str = mixin_helper.to_fcstring(str, temp_str)
-        self:SetDescription_(str)
+        self:SetDescription__(str)
     end
 
-    function public:GetDescription(str)
+    function methods:GetDescription(str)
         mixin_helper.assert_argument_type(2, str, "nil", "FCString")
         local do_return = not str
         str = str or temp_str
-        self:GetDescription_(str)
+        self:GetDescription__(str)
         if do_return then
             return str.LuaString
         end
     end
 
-    function public:DeepSaveAs(item_num)
+    function methods:DeepSaveAs(item_num)
         mixin_helper.assert_argument_type(2, item_num, "number")
         mixin_helper.boolean_to_error(self, "DeepSaveAs", item_num)
     end
 
-    function public:DeepDeleteData()
+    function methods:DeepDeleteData()
         mixin_helper.boolean_to_error(self, "DeepDeleteData")
     end
-    return {meta, public}
+    return class
 end
-__imports["mixin.FCMTreeNode"] = __imports["mixin.FCMTreeNode"] or function()
+package.preload["mixin.FCMTreeNode"] = package.preload["mixin.FCMTreeNode"] or function()
 
 
 
     local mixin = require("library.mixin")
     local mixin_helper = require("library.mixin_helper")
-    local props = {}
+    local class = {Methods = {}}
+    local methods = class.Methods
     local temp_str = finale.FCString()
 
-    function props:GetText(str)
+    function methods:GetText(str)
         mixin_helper.assert_argument_type(2, str, "nil", "FCString")
+        local do_return = false
         if not str then
             str = temp_str
+            do_return = true
         end
-        self:GetText_(str)
-        return str.LuaString
+        self:GetText__(str)
+        if do_return then
+            return str.LuaString
+        end
     end
 
-    function props:SetText(str)
+    function methods:SetText(str)
         mixin_helper.assert_argument_type(2, str, "string", "number", "FCString")
-        if type(str) ~= "userdata" then
-            temp_str.LuaString = tostring(str)
-            str = temp_str
-        end
-        self:SetText_(str)
+        self:SetText__(mixin_helper.to_fcstring(str, temp_str))
     end
-    return props
+    return class
 end
-__imports["mixin.FCMUI"] = __imports["mixin.FCMUI"] or function()
+package.preload["mixin.FCMUI"] = package.preload["mixin.FCMUI"] or function()
 
 
 
     local mixin = require("library.mixin")
     local mixin_helper = require("library.mixin_helper")
-    local props = {}
+    local class = {Methods = {}}
+    local methods = class.Methods
     local temp_str = finale.FCString()
 
-    function props:GetDecimalSeparator(str)
+    function methods:GetDecimalSeparator(str)
         mixin_helper.assert_argument_type(2, str, "nil", "FCString")
+        local do_return = false
         if not str then
             str = temp_str
+            do_return = true
         end
-        self:GetDecimalSeparator_(str)
-        return str.LuaString
+        self:GetDecimalSeparator__(str)
+        if do_return then
+            return str.LuaString
+        end
     end
-    return props
+    return class
 end
-__imports["mixin.FCXCtrlMeasurementEdit"] = __imports["mixin.FCXCtrlMeasurementEdit"] or function()
+package.preload["mixin.FCXCtrlMeasurementEdit"] = package.preload["mixin.FCXCtrlMeasurementEdit"] or function()
 
 
 
     local mixin = require("library.mixin")
     local mixin_helper = require("library.mixin_helper")
     local utils = require("library.utils")
+    local class = {Parent = "FCMCtrlEdit", Methods = {}}
+    local methods = class.Methods
     local private = setmetatable({}, {__mode = "k"})
-    local props = {MixinParent = "FCMCtrlEdit"}
     local trigger_change
     local each_last_change
 
@@ -2380,10 +2381,13 @@ __imports["mixin.FCXCtrlMeasurementEdit"] = __imports["mixin.FCXCtrlMeasurementE
         return utils.round(value)
     end
 
-    function props:Init()
+    function class:Init()
+        if private[self] then
+            return
+        end
         local parent = self:GetParent()
-        mixin_helper.assert(function() return mixin_helper.is_instance_of(parent, "FCXCustomLuaWindow") end, "FCXCtrlMeasurementEdit must have a parent window that is an instance of FCXCustomLuaWindow")
-        private[self] = private[self] or {
+        mixin_helper.assert(function() return mixin_helper.is_instance_of(parent, "FCMCustomLuaWindow") end, "FCXCtrlMeasurementEdit must have a parent window that is an instance of FCMCustomLuaWindow")
+        private[self] = {
             Type = "MeasurementInteger",
             LastMeasurementUnit = parent:GetMeasurementUnit(),
             LastText = mixin.FCMCtrlEdit.GetText(self),
@@ -2398,14 +2402,14 @@ __imports["mixin.FCXCtrlMeasurementEdit"] = __imports["mixin.FCXCtrlMeasurementE
         Integer = {"number"},
         Float = {"number"},
     }) do
-        props["Set" .. method] = function(self, value)
+        methods["Set" .. method] = function(self, value)
             mixin_helper.assert_argument_type(2, value, table.unpack(valid_types))
             mixin.FCMCtrlEdit["Set" .. method](self, value)
             trigger_change(self)
         end
     end
 
-    function props:GetType()
+    function methods:GetType()
         return private[self].Type
     end
 
@@ -2434,7 +2438,7 @@ __imports["mixin.FCXCtrlMeasurementEdit"] = __imports["mixin.FCXCtrlMeasurementE
         MeasurementEfix = {"number"},
         Measurement10000th = {"number"},
     }) do
-        props["Get" .. method] = function(self)
+        methods["Get" .. method] = function(self)
             local text = mixin.FCMCtrlEdit.GetText(self)
             if (text ~= private[self].LastText) then
                 private[self].Value = mixin.FCMCtrlEdit["Get" .. private[self].Type](self, private[self].LastMeasurementUnit)
@@ -2442,24 +2446,24 @@ __imports["mixin.FCXCtrlMeasurementEdit"] = __imports["mixin.FCXCtrlMeasurementE
             end
             return convert_type(private[self].Value, private[self].Type, method)
         end
-        props["GetRange" .. method] = function(self, minimum, maximum)
+        methods["GetRange" .. method] = function(self, minimum, maximum)
             mixin_helper.assert_argument_type(2, minimum, "number")
             mixin_helper.assert_argument_type(3, maximum, "number")
             minimum = method ~= "Measurement" and math.ceil(minimum) or minimum
             maximum = method ~= "Measurement" and math.floor(maximum) or maximum
             return utils.clamp(mixin.FCXCtrlMeasurementEdit["Get" .. method](self), minimum, maximum)
         end
-        props["Set" .. method] = function (self, value)
+        methods["Set" .. method] = function (self, value)
             mixin_helper.assert_argument_type(2, value, table.unpack(valid_types))
             private[self].Value = convert_type(value, method, private[self].Type)
             mixin.FCMCtrlEdit["Set" .. private[self].Type](self, private[self].Value, private[self].LastMeasurementUnit)
             private[self].LastText = mixin.FCMCtrlEdit.GetText(self)
             trigger_change(self)
         end
-        props["IsType" .. method] = function(self)
+        methods["IsType" .. method] = function(self)
             return private[self].Type == method
         end
-        props["SetType" .. method] = function(self)
+        methods["SetType" .. method] = function(self)
             private[self].Value = convert_type(private[self].Value, private[self].Type, method)
             for v in each_last_change(self) do
                 v.last_value = convert_type(v.last_value, private[self].Type, method)
@@ -2468,7 +2472,7 @@ __imports["mixin.FCXCtrlMeasurementEdit"] = __imports["mixin.FCXCtrlMeasurementE
         end
     end
 
-    function props:UpdateMeasurementUnit()
+    function methods:UpdateMeasurementUnit()
         local new_unit = self:GetParent():GetMeasurementUnit()
         if private[self].LastMeasurementUnit ~= new_unit then
             local value = mixin.FCXCtrlMeasurementEdit["Get" .. private[self].Type](self)
@@ -2479,7 +2483,7 @@ __imports["mixin.FCXCtrlMeasurementEdit"] = __imports["mixin.FCXCtrlMeasurementE
 
 
 
-    props.AddHandleChange, props.RemoveHandleChange, trigger_change, each_last_change = mixin_helper.create_custom_control_change_event(
+    methods.AddHandleChange, methods.RemoveHandleChange, trigger_change, each_last_change = mixin_helper.create_custom_control_change_event(
         {
             name = "last_value",
             get = function(self)
@@ -2488,16 +2492,18 @@ __imports["mixin.FCXCtrlMeasurementEdit"] = __imports["mixin.FCXCtrlMeasurementE
             initial = 0,
         }
     )
-    return props
+    return class
 end
-__imports["mixin.FCXCtrlMeasurementUnitPopup"] = __imports["mixin.FCXCtrlMeasurementUnitPopup"] or function()
+package.preload["mixin.FCXCtrlMeasurementUnitPopup"] = package.preload["mixin.FCXCtrlMeasurementUnitPopup"] or function()
 
 
 
     local mixin = require("library.mixin")
     local mixin_helper = require("library.mixin_helper")
     local measurement = require("library.measurement")
-    local props = {MixinParent = "FCMCtrlPopup"}
+    local class = {Parent = "FCMCtrlPopup", Methods = {}}
+    local methods = class.Methods
+    local private = setmetatable({}, {__mode = "k"})
     local unit_order = {
         finale.MEASUREMENTUNIT_EVPUS, finale.MEASUREMENTUNIT_INCHES, finale.MEASUREMENTUNIT_CENTIMETERS,
         finale.MEASUREMENTUNIT_POINTS, finale.MEASUREMENTUNIT_PICAS, finale.MEASUREMENTUNIT_SPACES,
@@ -2507,13 +2513,14 @@ __imports["mixin.FCXCtrlMeasurementUnitPopup"] = __imports["mixin.FCXCtrlMeasure
         flipped_unit_order[v] = k
     end
 
-    mixin_helper.disable_methods(
-        props, "Clear", "AddString", "AddStrings", "SetStrings", "GetSelectedItem", "SetSelectedItem", "SetSelectedLast",
-        "ItemExists", "InsertString", "DeleteItem", "GetItemText", "SetItemText", "AddHandleSelectionChange",
-        "RemoveHandleSelectionChange")
+    class.Disabled = {"Clear", "AddString", "AddStrings", "SetStrings", "GetSelectedItem", "SetSelectedItem", "SetSelectedLast",
+        "ItemExists", "InsertString", "DeleteItem", "GetItemText", "SetItemText", "AddHandleSelectionChange", "RemoveHandleSelectionChange"}
 
-    function props:Init()
-        mixin_helper.assert(function() return mixin_helper.is_instance_of(self:GetParent(), "FCXCustomLuaWindow") end, "FCXCtrlMeasurementUnitPopup must have a parent window that is an instance of FCXCustomLuaWindow")
+    function class:Init()
+        if private[self] then
+            return
+        end
+        mixin_helper.assert(function() return mixin_helper.is_instance_of(self:GetParent(), "FCMCustomLuaWindow") end, "FCXCtrlMeasurementUnitPopup must have a parent window that is an instance of FCMCustomLuaWindow")
         for _, v in ipairs(unit_order) do
             mixin.FCMCtrlPopup.AddString(self, measurement.get_unit_name(v))
         end
@@ -2521,18 +2528,19 @@ __imports["mixin.FCXCtrlMeasurementUnitPopup"] = __imports["mixin.FCXCtrlMeasure
         mixin.FCMCtrlPopup.AddHandleSelectionChange(self, function(control)
             control:GetParent():SetMeasurementUnit(unit_order[mixin.FCMCtrlPopup.GetSelectedItem(control) + 1])
         end)
+        private[self] = true
     end
 
-    function props:UpdateMeasurementUnit()
+    function methods:UpdateMeasurementUnit()
         local unit = self:GetParent():GetMeasurementUnit()
         if unit == unit_order[mixin.FCMCtrlPopup.GetSelectedItem(self) + 1] then
             return
         end
         mixin.FCMCtrlPopup.SetSelectedItem(self, flipped_unit_order[unit] - 1)
     end
-    return props
+    return class
 end
-__imports["library.page_size"] = __imports["library.page_size"] or function()
+package.preload["library.page_size"] = package.preload["library.page_size"] or function()
 
 
 
@@ -2620,7 +2628,7 @@ __imports["library.page_size"] = __imports["library.page_size"] or function()
     end
     return page_size
 end
-__imports["mixin.FCXCtrlPageSizePopup"] = __imports["mixin.FCXCtrlPageSizePopup"] or function()
+package.preload["mixin.FCXCtrlPageSizePopup"] = package.preload["mixin.FCXCtrlPageSizePopup"] or function()
 
 
 
@@ -2628,14 +2636,15 @@ __imports["mixin.FCXCtrlPageSizePopup"] = __imports["mixin.FCXCtrlPageSizePopup"
     local mixin_helper = require("library.mixin_helper")
     local measurement = require("library.measurement")
     local page_size = require("library.page_size")
+    local class = {Parent = "FCMCtrlPopup", Methods = {}}
+    local methods = class.Methods
     local private = setmetatable({}, {__mode = "k"})
-    local props = {MixinParent = "FCMCtrlPopup"}
     local trigger_page_size_change
     local each_last_page_size_change
     local temp_str = finale.FCString()
 
-    mixin_helper.disable_methods(props, "Clear", "AddString", "AddStrings", "SetStrings", "GetSelectedItem", "SetSelectedItem", "SetSelectedLast",
-        "ItemExists", "InsertString", "DeleteItem", "GetItemText", "SetItemText", "AddHandleSelectionChange", "RemoveHandleSelectionChange")
+    class.Disabled = {"Clear", "AddString", "AddStrings", "SetStrings", "GetSelectedItem", "SetSelectedItem", "SetSelectedLast",
+        "ItemExists", "InsertString", "DeleteItem", "GetItemText", "SetItemText", "AddHandleSelectionChange", "RemoveHandleSelectionChange"}
     local function repopulate(control)
         local unit = mixin_helper.is_instance_of(control:GetParent(), "FCXCustomLuaWindow") and control:GetParent():GetMeasurementUnit() or measurement.get_real_default_unit()
         if private[control].LastUnit == unit then
@@ -2657,27 +2666,36 @@ __imports["mixin.FCXCtrlPageSizePopup"] = __imports["mixin.FCXCtrlPageSizePopup"
         private[control].LastUnit = unit
     end
 
-    function props:Init()
-        private[self] = private[self] or {}
+    function class:Init()
+        if private[self] then
+            return
+        end
+        private[self] = {}
         repopulate(self)
     end
 
-    function props:GetSelectedPageSize()
-        local str = mixin.FCMCtrlPopup.GetSelectedString(self)
-        if not str then
-            return nil
+    function methods:GetSelectedPageSize(str)
+        mixin_helper.assert_argument_type(2, str, "FCString", "nil")
+        local size = mixin.FCMCtrlPopup.GetSelectedString(self)
+        if size then
+           size = size:match("(.+) %(")
         end
-        return str:match("(.+) %(")
+        if str then
+            str.LuaString = size or ""
+        else
+            return size
+        end
     end
 
-    function props:SetSelectedPageSize(size)
+    function methods:SetSelectedPageSize(size)
         mixin_helper.assert_argument_type(2, size, "string", "FCString")
+
         size = type(size) == "userdata" and size.LuaString or tostring(size)
         mixin_helper.assert(page_size.is_size(size), "'" .. size .. "' is not a valid page size.")
         local index = 0
         for s in page_size.pairs() do
             if size == s then
-                if index ~= self:GetSelectedItem_() then
+                if index ~= mixin.FCMCtrlPopup.GetSelectedItem(self) then
                     mixin.FCMCtrlPopup.SetSelectedItem(self, index)
                     trigger_page_size_change(self)
                 end
@@ -2687,13 +2705,13 @@ __imports["mixin.FCXCtrlPageSizePopup"] = __imports["mixin.FCXCtrlPageSizePopup"
         end
     end
 
-    function props:UpdateMeasurementUnit()
+    function methods:UpdateMeasurementUnit()
         repopulate(self)
     end
 
 
 
-    props.AddHandlePageSizeChange, props.RemoveHandlePageSizeChange, trigger_page_size_change, each_last_page_size_change = mixin_helper.create_custom_control_change_event(
+    methods.AddHandlePageSizeChange, methods.RemoveHandlePageSizeChange, trigger_page_size_change, each_last_page_size_change = mixin_helper.create_custom_control_change_event(
         {
             name = "last_page_size",
             get = function(ctrl)
@@ -2702,112 +2720,17 @@ __imports["mixin.FCXCtrlPageSizePopup"] = __imports["mixin.FCXCtrlPageSizePopup"
             initial = false,
         }
     )
-    return props
+    return class
 end
-__imports["mixin.FCXCtrlStatic"] = __imports["mixin.FCXCtrlStatic"] or function()
+package.preload["mixin.FCXCtrlUpDown"] = package.preload["mixin.FCXCtrlUpDown"] or function()
 
 
 
     local mixin = require("library.mixin")
     local mixin_helper = require("library.mixin_helper")
-    local measurement = require("library.measurement")
-    local utils = require("library.utils")
+    local class = {Parent = "FCMCtrlUpDown", Methods = {}}
+    local methods = class.Methods
     local private = setmetatable({}, {__mode = "k"})
-    local props = {MixinParent = "FCMCtrlStatic"}
-    local temp_str = finale.FCString()
-    local function get_suffix(unit, suffix_type)
-        if suffix_type == 1 then
-            return measurement.get_unit_suffix(unit)
-        elseif suffix_type == 2 then
-            return measurement.get_unit_abbreviation(unit)
-        elseif suffix_type == 3 then
-            return " " .. string.lower(measurement.get_unit_name(unit))
-        end
-    end
-
-    function props:Init()
-        mixin_helper.assert(function() return mixin_helper.is_instance_of(self:GetParent(), "FCXCustomLuaWindow") end, "FCXCtrlStatic must have a parent window that is an instance of FCXCustomLuaWindow")
-        private[self] = private[self] or {
-            ShowMeasurementSuffix = true,
-            MeasurementSuffixType = 2,
-        }
-    end
-
-    function props:SetText(str)
-        mixin_helper.assert_argument_type(2, str, "string", "number", "FCString")
-        mixin.FCMCtrlStatic.SetText(self, str)
-        private[self].Measurement = nil
-        private[self].MeasurementType = nil
-    end
-
-    function props:SetMeasurement(value)
-        mixin_helper.assert_argument_type(2, value, "number")
-        local unit = self:GetParent():GetMeasurementUnit()
-        temp_str:SetMeasurement(value, unit)
-        temp_str:AppendLuaString(private[self].ShowMeasurementSuffix and get_suffix(unit, private[self].MeasurementSuffixType) or "")
-        mixin.FCMCtrlStatic.SetText(self, temp_str)
-        private[self].Measurement = value
-        private[self].MeasurementType = "Measurement"
-    end
-
-    function props:SetMeasurementInteger(value)
-        mixin_helper.assert_argument_type(2, value, "number")
-        value = utils.round(value)
-        local unit = self:GetParent():GetMeasurementUnit()
-        temp_str:SetMeasurement(value, unit)
-        temp_str:AppendLuaString(private[self].ShowMeasurementSuffix and get_suffix(unit, private[self].MeasurementSuffixType) or "")
-        mixin.FCMCtrlStatic.SetText(self, temp_str)
-        private[self].Measurement = value
-        private[self].MeasurementType = "MeasurementInteger"
-    end
-
-    function props:SetMeasurementEfix(value)
-        mixin_helper.assert_argument_type(2, value, "number")
-        local evpu = value / 64
-        local unit = self:GetParent():GetMeasurementUnit()
-        temp_str:SetMeasurement(evpu, unit)
-        temp_str:AppendLuaString(private[self].ShowMeasurementSuffix and get_suffix(unit, private[self].MeasurementSuffixType) or "")
-        mixin.FCMCtrlStatic.SetText(self, temp_str)
-        private[self].Measurement = value
-        private[self].MeasurementType = "MeasurementEfix"
-    end
-
-    function props:SetShowMeasurementSuffix(enabled)
-        mixin_helper.assert_argument_type(2, enabled, "boolean")
-        private[self].ShowMeasurementSuffix = enabled and true or false
-        mixin.FCXCtrlStatic.UpdateMeasurementUnit(self)
-    end
-
-    function props:SetMeasurementSuffixShort()
-        private[self].MeasurementSuffixType = 1
-        mixin.FCXCtrlStatic.UpdateMeasurementUnit(self)
-    end
-
-    function props:SetMeasurementSuffixAbbreviated()
-        private[self].MeasurementSuffixType = 2
-        mixin.FCXCtrlStatic.UpdateMeasurementUnit(self)
-    end
-
-    function props:SetMeasurementSuffixFull()
-        private[self].MeasurementSuffixType = 3
-        mixin.FCXCtrlStatic.UpdateMeasurementUnit(self)
-    end
-
-    function props:UpdateMeasurementUnit()
-        if private[self].Measurement then
-            mixin.FCXCtrlStatic["Set" .. private[self].MeasurementType](self, private[self].Measurement)
-        end
-    end
-    return props
-end
-__imports["mixin.FCXCtrlUpDown"] = __imports["mixin.FCXCtrlUpDown"] or function()
-
-
-
-    local mixin = require("library.mixin")
-    local mixin_helper = require("library.mixin_helper")
-    local private = setmetatable({}, {__mode = "k"})
-    local props = {MixinParent = "FCMCtrlUpDown"}
     local temp_str = finale.FCString()
 
     local function enum_edit_type(edit, edit_type)
@@ -2840,81 +2763,86 @@ __imports["mixin.FCXCtrlUpDown"] = __imports["mixin.FCXCtrlUpDown"] or function(
         [finale.MEASUREMENTUNIT_SPACES] = {value = 0.03125, is_evpus = false},
     }
 
-    function props:Init()
+    function class:Init()
+        if private[self] then
+            return
+        end
         mixin_helper.assert(function() return mixin_helper.is_instance_of(self:GetParent(), "FCXCustomLuaWindow") end, "FCXCtrlUpDown must have a parent window that is an instance of FCXCustomLuaWindow")
-        private[self] = private[self] or {IntegerStepSize = 1, MeasurementSteps = {}, AlignWhenMoving = true}
-        self:AddHandlePress(
-            function(self, delta)
-                if not private[self].ConnectedEdit then
-                    return
-                end
-                local edit = private[self].ConnectedEdit
-                local edit_type = enum_edit_type(edit, private[self].ConnectedEditType)
-                local unit = self:GetParent():GetMeasurementUnit()
-                local separator = mixin.UI():GetDecimalSeparator()
-                local step_def
-                if edit_type == 1 then
-                    step_def = {value = private[self].IntegerStepSize}
-                else
-                    step_def = private[self].MeasurementSteps[unit] or (edit_type == 4 and default_efix_steps[unit]) or
-                                   default_measurement_steps[unit]
-                end
+        private[self] = {
+            IntegerStepSize = 1,
+            MeasurementSteps = {},
+            AlignWhenMoving = true,
+        }
+        self:AddHandlePress(function(self, delta)
+            if not private[self].ConnectedEdit then
+                return
+            end
+            local edit = private[self].ConnectedEdit
+            local edit_type = enum_edit_type(edit, private[self].ConnectedEditType)
+            local unit = self:GetParent():GetMeasurementUnit()
+            local separator = mixin.UI():GetDecimalSeparator()
+            local step_def
+            if edit_type == 1 then
+                step_def = {value = private[self].IntegerStepSize}
+            else
+                step_def = private[self].MeasurementSteps[unit] or (edit_type == 4 and default_efix_steps[unit]) or default_measurement_steps[unit]
+            end
 
-                local value
-                if edit_type == 1 then
-                    value = edit:GetText():match("^%-*[0-9%.%,%" .. separator .. "-]+")
-                    value = value and tonumber(value) or 0
+            local value
+            if edit_type == 1 then
+                value = edit:GetText():match("^%-*[0-9%.%,%" .. separator .. "-]+")
+                value = value and tonumber(value) or 0
+            else
+                if step_def.is_evpus then
+                    value = edit:GetMeasurement()
                 else
-                    if step_def.is_evpus then
-                        value = edit:GetMeasurement()
+
+                    temp_str:SetMeasurement(edit:GetMeasurement(), unit)
+                    value = temp_str.LuaString:gsub("%" .. separator, ".")
+                    value = tonumber(value)
+                end
+            end
+
+            if private[self].AlignWhenMoving then
+
+                local num_steps = tonumber(tostring(value / step_def.value))
+                if num_steps ~= math.floor(num_steps) then
+                    if delta > 0 then
+                        value = math.ceil(num_steps) * step_def.value
+                        delta = delta - 1
+                    elseif delta < 0 then
+                        value = math.floor(num_steps) * step_def.value
+                        delta = delta + 1
+                    end
+                end
+            end
+
+            local new_value = value + delta * step_def.value
+
+            if edit_type == 1 then
+                self:SetValue(new_value)
+            else
+                if step_def.is_evpus then
+                    self:SetValue(edit_type == 4 and new_value * 64 or new_value)
+                else
+
+                    temp_str.LuaString = tostring(new_value)
+                    local new_evpus = temp_str:GetMeasurement(unit)
+                    if new_evpus < private[self].Minimum or new_evpus > private[self].Maximum then
+                        self:SetValue(edit_type == 4 and new_evpus * 64 or new_evpus)
                     else
-
-                        temp_str:SetMeasurement(edit:GetMeasurement(), unit)
-                        value = temp_str.LuaString:gsub("%" .. separator, ".")
-                        value = tonumber(value)
+                        edit:SetText(temp_str.LuaString:gsub("%.", separator))
                     end
                 end
-
-                if private[self].AlignWhenMoving then
-
-                    local num_steps = tonumber(tostring(value / step_def.value))
-                    if num_steps ~= math.floor(num_steps) then
-                        if delta > 0 then
-                            value = math.ceil(num_steps) * step_def.value
-                            delta = delta - 1
-                        elseif delta < 0 then
-                            value = math.floor(num_steps) * step_def.value
-                            delta = delta + 1
-                        end
-                    end
-                end
-
-                local new_value = value + delta * step_def.value
-
-                if edit_type == 1 then
-                    self:SetValue(new_value)
-                else
-                    if step_def.is_evpus then
-                        self:SetValue(edit_type == 4 and new_value * 64 or new_value)
-                    else
-
-                        temp_str.LuaString = tostring(new_value)
-                        local new_evpus = temp_str:GetMeasurement(unit)
-                        if new_evpus < private[self].Minimum or new_evpus > private[self].Maximum then
-                            self:SetValue(edit_type == 4 and new_evpus * 64 or new_evpus)
-                        else
-                            edit:SetText(temp_str.LuaString:gsub("%.", separator))
-                        end
-                    end
-                end
-            end)
+            end
+        end)
     end
 
-    function props:GetConnectedEdit()
+    function methods:GetConnectedEdit()
         return private[self].ConnectedEdit
     end
 
-    function props:ConnectIntegerEdit(control, minimum, maximum)
+    function methods:ConnectIntegerEdit(control, minimum, maximum)
         mixin_helper.assert_argument_type(2, control, "FCMCtrlEdit")
         mixin_helper.assert_argument_type(3, minimum, "number")
         mixin_helper.assert_argument_type(4, maximum, "number")
@@ -2925,7 +2853,7 @@ __imports["mixin.FCXCtrlUpDown"] = __imports["mixin.FCXCtrlUpDown"] or function(
         private[self].Maximum = maximum
     end
 
-    function props:ConnectMeasurementEdit(control, minimum, maximum)
+    function methods:ConnectMeasurementEdit(control, minimum, maximum)
         mixin_helper.assert_argument_type(2, control, "FCXCtrlMeasurementEdit")
         mixin_helper.assert_argument_type(3, minimum, "number")
         mixin_helper.assert_argument_type(4, maximum, "number")
@@ -2935,17 +2863,17 @@ __imports["mixin.FCXCtrlUpDown"] = __imports["mixin.FCXCtrlUpDown"] or function(
         private[self].Maximum = maximum
     end
 
-    function props:SetIntegerStepSize(value)
+    function methods:SetIntegerStepSize(value)
         mixin_helper.assert_argument_type(2, value, "number")
         private[self].IntegerStepSize = value
     end
 
-    function props:SetEVPUsStepSize(value)
+    function methods:SetEVPUsStepSize(value)
         mixin_helper.assert_argument_type(2, value, "number")
         private[self].MeasurementSteps[finale.MEASUREMENTUNIT_EVPUS] = {value = value, is_evpus = true}
     end
 
-    function props:SetInchesStepSize(value, is_evpus)
+    function methods:SetInchesStepSize(value, is_evpus)
         mixin_helper.assert_argument_type(2, value, "number")
         mixin_helper.assert_argument_type(3, is_evpus, "boolean", "nil")
         private[self].MeasurementSteps[finale.MEASUREMENTUNIT_INCHES] = {
@@ -2954,7 +2882,7 @@ __imports["mixin.FCXCtrlUpDown"] = __imports["mixin.FCXCtrlUpDown"] or function(
         }
     end
 
-    function props:SetCentimetersStepSize(value, is_evpus)
+    function methods:SetCentimetersStepSize(value, is_evpus)
         mixin_helper.assert_argument_type(2, value, "number")
         mixin_helper.assert_argument_type(3, is_evpus, "boolean", "nil")
         private[self].MeasurementSteps[finale.MEASUREMENTUNIT_CENTIMETERS] = {
@@ -2963,7 +2891,7 @@ __imports["mixin.FCXCtrlUpDown"] = __imports["mixin.FCXCtrlUpDown"] or function(
         }
     end
 
-    function props:SetPointsStepSize(value, is_evpus)
+    function methods:SetPointsStepSize(value, is_evpus)
         mixin_helper.assert_argument_type(2, value, "number")
         mixin_helper.assert_argument_type(3, is_evpus, "boolean", "nil")
         private[self].MeasurementSteps[finale.MEASUREMENTUNIT_POINTS] = {
@@ -2972,7 +2900,7 @@ __imports["mixin.FCXCtrlUpDown"] = __imports["mixin.FCXCtrlUpDown"] or function(
         }
     end
 
-    function props:SetPicasStepSize(value, is_evpus)
+    function methods:SetPicasStepSize(value, is_evpus)
         mixin_helper.assert_argument_type(2, value, "number", "string")
         if not is_evpus then
             temp_str:SetText(tostring(value))
@@ -2981,7 +2909,7 @@ __imports["mixin.FCXCtrlUpDown"] = __imports["mixin.FCXCtrlUpDown"] or function(
         private[self].MeasurementSteps[finale.MEASUREMENTUNIT_PICAS] = {value = value, is_evpus = true}
     end
 
-    function props:SetSpacesStepSize(value, is_evpus)
+    function methods:SetSpacesStepSize(value, is_evpus)
         mixin_helper.assert_argument_type(2, value, "number")
         mixin_helper.assert_argument_type(3, is_evpus, "boolean", "nil")
         private[self].MeasurementSteps[finale.MEASUREMENTUNIT_SPACES] = {
@@ -2990,12 +2918,12 @@ __imports["mixin.FCXCtrlUpDown"] = __imports["mixin.FCXCtrlUpDown"] or function(
         }
     end
 
-    function props:SetAlignWhenMoving(on)
+    function methods:SetAlignWhenMoving(on)
         mixin_helper.assert_argument_type(2, on, "boolean")
         private[self].AlignWhenMoving = on
     end
 
-    function props:GetValue()
+    function methods:GetValue()
         if not private[self].ConnectedEdit then
             return
         end
@@ -3007,7 +2935,7 @@ __imports["mixin.FCXCtrlUpDown"] = __imports["mixin.FCXCtrlUpDown"] or function(
         end
     end
 
-    function props:SetValue(value)
+    function methods:SetValue(value)
         mixin_helper.assert_argument_type(2, value, "number")
         mixin_helper.assert(private[self].ConnectedEdit, "Unable to set value: no connected edit.")
 
@@ -3021,23 +2949,23 @@ __imports["mixin.FCXCtrlUpDown"] = __imports["mixin.FCXCtrlUpDown"] or function(
         end
     end
 
-    function props:GetMinimum()
+    function methods:GetMinimum()
         return private[self].Minimum
     end
 
-    function props:GetMaximum()
+    function methods:GetMaximum()
         return private[self].Maximum
     end
 
-    function props:SetRange(minimum, maximum)
+    function methods:SetRange(minimum, maximum)
         mixin_helper.assert_argument_type(2, minimum, "number")
         mixin_helper.assert_argument_type(3, maximum, "number")
         private[self].Minimum = minimum
         private[self].Maximum = maximum
     end
-    return props
+    return class
 end
-__imports["library.measurement"] = __imports["library.measurement"] or function()
+package.preload["library.measurement"] = package.preload["library.measurement"] or function()
 
     local measurement = {}
     local unit_names = {
@@ -3117,7 +3045,7 @@ __imports["library.measurement"] = __imports["library.measurement"] or function(
     end
     return measurement
 end
-__imports["mixin.FCXCustomLuaWindow"] = __imports["mixin.FCXCustomLuaWindow"] or function()
+package.preload["mixin.FCXCustomLuaWindow"] = package.preload["mixin.FCXCustomLuaWindow"] or function()
 
 
 
@@ -3125,32 +3053,45 @@ __imports["mixin.FCXCustomLuaWindow"] = __imports["mixin.FCXCustomLuaWindow"] or
     local utils = require("library.utils")
     local mixin_helper = require("library.mixin_helper")
     local measurement = require("library.measurement")
-    local props = {MixinParent = "FCMCustomLuaWindow"}
+    local class = {Parent = "FCMCustomLuaWindow", Methods = {}}
+    local methods = class.Methods
     local trigger_measurement_unit_change
     local each_last_measurement_unit_change
 
-    function props:Init()
+    function class:Init()
         self:SetEnableDebugClose(true)
     end
 
-    function props:CreateStatic(x, y, control_name)
-        mixin_helper.assert_argument_type(2, x, "number")
-        mixin_helper.assert_argument_type(3, y, "number")
-        mixin_helper.assert_argument_type(4, control_name, "string", "nil")
-        local popup = mixin.FCMCustomWindow.CreateStatic(self, x, y, control_name)
-        return mixin.subclass(popup, "FCXCtrlStatic")
-    end
-
-    function props:CreateUpDown(x, y, control_name)
+    function methods:CreateUpDown(x, y, control_name)
         mixin_helper.assert_argument_type(2, x, "number")
         mixin_helper.assert_argument_type(3, y, "number")
         mixin_helper.assert_argument_type(4, control_name, "string", "nil")
         local updown = mixin.FCMCustomWindow.CreateUpDown(self, x, y, control_name)
         return mixin.subclass(updown, "FCXCtrlUpDown")
     end
-    return props
+    return class
 end
-__imports["library.utils"] = __imports["library.utils"] or function()
+package.preload["library.lua_compatibility"] = package.preload["library.lua_compatibility"] or function()
+
+
+
+    if not math.type then
+        math.type = function(value)
+            if type(value) == "number" then
+                local _, fractional = math.modf(value)
+                return fractional == 0 and "integer" or "float"
+            end
+            return nil
+        end
+    end
+    if not math.tointeger then
+        math.tointeger = function(value)
+            return type(value) == "number" and math.floor(value) or nil
+        end
+    end
+    return true
+end
+package.preload["library.utils"] = package.preload["library.utils"] or function()
 
     local utils = {}
 
@@ -3190,7 +3131,14 @@ __imports["library.utils"] = __imports["library.utils"] or function()
     function utils.round(value, places)
         places = places or 0
         local multiplier = 10^places
-        return math.floor(value * multiplier + 0.5) / multiplier
+        local ret = math.floor(value * multiplier + 0.5)
+
+        return places == 0 and ret or ret / multiplier
+    end
+
+    function utils.to_integer_if_whole(value)
+        local int = math.floor(value)
+        return value == int and int or value
     end
 
     function utils.calc_roman_numeral(num)
@@ -3296,9 +3244,13 @@ __imports["library.utils"] = __imports["library.utils"] or function()
     function utils.rethrow_placeholder()
         return "'" .. rethrow_placeholder .. "'"
     end
+
+    function utils.require_embedded(library_name)
+        return require(library_name)
+    end
     return utils
 end
-__imports["library.client"] = __imports["library.client"] or function()
+package.preload["library.client"] = package.preload["library.client"] or function()
 
     local client = {}
     local function to_human_string(feature)
@@ -3396,9 +3348,10 @@ __imports["library.client"] = __imports["library.client"] or function()
     end
     return client
 end
-__imports["library.general_library"] = __imports["library.general_library"] or function()
+package.preload["library.general_library"] = package.preload["library.general_library"] or function()
 
     local library = {}
+    local utils = require("library.utils")
     local client = require("library.client")
 
     function library.group_overlaps_region(staff_group, region)
@@ -3593,22 +3546,29 @@ __imports["library.general_library"] = __imports["library.general_library"] or f
     end
 
     function library.get_smufl_font_list()
+        local osutils = finenv.EmbeddedLuaOSUtils and utils.require_embedded("luaosutils")
         local font_names = {}
         local add_to_table = function(for_user)
             local smufl_directory = calc_smufl_directory(for_user)
             local get_dirs = function()
-                if finenv.UI():IsOnWindows() then
-                    return io.popen("dir \"" .. smufl_directory .. "\" /b /ad")
-                else
-                    return io.popen("ls \"" .. smufl_directory .. "\"")
+                local options = finenv.UI():IsOnWindows() and "/b /ad" or "-1"
+                if osutils then
+                    return osutils.process.list_dir(smufl_directory, options)
                 end
+
+                local cmd = finenv.UI():IsOnWindows() and "dir " or "ls "
+                local handle = io.popen(cmd .. options .. " \"" .. smufl_directory .. "\"")
+                local retval = handle:read("*a")
+                handle:close()
+                return retval
             end
             local is_font_available = function(dir)
                 local fc_dir = finale.FCString()
                 fc_dir.LuaString = dir
                 return finenv.UI():IsFontAvailable(fc_dir)
             end
-            for dir in get_dirs():lines() do
+            local dirs = get_dirs() or ""
+            for dir in dirs:gmatch("([^\r\n]*)[\r\n]?") do
                 if not dir:find("%.") then
                     dir = dir:gsub(" Bold", "")
                     dir = dir:gsub(" Italic", "")
@@ -3620,8 +3580,8 @@ __imports["library.general_library"] = __imports["library.general_library"] or f
                 end
             end
         end
-        add_to_table(true)
         add_to_table(false)
+        add_to_table(true)
         return font_names
     end
 
@@ -3803,11 +3763,12 @@ __imports["library.general_library"] = __imports["library.general_library"] or f
     end
     return library
 end
-__imports["library.mixin_helper"] = __imports["library.mixin_helper"] or function()
+package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"] or function()
 
 
 
 
+    require("library.lua_compatibility")
     local utils = require("library.utils")
     local mixin = require("library.mixin")
     local library = require("library.general_library")
@@ -3860,9 +3821,14 @@ __imports["library.mixin_helper"] = __imports["library.mixin_helper"] or functio
         return false
     end
     local function assert_argument_type(levels, argument_number, value, ...)
-        local value_type = type(value)
+        local primary_type = type(value)
+        local secondary_type
+        if primary_type == "number" then
+            secondary_type = math.type(value)
+        end
         for i = 1, select("#", ...) do
-            if value_type == select(i, ...) then
+            local t = select(i, ...)
+            if t == primary_type or (secondary_type and t == secondary_type) then
                 return
             end
         end
@@ -3871,9 +3837,9 @@ __imports["library.mixin_helper"] = __imports["library.mixin_helper"] or functio
         end
 
         if library.is_finale_object(value) then
-            value_type = value.MixinClass or value.ClassName
+            secondary_type = value.MixinClass or value.ClassName
         end
-        error("bad argument #" .. tostring(argument_number) .. " to 'tryfunczzz' (" .. table.concat(table.pack(...), " or ") .. " expected, got " .. value_type .. ")", levels)
+        error("bad argument #" .. tostring(argument_number) .. " to 'tryfunczzz' (" .. table.concat(table.pack(...), " or ") .. " expected, got " .. (secondary_type or primary_type) .. ")", levels)
     end
 
     function mixin_helper.assert_argument_type(argument_number, value, ...)
@@ -3894,23 +3860,14 @@ __imports["library.mixin_helper"] = __imports["library.mixin_helper"] or functio
         end
     end
 
-    function mixin_helper.assert(condition, message, no_level)
+    function mixin_helper.assert(condition, message, level)
         if debug_enabled then
-            assert_func(condition, message, no_level and 0 or 4)
+            assert_func(condition, message, level == 0 and 0 or 2 + (level or 2))
         end
     end
 
-    function mixin_helper.force_assert(condition, message, no_level)
-        assert_func(condition, message, no_level and 0 or 4)
-    end
-    local disabled_method = function()
-        error("Attempt to call disabled method 'tryfunczzz'", 2)
-    end
-
-    function mixin_helper.disable_methods(props, ...)
-        for i = 1, select("#", ...) do
-            props[select(i, ...)] = disabled_method
-        end
+    function mixin_helper.force_assert(condition, message, level)
+        assert_func(condition, message, level == 0 and 0 or 2 + (level or 2))
     end
 
     function mixin_helper.create_standard_control_event(name)
@@ -4079,7 +4036,7 @@ __imports["library.mixin_helper"] = __imports["library.mixin_helper"] or functio
             mixin_helper.force_assert(
                 not event.callback_exists(self, callback), "The callback has already been added as a handler.")
             init_window(window)
-            event.add(self, callback, not window:WindowExists_())
+            event.add(self, callback, not window:WindowExists__())
         end
         local function remove_func(self, callback)
             mixin_helper.assert_argument_type(2, callback, "function")
@@ -4090,7 +4047,7 @@ __imports["library.mixin_helper"] = __imports["library.mixin_helper"] or functio
                 return
             end
             local window = control:GetParent()
-            if window:WindowExists_() then
+            if window:WindowExists__() then
                 window:QueueHandleCustom(
                     function()
                         queued[control] = nil
@@ -4137,7 +4094,7 @@ __imports["library.mixin_helper"] = __imports["library.mixin_helper"] or functio
             event.remove(self, callback)
         end
         local function trigger_helper(window)
-            if not event.has_callbacks(window) or queued[window] or not window:WindowExists_() then
+            if not event.has_callbacks(window) or queued[window] or not window:WindowExists__() then
                 return
             end
             window:QueueHandleCustom(
@@ -4177,41 +4134,42 @@ __imports["library.mixin_helper"] = __imports["library.mixin_helper"] or functio
     end
 
     function mixin_helper.boolean_to_error(object, method, ...)
-        if not object[method .. "_"](object, ...) then
+        if not object[method .. "__"](object, ...) then
             error("'" .. object.MixinClass .. "." .. method .. "' has encountered an error.", 3)
         end
     end
     return mixin_helper
 end
-__imports["mixin.__FCMUserWindow"] = __imports["mixin.__FCMUserWindow"] or function()
+package.preload["mixin.__FCMUserWindow"] = package.preload["mixin.__FCMUserWindow"] or function()
 
 
 
     local mixin = require("library.mixin")
     local mixin_helper = require("library.mixin_helper")
-    local props = {}
+    local class = {Methods = {}}
+    local methods = class.Methods
     local temp_str = finale.FCString()
 
-    function props:GetTitle(title)
+    function methods:GetTitle(title)
         mixin_helper.assert_argument_type(2, title, "nil", "FCString")
+        local do_return = false
         if not title then
             title = temp_str
+            do_return = true
         end
-        self:GetTitle_(title)
-        return title.LuaString
+        self:GetTitle__(title)
+        if do_return then
+            return title.LuaString
+        end
     end
 
-    function props:SetTitle(title)
+    function methods:SetTitle(title)
         mixin_helper.assert_argument_type(2, title, "string", "number", "FCString")
-        if type(title) ~= "userdata" then
-            temp_str.LuaString = tostring(title)
-            title = temp_str
-        end
-        self:SetTitle_(title)
+        self:SetTitle__(mixin_helper.to_fcstring(title, temp_str))
     end
-    return props
+    return class
 end
-__imports["library.mixin"] = __imports["library.mixin"] or function()
+package.preload["library.mixin"] = package.preload["library.mixin"] or function()
 
 
 
@@ -4227,15 +4185,30 @@ __imports["library.mixin"] = __imports["library.mixin"] or function()
 
     local mixin_classes = {}
 
+    local mixin_lookup = {}
+
     local mixin_props = setmetatable({}, {__mode = "k"})
 
 
     local reserved_props = {
-        MixinReady = function(class) return true end,
-        MixinClass = function(class) return class end,
-        MixinParent = function(class) return mixin_classes[class].meta.Parent end,
-        MixinBase = function(class) return mixin_classes[class].meta.Base end,
-        Init = function(class) return mixin_classes[class].meta.Init end,
+        MixinReady = function(class_name) return true end,
+        MixinClass = function(class_name) return class_name end,
+        MixinParent = function(class_name) return mixin_classes[class_name].Parent end,
+        MixinBase = function(class_name) return mixin_classes[class_name].Base end,
+        Init = function(class_name) return mixin_classes[class_name].Init end,
+        __class = function(class_name) return mixin_private.create_method_reflection(class_name, "Methods") end,
+        __static = function(class_name) return mixin_private.create_method_reflection(class_name, "StaticMethods") end,
+        __propget = function(class_name) return mixin_private.create_property_reflection(class_name, "Get") end,
+        __propset = function(class_name) return mixin_private.create_property_reflection(class_name, "Set") end,
+        __disabled = function(class_name) return mixin_classes[class_name].Disabled and utils.copy_table(mixin_classes[class_name].Disabled) or {} end,
+    }
+
+
+    local instance_reserved_props = {
+        MixinReady = true,
+        MixinClass = true,
+        MixinParent = true,
+        MixinBase = true,
     }
 
 
@@ -4251,11 +4224,23 @@ __imports["library.mixin"] = __imports["library.mixin"] or function()
             mixin_public[k] = setmetatable({}, {
                 __newindex = function(tt, kk, vv) end,
                 __index = function(tt, kk)
-                    local val = reserved_props[kk] and utils.copy_table(reserved_props[kk](k)) or utils.copy_table(mixin_classes[k].public[kk])
-                    if type(val) == "function" then
-                        val = mixin_private.create_fluid_proxy(val, kk)
+                    local value
+
+                    if mixin_lookup[k].Methods[kk] then
+                        value = mixin_private.create_fluid_proxy(mixin_lookup[k].Methods[kk])
+                    elseif mixin_classes[k].StaticMethods and mixin_classes[k].StaticMethods[kk] then
+                        value = mixin_private.create_proxy(mixin_classes[k].StaticMethods[kk])
+                    elseif mixin_lookup[k].Properties[kk] then
+
+                        value = {}
+                        for kkkk, vvvv in pairs(mixin_lookup[k].Properties[kk]) do
+                            value[kkkk] = mixin_private.create_proxy(vvvv)
+                        end
+                    elseif reserved_props[kk] then
+                        value = reserved_props[kk](k)
                     end
-                    return val
+
+                    return value
                 end,
                 __call = function(_, ...)
                     if mixin_private.is_fcm_class_name(k) then
@@ -4269,7 +4254,6 @@ __imports["library.mixin"] = __imports["library.mixin"] or function()
             return mixin_public[k]
         end
     })
-
 
     function mixin_private.is_fc_class_name(class_name)
         return type(class_name) == "string" and not mixin_private.is_fcm_class_name(class_name) and not mixin_private.is_fcx_class_name(class_name) and (class_name:match("^FC%u") or class_name:match("^__FC%u")) and true or false
@@ -4293,13 +4277,13 @@ __imports["library.mixin"] = __imports["library.mixin"] or function()
 
     function mixin_private.assert_valid_property_name(name, error_level, suffix)
         if type(name) ~= "string" then
-            return
+            error("Mixin method and property names must be strings" .. suffix, error_level)
         end
 
         suffix = suffix or ""
 
-        if name:sub(-1) == "_" then
-            error("Mixin methods and properties cannot end in an underscore" .. suffix, error_level)
+        if name:sub(-2) == "__" then
+            error("Mixin methods and properties cannot end in a double underscore" .. suffix, error_level)
         elseif name:sub(1, 5):lower() == "mixin" then
             error("Mixin methods and properties beginning with 'Mixin' are reserved" .. suffix, error_level)
         elseif reserved_props[name] then
@@ -4319,112 +4303,244 @@ __imports["library.mixin"] = __imports["library.mixin"] or function()
         return success, result
     end
 
+    local find_ancestor_with_prop
+    find_ancestor_with_prop = function(class, attr, prop)
+        if class[attr] and class[attr][prop] then
+            return class.Class
+        end
+        if not class.Parent then
+            return nil
+        end
+        return find_ancestor_with_prop(mixin_classes[class.Parent], attr, prop)
+    end
 
-    function mixin_private.load_mixin_class(class_name)
+
+    function mixin_private.load_mixin_class(class_name, create_lookup)
         if mixin_classes[class_name] then return end
 
         local is_fcm = mixin_private.is_fcm_class_name(class_name)
-        local is_fcx = mixin_private.is_fcx_class_name(class_name)
 
 
-        local success, result = mixin_private.try_load_module("personal_mixin." .. class_name)
+        if not is_fcm and not mixin_private.is_fcx_class_name(class_name) then
+            return
+        end
 
-        if not success then
+        local is_personal_mixin = false
+        local success
+        local result
+
+
+
+        if finenv.TrustedMode == nil or finenv.TrustedMode == finenv.TrustedModeType.USER_TRUSTED then
+            success, result = mixin_private.try_load_module("personal_mixin." .. class_name)
+        end
+
+        if success then
+            is_personal_mixin = true
+        else
             success, result = mixin_private.try_load_module("mixin." .. class_name)
         end
 
         if not success then
 
             if is_fcm and finale[mixin_private.fcm_to_fc_class_name(class_name)] then
-                result = {{}, {}}
+                result = {}
             else
                 return
             end
         end
 
+        local error_prefix = (is_personal_mixin and "personal_" or "") .. "mixin." .. class_name
+
 
         if type(result) ~= "table" then
-            error("Mixin '" .. class_name .. "' is not a table.", 0)
+            error("Mixin '" .. error_prefix .. "' is not a table.", 0)
         end
 
-        local class = {}
-        if #result > 1 then
-            class.meta = result[1]
-            class.public = result[2]
-        else
+        local class = {Class = class_name}
 
-            class.public = result
-            class.meta = {}
-            class.meta.Parent = class.public.MixinParent
-            class.meta.Init = class.public.Init
-            class.public.MixinParent = nil
-            class.public.Init = nil
-        end
-
-
-        for k, _ in pairs(class.public) do
-            mixin_private.assert_valid_property_name(k, 0, " (" .. class_name .. "." .. k .. ")")
+        local function has_attr(attr, attr_type)
+            if result[attr] == nil then
+                return false
+            end
+            if type(result[attr]) ~= attr_type then
+                error("Mixin '" .. attr .. "' must be a " .. attr_type .. ", " .. type(result[attr]) .. " given (" .. error_prefix .. "." .. attr .. ")", 0)
+            end
+            return true
         end
 
 
-        if class.meta.Init and type(class.meta.Init) ~= "function" then
-            error("Mixin meta-method 'Init' must be a function (" .. class_name .. ")", 0)
-        end
+        has_attr("Parent", "string")
 
 
         if is_fcm then
 
-            class.meta.Parent = library.get_parent_class(mixin_private.fcm_to_fc_class_name(class_name))
+            class.Parent = library.get_parent_class(mixin_private.fcm_to_fc_class_name(class_name))
 
-            if class.meta.Parent then
+            if class.Parent then
 
-                class.meta.Parent = mixin_private.fc_to_fcm_class_name(class.meta.Parent)
+                class.Parent = mixin_private.fc_to_fcm_class_name(class.Parent)
 
-                mixin_private.load_mixin_class(class.meta.Parent)
-
-
-                class.init = mixin_classes[class.meta.Parent].init and utils.copy_table(mixin_classes[class.meta.Parent].init) or {}
-
-                if class.meta.Init then
-                    table.insert(class.init, class.meta.Init)
-                end
-
-
-
-                for k, v in pairs(mixin_classes[class.meta.Parent].public) do
-                    if type(class.public[k]) == "nil" then
-                        class.public[k] = utils.copy_table(v)
-                    end
-                end
+                mixin_private.load_mixin_class(class.Parent)
             end
 
 
         else
 
-            if not class.meta.Parent then
-                error("Mixin '" .. class_name .. "' does not have a parent class defined.", 0)
+            if not result.Parent then
+                error("Mixin '" .. error_prefix .. "' does not have a parent class defined.", 0)
             end
 
-            mixin_private.load_mixin_class(class.meta.Parent)
-
-
-            if not mixin_classes[class.meta.Parent] then
-                error("Unable to load mixin '" .. class.meta.Parent .. "' as parent of '" .. class_name .. "'", 0)
+            if not mixin_private.is_fcm_class_name(result.Parent) and not mixin_private.is_fcx_class_name(result.Parent) then
+                error("Mixin parent must be an FCM or FCX class name, '" .. result.Parent .. "' given (" .. error_prefix .. ".Parent)", 0)
             end
 
+            mixin_private.load_mixin_class(result.Parent)
 
-            class.meta.Base = mixin_private.is_fcm_class_name(class.meta.Parent) and class.meta.Parent or mixin_classes[class.meta.Parent].meta.Base
+
+            if not mixin_classes[result.Parent] then
+                error("Unable to load mixin '" .. result.Parent .. "' as parent of '" .. error_prefix .. "'", 0)
+            end
+
+            class.Parent = result.Parent
+
+
+            class.Base = mixin_classes[result.Parent].Base or result.Parent
         end
 
 
-        class.meta.Class = class_name
+        local lookup = class.Parent and utils.copy_table(mixin_lookup[class.Parent]) or {Methods = {}, Properties = {}, Disabled = {}, FCMInits = {}}
 
+
+        if has_attr("Init", "function") and is_fcm then
+            table.insert(lookup.FCMInits, result.Init)
+        end
+        class.Init = result.Init
+        if not is_fcm then
+            lookup.FCMInits = nil
+        end
+
+
+        if has_attr("Disabled", "table") then
+            class.Disabled = {}
+            for _, v in pairs(result.Disabled) do
+                mixin_private.assert_valid_property_name(v, 0, " (" .. error_prefix .. ".Disabled." .. tostring(v) .. ")")
+                class.Disabled[v] = true
+                lookup.Disabled[v] = true
+                lookup.Methods[v] = nil
+                lookup.Properties[v] = nil
+            end
+        end
+
+        local function find_property_name_clash(name, attr_to_check)
+            for _, attr in pairs(attr_to_check) do
+                if attr == "StaticMethods" or (lookup[attr] and lookup[attr][nane]) then
+                    local cl = find_ancestor_with_prop(class, attr, name)
+                    return cl and (cl .. "." .. attr .. "." .. name) or nil
+                end
+            end
+        end
+
+        if has_attr("Methods", "table") then
+            class.Methods = {}
+            for k, v in pairs(result.Methods) do
+                mixin_private.assert_valid_property_name(k, 0, " (" .. error_prefix .. ".Methods." .. tostring(k) .. ")")
+                if type(v) ~= "function" then
+                    error("A mixin method must be a function, " .. type(v) .. " given (" .. error_prefix .. ".Methods." .. k .. ")", 0)
+                end
+                if lookup.Disabled[k] then
+                    error("Mixin methods cannot be defined for disabled names (" .. error_prefix .. ".Methods." .. k .. ")", 0)
+                end
+                local clash = find_property_name_clash(k, {"StaticMethods", "Properties"})
+                if clash then
+                    error("A method, static method or property cannot share the same name (" .. error_prefix .. ".Methods." .. k .. " & " .. clash .. ")", 0)
+                end
+                class.Methods[k] = v
+                lookup.Methods[k] = v
+            end
+        end
+
+        if has_attr("StaticMethods", "table") then
+            class.StaticMethods = {}
+            for k, v in pairs(result.StaticMethods) do
+                mixin_private.assert_valid_property_name(k, 0, " (" .. error_prefix .. ".StaticMethods." .. tostring(k) .. ")")
+                if type(v) ~= "function" then
+                    error("A mixin method must be a function, " .. type(v) .. " given (" .. error_prefix .. ".StaticMethods." .. k .. ")", 0)
+                end
+                if lookup.Disabled[k] then
+                    error("Mixin methods cannot be defined for disabled names (" .. error_prefix .. ".StaticMethods." .. k .. ")", 0)
+                end
+                local clash = find_property_name_clash(k, {"Methods", "Properties"})
+                if clash then
+                    error("A method, static method or property cannot share the same name (" .. error_prefix .. ".StaticMethods." .. k .. " & " .. clash .. ")", 0)
+                end
+                class.Methods[k] = v
+            end
+        end
+
+        if has_attr("Properties", "table") then
+            class.Properties = {}
+            for k, v in pairs(result.Properties) do
+                mixin_private.assert_valid_property_name(k, 0, " (" .. error_prefix .. ".Properties." .. tostring(k) .. ")")
+                if lookup.Disabled[k] then
+                    error("Mixin properties cannot be defined for disabled names (" .. error_prefix .. ".Properties." .. k .. ")", 0)
+                end
+                local clash = find_property_name_clash(k, {"Methods", "StaticMethods"})
+                if clash then
+                    error("A method, static method or property cannot share the same name (" .. error_prefix .. ".Properties." .. k .. " & " .. clash .. ")", 0)
+                end
+                if type(v) ~= "table" then
+                    error("A mixin property descriptor must be a table, " .. type(v) .. " given (" .. error_prefix .. ".Properties." .. k .. ")", 0)
+                end
+                if not v.Get and not v.Set then
+                    error("A mixin property descriptor must have at least a 'Get' or 'Set' attribute (" .. error_prefix .. ".Properties." .. k .. ")", 0)
+                end
+
+                class.Properties[k] = {}
+                lookup.Properties[k] = lookup.Properties[k] or {}
+
+                for kk, vv in pairs(v) do
+                    if kk ~= "Get" and kk ~= "Set" then
+                        error("A mixin property descriptor can only have 'Get' and 'Set' attributes (" .. error_prefix .. ".Properties." .. k .. ")", 0)
+                    end
+                    if type(vv) ~= "function" then
+                        error("A mixin property descriptor attribute must be a function, " .. type(vv) .. " given (" .. error_prefix .. ".Properties." .. k .. "." .. kk .. ")", 0)
+                    end
+                    class.Properties[k][kk] = vv
+                    lookup.Properties[k][kk] = vv
+                end
+            end
+        end
+
+        mixin_lookup[class_name] = lookup
         mixin_classes[class_name] = class
+    end
+
+    function mixin_private.create_method_reflection(class_name, attr)
+        local t = {}
+        if mixin_classes[class_name][attr] then
+            for k, v in pairs(mixin_classes[class_name][attr]) do
+                t[k] = mixin_private.create_proxy(v)
+            end
+        end
+        return t
+    end
+
+    function mixin_private.create_property_reflection(class_name, attr)
+        local t = {}
+        if mixin_classes[class_name].Properties then
+            for k, v in pairs(mixin_classes[class_name].Properties) do
+                if v[attr] then
+                    t[k] = mixin_private.create_proxy(v[attr])
+                end
+            end
+        end
+        return t
     end
 
 
 
-    local function proxy(t, ...)
+    local function fluid_proxy(t, ...)
         local n = select("#", ...)
 
         if n == 0 then
@@ -4438,12 +4554,28 @@ __imports["library.mixin"] = __imports["library.mixin"] or function()
         return ...
     end
 
+    local function proxy(t, ...)
+        local n = select("#", ...)
 
-    function mixin_private.create_fluid_proxy(func, func_name)
+        for i = 1, n do
+            mixin_private.enable_mixin(select(i, ...))
+        end
+        return ...
+    end
+
+
+    function mixin_private.create_fluid_proxy(func)
+        return function(t, ...)
+            return fluid_proxy(t, utils.call_and_rethrow(2, func, t, ...))
+        end
+    end
+
+    function mixin_private.create_proxy(func)
         return function(t, ...)
             return proxy(t, utils.call_and_rethrow(2, func, t, ...))
         end
     end
+
 
 
     function mixin_private.enable_mixin(object, fcm_class_name)
@@ -4457,7 +4589,7 @@ __imports["library.mixin"] = __imports["library.mixin"] or function()
         mixin_private.load_mixin_class(fcm_class_name)
         mixin_props[object] = {MixinClass = fcm_class_name}
 
-        for _, v in pairs(mixin_classes[fcm_class_name].init) do
+        for _, v in ipairs(mixin_lookup[fcm_class_name].FCMInits) do
             v(object)
         end
 
@@ -4466,8 +4598,9 @@ __imports["library.mixin"] = __imports["library.mixin"] or function()
 
 
 
+
     function mixin_private.apply_mixin_foundation(object)
-        if not object or not library.is_finale_object(object) or object.MixinReady then return end
+        if object.MixinReady then return end
 
 
         local meta = getmetatable(object)
@@ -4475,8 +4608,6 @@ __imports["library.mixin"] = __imports["library.mixin"] or function()
 
         local original_index = meta.__index
         local original_newindex = meta.__newindex
-
-        local fcm_class_name = mixin_private.fc_to_fcm_class_name(library.get_class_name(object))
 
         meta.__index = function(t, k)
 
@@ -4486,30 +4617,29 @@ __imports["library.mixin"] = __imports["library.mixin"] or function()
 
             if not mixin_props[t] then return original_index(t, k) end
 
+            local class = mixin_props[t].MixinClass
             local prop
 
 
-            if type(k) == "string" and k:sub(-1) == "_" then
+            if type(k) == "string" and k:sub(-2) == "__" then
 
-                prop = original_index(t, k:sub(1, -2))
-
-
-            elseif type(mixin_props[t][k]) ~= "nil" then
-                prop = mixin_props[t][k]
+                prop = original_index(t, k:sub(1, -3))
 
 
-            elseif type(mixin_classes[fcm_class_name].public[k]) ~= "nil" then
-                prop = mixin_classes[fcm_class_name].public[k]
+            elseif mixin_lookup[class].Properties[k] and mixin_lookup[class].Properties[k].Get then
+                prop = utils.call_and_rethrow(2, mixin_lookup[class].Properties[k].Get, t)
 
 
-                if type(prop) == "table" then
-                    mixin_props[t][k] = utils.copy_table(prop)
-                    prop = mixin[t][k]
-                end
+            elseif mixin_props[t][k] ~= nil then
+                prop = utils.copy_table(mixin_props[t][k])
 
 
-            elseif reserved_props[k] then
-                prop = reserved_props[k](mixin_props[t].MixinClass)
+            elseif mixin_lookup[class].Methods[k] then
+                prop = mixin_lookup[class].Methods[k]
+
+
+            elseif instance_reserved_props[k] then
+                prop = reserved_props[k](class)
 
 
             else
@@ -4517,51 +4647,77 @@ __imports["library.mixin"] = __imports["library.mixin"] or function()
             end
 
             if type(prop) == "function" then
-                return mixin_private.create_fluid_proxy(prop, k)
-            else
-                return prop
+                return mixin_private.create_fluid_proxy(prop)
             end
+
+            return prop
         end
 
 
 
         meta.__newindex = function(t, k, v)
 
-            if not mixin_props[t] then return utils.call_and_rethrow(2, original_newindex, t, k, v) end
+            if not mixin_props[t] then
+                return original_newindex(t, k, v)
+            end
+
+            local class = mixin_props[t].MixinClass
+
+
+            if mixin_lookup[class].Disabled[k] or reserved_props[k] then
+                error("No writable member '" .. tostring(k) .. "'", 2)
+            end
+
+
+
+            if mixin_lookup[class].Properties[k] then
+                if mixin_lookup[class].Properties[k].Set then
+                    return mixin_lookup[class].Properties[k].Set(t, v)
+                else
+                    return original_newindex(t, k, v)
+                end
+            end
+
+
+            if type(k) ~= "string" then
+                mixin_props[t][k] = v
+                return
+            end
+
+
+            if k:sub(-2) == "__" then
+                k = k:sub(1, -3)
+                return original_newindex(t, k, v)
+            end
 
             mixin_private.assert_valid_property_name(k, 3)
 
             local type_v_original = type(original_index(t, k))
+            local type_v = type(v)
+            local is_mixin_method = mixin_lookup[class].Methods[k] and true or false
 
 
             if type_v_original == "nil" then
-                local type_v_mixin = type(mixin_props[t][k])
-                local type_v = type(v)
 
-
-
-                if type_v_mixin ~= "nil" then
-                    if type_v == "function" and type_v_mixin ~= "function" then
-                        error("A mixin method cannot be overridden with a property.", 2)
-                    elseif type_v_mixin == "function" and type_v ~= "function" then
-                        error("A mixin property cannot be overridden with a method.", 2)
-                    end
-                end
-
-                mixin_props[t][k] = v
-
-
-            elseif type_v_original == "function" then
-                if type(v) ~= "function" then
+                if is_mixin_method and not (type_v == "function" or type_v == "nil") then
                     error("A mixin method cannot be overridden with a property.", 2)
                 end
 
                 mixin_props[t][k] = v
+                return
 
 
-            else
-                utils.call_and_rethrow(2, original_newindex, t, k, v)
+            elseif type_v_original == "function" then
+                if not (type_v == "function" or type_v == "nil") then
+                    error("A Finale PDK method cannot be overridden with a property.", 2)
+                end
+
+                mixin_props[t][k] = v
+                return
             end
+
+
+            return original_newindex(t, k, v)
         end
     end
 
@@ -4610,28 +4766,30 @@ __imports["library.mixin"] = __imports["library.mixin"] or function()
         end
 
 
-        if mixin_private.is_fcm_class_name(mixin_classes[class_name].meta.Parent) and mixin_classes[class_name].meta.Parent ~= object.MixinClass then
+        if mixin_private.is_fcm_class_name(mixin_classes[class_name].Parent) and mixin_classes[class_name].Parent ~= object.MixinClass then
             return false
         end
 
 
-        if mixin_classes[class_name].meta.Parent ~= object.MixinClass then
-            if not utils.call_and_rethrow(2, mixin_private.subclass_helper, object, mixin_classes[class_name].meta.Parent) then
+        if mixin_classes[class_name].Parent ~= object.MixinClass then
+            if not utils.call_and_rethrow(2, mixin_private.subclass_helper, object, mixin_classes[class_name].Parent) then
                 return false
             end
         end
 
 
-        local props = mixin_props[object]
-        props.MixinClass = class_name
+        mixin_props[object].MixinClass = class_name
 
-        for k, v in pairs(mixin_classes[class_name].public) do
-            props[k] = utils.copy_table(v)
+
+        if mixin_classes[class_name].Disabled then
+            for k, _ in pairs(mixin_classes[class_name].Disabled) do
+                mixin_props[object][k] = nil
+            end
         end
 
 
-        if mixin_classes[class_name].meta.Init then
-            utils.call_and_rethrow(2, mixin_classes[class_name].meta.Init, object)
+        if mixin_classes[class_name].Init then
+            utils.call_and_rethrow(2, mixin_classes[class_name].Init, object)
         end
 
         return true
@@ -4650,7 +4808,7 @@ __imports["library.mixin"] = __imports["library.mixin"] or function()
         mixin_private.load_mixin_class(class_name)
         if not mixin_classes[class_name] then return nil end
 
-        local object = mixin_private.create_fcm(mixin_classes[class_name].meta.Base, ...)
+        local object = mixin_private.create_fcm(mixin_classes[class_name].Base, ...)
 
         if not object then return nil end
 
@@ -4735,6 +4893,7 @@ function plugindef()
         Clear all music from the chosen layer in the currently selected region.
         (The chosen layer will be cleared for a whole measure even if the measure is only partially selected).
     ]]
+    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/layer_clear_selective.hash"
     return "Clear Layer Selective", "Clear Layer Selective", "Clear the chosen layer"
 end
 local layer = require("library.layer")

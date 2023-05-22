@@ -1,19 +1,4 @@
-__imports = __imports or {}
-__import_results = __import_results or {}
-__aaa_original_require_for_deployment__ = __aaa_original_require_for_deployment__ or require
-function require(item)
-    if not __imports[item] then
-        return __aaa_original_require_for_deployment__(item)
-    end
-    if __import_results[item] == nil then
-        __import_results[item] = __imports[item]()
-        if __import_results[item] == nil then
-            __import_results[item] = true
-        end
-    end
-    return __import_results[item]
-end
-__imports["library.measurement"] = __imports["library.measurement"] or function()
+package.preload["library.measurement"] = package.preload["library.measurement"] or function()
 
     local measurement = {}
     local unit_names = {
@@ -101,6 +86,7 @@ function plugindef()
     finaleplugin.Date = "June 20, 2020"
     finaleplugin.CategoryTags = "Staff"
     finaleplugin.AuthorURL = "https://nickmazuk.com"
+    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/staff_move_down.hash"
     return "Move Staff Down", "Move Staff Down", "Moves the selected staves down by 1 space"
 end
 local measurement = require("library.measurement")

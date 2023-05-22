@@ -1,19 +1,4 @@
-__imports = __imports or {}
-__import_results = __import_results or {}
-__aaa_original_require_for_deployment__ = __aaa_original_require_for_deployment__ or require
-function require(item)
-    if not __imports[item] then
-        return __aaa_original_require_for_deployment__(item)
-    end
-    if __import_results[item] == nil then
-        __import_results[item] = __imports[item]()
-        if __import_results[item] == nil then
-            __import_results[item] = true
-        end
-    end
-    return __import_results[item]
-end
-__imports["library.enigma_string"] = __imports["library.enigma_string"] or function()
+package.preload["library.enigma_string"] = package.preload["library.enigma_string"] or function()
 
     local enigma_string = {}
     local starts_with_font_command = function(string)
@@ -156,6 +141,7 @@ function plugindef()
         one or more inserts. This script allows you to select a Page Text and remove
         the inserts with no fuss.
     ]]
+    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/page_title_remove_inserts.hash"
     return "Remove Inserts From Page Text...", "Remove Inserts From Page Text",
            "Removes text inserts from selected Page Text."
 end

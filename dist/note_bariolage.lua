@@ -1,19 +1,4 @@
-__imports = __imports or {}
-__import_results = __import_results or {}
-__aaa_original_require_for_deployment__ = __aaa_original_require_for_deployment__ or require
-function require(item)
-    if not __imports[item] then
-        return __aaa_original_require_for_deployment__(item)
-    end
-    if __import_results[item] == nil then
-        __import_results[item] = __imports[item]()
-        if __import_results[item] == nil then
-            __import_results[item] = true
-        end
-    end
-    return __import_results[item]
-end
-__imports["library.layer"] = __imports["library.layer"] or function()
+package.preload["library.layer"] = package.preload["library.layer"] or function()
 
     local layer = {}
 
@@ -113,7 +98,7 @@ __imports["library.layer"] = __imports["library.layer"] or function()
 
     return layer
 end
-__imports["library.note_entry"] = __imports["library.note_entry"] or function()
+package.preload["library.note_entry"] = package.preload["library.note_entry"] or function()
 
     local note_entry = {}
 
@@ -305,6 +290,7 @@ __imports["library.note_entry"] = __imports["library.note_entry"] or function()
         finale.FCNoteheadMod():EraseAt(note)
         finale.FCPercussionNoteMod():EraseAt(note)
         finale.FCTablatureNoteMod():EraseAt(note)
+        finale.FCPerformanceMod():EraseAt(note)
         if finale.FCTieMod then
             finale.FCTieMod(finale.TIEMODTYPE_TIESTART):EraseAt(note)
             finale.FCTieMod(finale.TIEMODTYPE_TIEEND):EraseAt(note)
@@ -380,25 +366,21 @@ __imports["library.note_entry"] = __imports["library.note_entry"] or function()
         if entry:IsNote() then
             return false
         end
-        if offset == 0 then
-            entry:SetFloatingRest(true)
-        else
-            local rest_prop = "OtherRestPosition"
-            if entry.Duration >= finale.BREVE then
-                rest_prop = "DoubleWholeRestPosition"
-            elseif entry.Duration >= finale.WHOLE_NOTE then
-                rest_prop = "WholeRestPosition"
-            elseif entry.Duration >= finale.HALF_NOTE then
-                rest_prop = "HalfRestPosition"
-            end
-            entry:MakeMovableRest()
-            local rest = entry:GetItemAt(0)
-            local curr_staffpos = rest:CalcStaffPosition()
-            local staff_spec = finale.FCCurrentStaffSpec()
-            staff_spec:LoadForEntry(entry)
-            local total_offset = staff_spec[rest_prop] + offset - curr_staffpos
-            entry:SetRestDisplacement(entry:GetRestDisplacement() + total_offset)
+        local rest_prop = "OtherRestPosition"
+        if entry.Duration >= finale.BREVE then
+            rest_prop = "DoubleWholeRestPosition"
+        elseif entry.Duration >= finale.WHOLE_NOTE then
+            rest_prop = "WholeRestPosition"
+        elseif entry.Duration >= finale.HALF_NOTE then
+            rest_prop = "HalfRestPosition"
         end
+        entry:MakeMovableRest()
+        local rest = entry:GetItemAt(0)
+        local curr_staffpos = rest:CalcStaffPosition()
+        local staff_spec = finale.FCCurrentStaffSpec()
+        staff_spec:LoadForEntry(entry)
+        local total_offset = staff_spec[rest_prop] + offset - curr_staffpos
+        entry:SetRestDisplacement(entry:GetRestDisplacement() + total_offset)
         return true
     end
     return note_entry
@@ -406,8 +388,9 @@ end
 function plugindef()
     finaleplugin.Author = "Jacob Winkler"
     finaleplugin.Copyright = "2022"
-    finaleplugin.Version = "1.1"
+    finaleplugin.Version = "1.1.1"
     finaleplugin.Date = "8/1/2022"
+    finaleplugin.RequireSelection = true
     finaleplugin.Notes = [[
         USING THE 'BARIOLAGE' SCRIPT
         This script creates bariolage-style notation where layers 1 and 2 interlock. It works well for material that has even-numbered beam groups like 4x 16th notes or 6x 16th notes (in compound meters). 32nd notes also work. Odd numbers of notes produce undesirable results.
@@ -420,6 +403,7 @@ function plugindef()
         - Any note in layer 2 that is the beginning of a beamed group is hidden.
         This script works best when Layer 1 is set to be upstem in multi-layer settings and Layer 2 is set to be downstem.
     ]]
+    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/note_bariolage.hash"
     return "Bariolage", "Bariolage",
            "Bariolage: Creates alternating layer pattern from layer 1. Doesn't play nicely with odd numbered groups!"
 end

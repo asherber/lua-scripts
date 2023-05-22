@@ -6,6 +6,7 @@ $module Mixin Helper
 
 A library of helper functions to improve code reuse in mixins.
 ]]--
+require("library.lua_compatibility")
 local utils = require("library.utils")
 local mixin = require("library.mixin")
 local library = require("library.general_library")
@@ -96,10 +97,15 @@ function mixin_helper.is_instance_of(object, ...)
 end
 
 local function assert_argument_type(levels, argument_number, value, ...)
-    local value_type = type(value)
+    local primary_type = type(value)
+    local secondary_type
+    if primary_type == "number" then
+        secondary_type = math.type(value)
+    end
 
     for i = 1, select("#", ...) do
-        if value_type == select(i, ...) then
+        local t = select(i, ...)
+        if t == primary_type or (secondary_type and t == secondary_type) then
             return
         end
     end
@@ -110,10 +116,10 @@ local function assert_argument_type(levels, argument_number, value, ...)
 
     -- Determine type for error message
     if library.is_finale_object(value) then
-        value_type = value.MixinClass or value.ClassName
+        secondary_type = value.MixinClass or value.ClassName
     end
 
-    error("bad argument #" .. tostring(argument_number) .. " to 'tryfunczzz' (" .. table.concat(table.pack(...), " or ") .. " expected, got " .. value_type .. ")", levels)
+    error("bad argument #" .. tostring(argument_number) .. " to 'tryfunczzz' (" .. table.concat(table.pack(...), " or ") .. " expected, got " .. (secondary_type or primary_type) .. ")", levels)
 end
 
 --[[
@@ -122,9 +128,13 @@ end
 Asserts that an argument to a mixin method is the expected type(s). This should only be used within mixin methods as the function name will be inserted automatically.
 
 If not a valid type, will throw a bad argument error at the level above where this function is called.
-Types can be Lua types (eg `string`, `number`, `bool`, etc), finale class (eg `FCString`, `FCMeasure`, etc), or mixin class (eg `FCMString`, `FCMMeasure`, etc).
-Parent classes can also be specified.
-For details about what types a Finale object will satisfy, see `mixin_helper.is_instance_of`.
+
+The followimg types can be specified:
+- Standard Lua types (`string`, `number`, `boolean`, `table`, `function`, `nil`, etc),
+- Number types (`integer` or `float`).
+- Finale classes, including parent classes (eg `FCString`, `FCMeasure`, etc).
+- Mixin classes, including parent classes (eg `FCMString`, `FCMMeasure`, etc).
+*For details about what types a Finale object will satisfy, see `mixin_helper.is_instance_of`.*
 
 *NOTE: This function will only assert if in debug mode (ie `finenv.DebugEnabled == true`). If assertions are always required, use `force_assert_argument_type` instead.*
 
@@ -170,11 +180,11 @@ Asserts a condition in a mixin method. If the condition is false, an error is th
 
 @ condition (any) Can be any value or expression. If a function, it will be called (with zero arguments) and the result will be tested.
 @ message (string) The error message.
-@ [no_level] (boolean) If true, error will be thrown with no level (ie level 0)
+@ [level] (number) Optional level to throw the error message at (default is 2).
 ]]
-function mixin_helper.assert(condition, message, no_level)
+function mixin_helper.assert(condition, message, level)
     if debug_enabled then
-        assert_func(condition, message, no_level and 0 or 4)
+        assert_func(condition, message, level == 0 and 0 or 2 + (level or 2))
     end
 end
 
@@ -185,28 +195,10 @@ The same as `assert` except this function always asserts, regardless of whether 
 
 @ condition (any) Can be any value or expression.
 @ message (string) The error message.
-@ [no_level] (boolean) If true, error will be thrown with no level (ie level 0)
+@ [level] (number) Optional level to throw the error message at (default is 2).
 ]]
-function mixin_helper.force_assert(condition, message, no_level)
-    assert_func(condition, message, no_level and 0 or 4)
-end
-
-local disabled_method = function()
-    error("Attempt to call disabled method 'tryfunczzz'", 2)
-end
-
---[[
-% disable_methods
-
-Disables mixin methods by setting an empty function that throws an error.
-
-@ props (table) The mixin's props table.
-@ ... (string) The names of the methods to replace
-]]
-function mixin_helper.disable_methods(props, ...)
-    for i = 1, select("#", ...) do
-        props[select(i, ...)] = disabled_method
-    end
+function mixin_helper.force_assert(condition, message, level)
+    assert_func(condition, message, level == 0 and 0 or 2 + (level or 2))
 end
 
 --[[
@@ -443,7 +435,7 @@ function mixin_helper.create_custom_control_change_event(...)
             not event.callback_exists(self, callback), "The callback has already been added as a handler.")
 
         init_window(window)
-        event.add(self, callback, not window:WindowExists_())
+        event.add(self, callback, not window:WindowExists__())
     end
 
     local function remove_func(self, callback)
@@ -459,7 +451,7 @@ function mixin_helper.create_custom_control_change_event(...)
 
         local window = control:GetParent()
 
-        if window:WindowExists_() then
+        if window:WindowExists__() then
             window:QueueHandleCustom(
                 function()
                     queued[control] = nil
@@ -521,7 +513,7 @@ function mixin_helper.create_custom_window_change_event(...)
     end
 
     local function trigger_helper(window)
-        if not event.has_callbacks(window) or queued[window] or not window:WindowExists_() then
+        if not event.has_callbacks(window) or queued[window] or not window:WindowExists__() then
             return
         end
 
@@ -587,7 +579,7 @@ This function captures that result and throws an error in case of failure.
 ]]
 
 function mixin_helper.boolean_to_error(object, method, ...)
-    if not object[method .. "_"](object, ...) then
+    if not object[method .. "__"](object, ...) then
         error("'" .. object.MixinClass .. "." .. method .. "' has encountered an error.", 3)
     end
 end

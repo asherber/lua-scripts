@@ -1,19 +1,4 @@
-__imports = __imports or {}
-__import_results = __import_results or {}
-__aaa_original_require_for_deployment__ = __aaa_original_require_for_deployment__ or require
-function require(item)
-    if not __imports[item] then
-        return __aaa_original_require_for_deployment__(item)
-    end
-    if __import_results[item] == nil then
-        __import_results[item] = __imports[item]()
-        if __import_results[item] == nil then
-            __import_results[item] = true
-        end
-    end
-    return __import_results[item]
-end
-__imports["library.client"] = __imports["library.client"] or function()
+package.preload["library.client"] = package.preload["library.client"] or function()
 
     local client = {}
     local function to_human_string(feature)
@@ -111,7 +96,7 @@ __imports["library.client"] = __imports["library.client"] or function()
     end
     return client
 end
-__imports["library.utils"] = __imports["library.utils"] or function()
+package.preload["library.utils"] = package.preload["library.utils"] or function()
 
     local utils = {}
 
@@ -151,7 +136,14 @@ __imports["library.utils"] = __imports["library.utils"] or function()
     function utils.round(value, places)
         places = places or 0
         local multiplier = 10^places
-        return math.floor(value * multiplier + 0.5) / multiplier
+        local ret = math.floor(value * multiplier + 0.5)
+
+        return places == 0 and ret or ret / multiplier
+    end
+
+    function utils.to_integer_if_whole(value)
+        local int = math.floor(value)
+        return value == int and int or value
     end
 
     function utils.calc_roman_numeral(num)
@@ -257,9 +249,13 @@ __imports["library.utils"] = __imports["library.utils"] or function()
     function utils.rethrow_placeholder()
         return "'" .. rethrow_placeholder .. "'"
     end
+
+    function utils.require_embedded(library_name)
+        return require(library_name)
+    end
     return utils
 end
-__imports["library.configuration"] = __imports["library.configuration"] or function()
+package.preload["library.configuration"] = package.preload["library.configuration"] or function()
 
 
 
@@ -361,7 +357,13 @@ __imports["library.configuration"] = __imports["library.configuration"] or funct
         local file_path, folder_path = calc_preferences_filepath(script_name)
         local file = io.open(file_path, "w")
         if not file and finenv.UI():IsOnWindows() then
-            os.execute('mkdir "' .. folder_path ..'"')
+
+            local osutils = finenv.EmbeddedLuaOSUtils and utils.require_embedded("luaosutils")
+            if osutils then
+                osutils.process.make_dir(folder_path)
+            else
+                os.execute('mkdir "' .. folder_path ..'"')
+            end
             file = io.open(file_path, "w")
         end
         if not file then
@@ -390,7 +392,7 @@ __imports["library.configuration"] = __imports["library.configuration"] or funct
     end
     return configuration
 end
-__imports["library.transposition"] = __imports["library.transposition"] or function()
+package.preload["library.transposition"] = package.preload["library.transposition"] or function()
 
 
 
@@ -534,13 +536,13 @@ __imports["library.transposition"] = __imports["library.transposition"] or funct
         return true
     end
 
-    function transposition.enharmonic_transpose_default(note, ignore_error)
+    function transposition.enharmonic_transpose_default(note)
         if note.RaiseLower ~= 0 then
-            return transposition.enharmonic_transpose(note, sign(note.RaiseLower), ignore_error)
+            return transposition.enharmonic_transpose(note, sign(note.RaiseLower))
         end
         local original_displacement = note.Displacement
         local original_raiselower = note.RaiseLower
-        if not transposition.enharmonic_transpose(note, 1, ignore_error) then
+        if not transposition.enharmonic_transpose(note, 1) then
             return false
         end
 
@@ -553,7 +555,7 @@ __imports["library.transposition"] = __imports["library.transposition"] or funct
         local up_raiselower = note.RaiseLower
         note.Displacement = original_displacement
         note.RaiseLower = original_raiselower
-        if not transposition.enharmonic_transpose(note, -1, ignore_error) then
+        if not transposition.enharmonic_transpose(note, -1) then
             return false
         end
         if math.abs(note.RaiseLower) < math.abs(up_raiselower) then
@@ -645,6 +647,7 @@ function plugindef()
         Later versions of RGP Lua (0.58 or higher) ignore this configuration file (if it exists) and read the correct
         information from the Finale document.
     ]]
+    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/transpose_enharmonic_down.hash"
     return "Enharmonic Transpose Down", "Enharmonic Transpose Down",
            "Transpose down enharmonically all notes in selected regions."
 end

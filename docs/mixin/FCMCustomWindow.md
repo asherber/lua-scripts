@@ -1,6 +1,6 @@
 # FCMCustomWindow
 
-Summary of modifications:
+## Summary of Modifications
 - `Create*` methods have an additional optional parameter for specifying a control name. Named controls can be retrieved via `GetControl`.
 - Cache original control objects to preserve mixin data and override control getters to return the original objects.
 - Added `Each` method for iterating over controls by class name.
@@ -12,6 +12,7 @@ Summary of modifications:
 - [CreateOkButton(self, control_name)](#createokbutton)
 - [CreateButton(self, x, y, control_name)](#createbutton)
 - [CreateCheckbox(self, x, y, control_name)](#createcheckbox)
+- [CreateCloseButton(self, x, y, control_name)](#createclosebutton)
 - [CreateDataList(self, x, y, control_name)](#createdatalist)
 - [CreateEdit(self, x, y, control_name)](#createedit)
 - [CreateListBox(self, x, y, control_name)](#createlistbox)
@@ -27,7 +28,6 @@ Summary of modifications:
 - [GetControl(self, control_name)](#getcontrol)
 - [Each(self, class_filter)](#each)
 - [GetItemAt(self, index)](#getitemat)
-- [CreateCloseButton(self, x, y, control_name)](#createclosebutton)
 - [GetParent(self)](#getparent)
 - [ExecuteModal(self, parent)](#executemodal)
 
@@ -37,7 +37,7 @@ Summary of modifications:
 fcmcustomwindow.Init(self)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L24)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L44)
 
 **[Internal]**
 
@@ -51,15 +51,18 @@ fcmcustomwindow.Init(self)
 fcmcustomwindow.CreateCancelButton(self, control_name)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L-1)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L-1)
 
 **[Override]**
-Add optional `control_name` parameter.
+
+Override Changes:
+- Added optional `control_name` parameter.
+- Store reference to original control object.
 
 | Input | Type | Description |
 | ----- | ---- | ----------- |
 | `self` | `FCMCustomWindow` |  |
-| `control_name` (optional) | `FCString\|string` | Optional name to allow access from `GetControl` method. |
+| `control_name` (optional) | `FCString \| string` | Optional name to allow access from `GetControl` method. |
 
 | Return type | Description |
 | ----------- | ----------- |
@@ -71,15 +74,18 @@ Add optional `control_name` parameter.
 fcmcustomwindow.CreateOkButton(self, control_name)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L-1)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L-1)
 
 **[Override]**
-Add optional `control_name` parameter.
+
+Override Changes:
+- Added optional `control_name` parameter.
+- Store reference to original control object.
 
 | Input | Type | Description |
 | ----- | ---- | ----------- |
 | `self` | `FCMCustomWindow` |  |
-| `control_name` (optional) | `FCString\|string` | Optional name to allow access from `GetControl` method. |
+| `control_name` (optional) | `FCString \| string` | Optional name to allow access from `GetControl` method. |
 
 | Return type | Description |
 | ----------- | ----------- |
@@ -91,10 +97,62 @@ Add optional `control_name` parameter.
 fcmcustomwindow.CreateButton(self, x, y, control_name)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L-1)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L-1)
 
 **[Override]**
-Add optional `control_name` parameter.
+
+Override Changes:
+- Added optional `control_name` parameter.
+- Store reference to original control object.
+
+| Input | Type | Description |
+| ----- | ---- | ----------- |
+| `self` | `FCMCustomWindow` |  |
+| `x` | `number` |  |
+| `y` | `number` |  |
+| `control_name` (optional) | `FCString \| string` | Optional name to allow access from `GetControl` method. |
+
+| Return type | Description |
+| ----------- | ----------- |
+| `FCMCtrlButton` |  |
+
+### CreateCheckbox
+
+```lua
+fcmcustomwindow.CreateCheckbox(self, x, y, control_name)
+```
+
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L-1)
+
+**[Override]**
+
+Override Changes:
+- Added optional `control_name` parameter.
+- Store reference to original control object.
+
+| Input | Type | Description |
+| ----- | ---- | ----------- |
+| `self` | `FCMCustomWindow` |  |
+| `x` | `number` |  |
+| `y` | `number` |  |
+| `control_name` (optional) | `FCString \| string` | Optional name to allow access from `GetControl` method. |
+
+| Return type | Description |
+| ----------- | ----------- |
+| `FCMCtrlCheckbox` |  |
+
+### CreateCloseButton
+
+```lua
+fcmcustomwindow.CreateCloseButton(self, x, y, control_name)
+```
+
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L-1)
+
+**[>= v0.56] [Override]**
+
+Override Changes:
+- Added optional `control_name` parameter.
 
 | Input | Type | Description |
 | ----- | ---- | ----------- |
@@ -107,45 +165,26 @@ Add optional `control_name` parameter.
 | ----------- | ----------- |
 | `FCMCtrlButton` |  |
 
-### CreateCheckbox
-
-```lua
-fcmcustomwindow.CreateCheckbox(self, x, y, control_name)
-```
-
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L-1)
-
-**[Override]**
-Add optional `control_name` parameter.
-
-| Input | Type | Description |
-| ----- | ---- | ----------- |
-| `self` | `FCMCustomWindow` |  |
-| `x` | `number` |  |
-| `y` | `number` |  |
-| `control_name` (optional) | `FCString\|string` | Optional name to allow access from `GetControl` method. |
-
-| Return type | Description |
-| ----------- | ----------- |
-| `FCMCtrlCheckbox` |  |
-
 ### CreateDataList
 
 ```lua
 fcmcustomwindow.CreateDataList(self, x, y, control_name)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L-1)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L-1)
 
 **[Override]**
-Add optional `control_name` parameter.
+
+Override Changes:
+- Added optional `control_name` parameter.
+- Store reference to original control object.
 
 | Input | Type | Description |
 | ----- | ---- | ----------- |
 | `self` | `FCMCustomWindow` |  |
 | `x` | `number` |  |
 | `y` | `number` |  |
-| `control_name` (optional) | `FCString\|string` | Optional name to allow access from `GetControl` method. |
+| `control_name` (optional) | `FCString \| string` | Optional name to allow access from `GetControl` method. |
 
 | Return type | Description |
 | ----------- | ----------- |
@@ -157,17 +196,20 @@ Add optional `control_name` parameter.
 fcmcustomwindow.CreateEdit(self, x, y, control_name)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L-1)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L-1)
 
 **[Override]**
-Add optional `control_name` parameter.
+
+Override Changes:
+- Added optional `control_name` parameter.
+- Store reference to original control object.
 
 | Input | Type | Description |
 | ----- | ---- | ----------- |
 | `self` | `FCMCustomWindow` |  |
 | `x` | `number` |  |
 | `y` | `number` |  |
-| `control_name` (optional) | `FCString\|string` | Optional name to allow access from `GetControl` method. |
+| `control_name` (optional) | `FCString \| string` | Optional name to allow access from `GetControl` method. |
 
 | Return type | Description |
 | ----------- | ----------- |
@@ -179,17 +221,20 @@ Add optional `control_name` parameter.
 fcmcustomwindow.CreateListBox(self, x, y, control_name)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L-1)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L-1)
 
 **[Override]**
-Add optional `control_name` parameter.
+
+Override Changes:
+- Added optional `control_name` parameter.
+- Store reference to original control object.
 
 | Input | Type | Description |
 | ----- | ---- | ----------- |
 | `self` | `FCMCustomWindow` |  |
 | `x` | `number` |  |
 | `y` | `number` |  |
-| `control_name` (optional) | `FCString\|string` | Optional name to allow access from `GetControl` method. |
+| `control_name` (optional) | `FCString \| string` | Optional name to allow access from `GetControl` method. |
 
 | Return type | Description |
 | ----------- | ----------- |
@@ -201,17 +246,20 @@ Add optional `control_name` parameter.
 fcmcustomwindow.CreatePopup(self, x, y, control_name)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L-1)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L-1)
 
 **[Override]**
-Add optional `control_name` parameter.
+
+Override Changes:
+- Added optional `control_name` parameter.
+- Store reference to original control object.
 
 | Input | Type | Description |
 | ----- | ---- | ----------- |
 | `self` | `FCMCustomWindow` |  |
 | `x` | `number` |  |
 | `y` | `number` |  |
-| `control_name` (optional) | `FCString\|string` | Optional name to allow access from `GetControl` method. |
+| `control_name` (optional) | `FCString \| string` | Optional name to allow access from `GetControl` method. |
 
 | Return type | Description |
 | ----------- | ----------- |
@@ -223,17 +271,20 @@ Add optional `control_name` parameter.
 fcmcustomwindow.CreateSlider(self, x, y, control_name)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L-1)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L-1)
 
 **[Override]**
-Add optional `control_name` parameter.
+
+Override Changes:
+- Added optional `control_name` parameter.
+- Store reference to original control object.
 
 | Input | Type | Description |
 | ----- | ---- | ----------- |
 | `self` | `FCMCustomWindow` |  |
 | `x` | `number` |  |
 | `y` | `number` |  |
-| `control_name` (optional) | `FCString\|string` | Optional name to allow access from `GetControl` method. |
+| `control_name` (optional) | `FCString \| string` | Optional name to allow access from `GetControl` method. |
 
 | Return type | Description |
 | ----------- | ----------- |
@@ -245,17 +296,20 @@ Add optional `control_name` parameter.
 fcmcustomwindow.CreateStatic(self, x, y, control_name)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L-1)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L-1)
 
 **[Override]**
-Add optional `control_name` parameter.
+
+Override Changes:
+- Added optional `control_name` parameter.
+- Store reference to original control object.
 
 | Input | Type | Description |
 | ----- | ---- | ----------- |
 | `self` | `FCMCustomWindow` |  |
 | `x` | `number` |  |
 | `y` | `number` |  |
-| `control_name` (optional) | `FCString\|string` | Optional name to allow access from `GetControl` method. |
+| `control_name` (optional) | `FCString \| string` | Optional name to allow access from `GetControl` method. |
 
 | Return type | Description |
 | ----------- | ----------- |
@@ -267,17 +321,20 @@ Add optional `control_name` parameter.
 fcmcustomwindow.CreateSwitcher(self, x, y, control_name)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L-1)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L-1)
 
 **[Override]**
-Add optional `control_name` parameter.
+
+Override Changes:
+- Added optional `control_name` parameter.
+- Store reference to original control object.
 
 | Input | Type | Description |
 | ----- | ---- | ----------- |
 | `self` | `FCMCustomWindow` |  |
 | `x` | `number` |  |
 | `y` | `number` |  |
-| `control_name` (optional) | `FCString\|string` | Optional name to allow access from `GetControl` method. |
+| `control_name` (optional) | `FCString \| string` | Optional name to allow access from `GetControl` method. |
 
 | Return type | Description |
 | ----------- | ----------- |
@@ -289,17 +346,20 @@ Add optional `control_name` parameter.
 fcmcustomwindow.CreateTree(self, x, y, control_name)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L-1)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L-1)
 
 **[Override]**
-Add optional `control_name` parameter.
+
+Override Changes:
+- Added optional `control_name` parameter.
+- Store reference to original control object.
 
 | Input | Type | Description |
 | ----- | ---- | ----------- |
 | `self` | `FCMCustomWindow` |  |
 | `x` | `number` |  |
 | `y` | `number` |  |
-| `control_name` (optional) | `FCString\|string` | Optional name to allow access from `GetControl` method. |
+| `control_name` (optional) | `FCString \| string` | Optional name to allow access from `GetControl` method. |
 
 | Return type | Description |
 | ----------- | ----------- |
@@ -311,17 +371,20 @@ Add optional `control_name` parameter.
 fcmcustomwindow.CreateUpDown(self, x, y, control_name)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L-1)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L-1)
 
 **[Override]**
-Add optional `control_name` parameter.
+
+Override Changes:
+- Added optional `control_name` parameter.
+- Store reference to original control object.
 
 | Input | Type | Description |
 | ----- | ---- | ----------- |
 | `self` | `FCMCustomWindow` |  |
 | `x` | `number` |  |
 | `y` | `number` |  |
-| `control_name` (optional) | `FCString\|string` | Optional name to allow access from `GetControl` method. |
+| `control_name` (optional) | `FCString \| string` | Optional name to allow access from `GetControl` method. |
 
 | Return type | Description |
 | ----------- | ----------- |
@@ -333,10 +396,13 @@ Add optional `control_name` parameter.
 fcmcustomwindow.CreateHorizontalLine(self, x, y, length, control_name)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L-1)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L-1)
 
 **[Override]**
-Add optional `control_name` parameter.
+
+Override Changes:
+- Added optional `control_name` parameter.
+- Store reference to original control object.
 
 | Input | Type | Description |
 | ----- | ---- | ----------- |
@@ -344,7 +410,7 @@ Add optional `control_name` parameter.
 | `x` | `number` |  |
 | `y` | `number` |  |
 | `length` | `number` |  |
-| `control_name` (optional) | `FCString\|string` | Optional name to allow access from `GetControl` method. |
+| `control_name` (optional) | `FCString \| string` | Optional name to allow access from `GetControl` method. |
 
 | Return type | Description |
 | ----------- | ----------- |
@@ -356,10 +422,13 @@ Add optional `control_name` parameter.
 fcmcustomwindow.CreateVerticalLine(self, x, y, length, control_name)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L-1)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L-1)
 
 **[Override]**
-Add optional `control_name` parameter.
+
+Override Changes:
+- Added optional `control_name` parameter.
+- Store reference to original control object.
 
 | Input | Type | Description |
 | ----- | ---- | ----------- |
@@ -367,7 +436,7 @@ Add optional `control_name` parameter.
 | `x` | `number` |  |
 | `y` | `number` |  |
 | `length` | `number` |  |
-| `control_name` (optional) | `FCString\|string` | Optional name to allow access from `GetControl` method. |
+| `control_name` (optional) | `FCString \| string` | Optional name to allow access from `GetControl` method. |
 
 | Return type | Description |
 | ----------- | ----------- |
@@ -379,10 +448,14 @@ Add optional `control_name` parameter.
 fcmcustomwindow.FindControl(self, control_id)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L310)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L349)
 
 **[PDK Port]**
+
 Finds a control based on its ID.
+
+Port Changes:
+- Returns the original control object.
 
 | Input | Type | Description |
 | ----- | ---- | ----------- |
@@ -391,7 +464,7 @@ Finds a control based on its ID.
 
 | Return type | Description |
 | ----------- | ----------- |
-| `FCMControl\\|nil` |  |
+| `FCMControl \\| nil` |  |
 
 ### GetControl
 
@@ -399,18 +472,18 @@ Finds a control based on its ID.
 fcmcustomwindow.GetControl(self, control_name)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L325)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L364)
 
 Finds a control based on its name.
 
 | Input | Type | Description |
 | ----- | ---- | ----------- |
 | `self` | `FCMCustomWindow` |  |
-| `control_name` | `FCString\|string` |  |
+| `control_name` | `FCString \| string` |  |
 
 | Return type | Description |
 | ----------- | ----------- |
-| `FCMControl\\|nil` |  |
+| `FCMControl \\| nil` |  |
 
 ### Each
 
@@ -418,7 +491,7 @@ Finds a control based on its name.
 fcmcustomwindow.Each(self, class_filter)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L340)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L379)
 
 An iterator for controls that can filter by class.
 
@@ -437,10 +510,12 @@ An iterator for controls that can filter by class.
 fcmcustomwindow.GetItemAt(self, index)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L365)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L406)
 
 **[Override]**
-Ensures that the original control object is returned.
+
+Override Changes:
+- Returns the original control object.
 
 | Input | Type | Description |
 | ----- | ---- | ----------- |
@@ -451,37 +526,16 @@ Ensures that the original control object is returned.
 | ----------- | ----------- |
 | `FCMControl` |  |
 
-### CreateCloseButton
-
-```lua
-fcmcustomwindow.CreateCloseButton(self, x, y, control_name)
-```
-
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L383)
-
-**[>= v0.56] [Override]**
-Add optional `control_name` parameter.
-
-| Input | Type | Description |
-| ----- | ---- | ----------- |
-| `self` | `FCMCustomWindow` |  |
-| `x` | `number` |  |
-| `y` | `number` |  |
-| `control_name` (optional) | `FCString\|string` | Optional name to allow access from `GetControl` method. |
-
-| Return type | Description |
-| ----------- | ----------- |
-| `FCMCtrlButton` |  |
-
 ### GetParent
 
 ```lua
 fcmcustomwindow.GetParent(self)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L415)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L421)
 
 **[PDK Port]**
+
 Returns the parent window. The parent will only be available while the window is showing.
 
 | Input | Type | Description |
@@ -490,7 +544,7 @@ Returns the parent window. The parent will only be available while the window is
 
 | Return type | Description |
 | ----------- | ----------- |
-| `FCMCustomWindow\\|nil` | `nil` if no parent |
+| `FCMCustomWindow \\| nil` | `nil` if no parent |
 
 ### ExecuteModal
 
@@ -498,15 +552,17 @@ Returns the parent window. The parent will only be available while the window is
 fcmcustomwindow.ExecuteModal(self, parent)
 ```
 
-[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/mixin/FCMCustomWindow.lua#L429)
+[View source](https://github.com/finale-lua/lua-scripts/tree/refs/heads/master/src/mixin/FCMCustomWindow.lua#L437)
 
 **[Override]**
-Stores the parent window to make it available via `GetParent`.
+
+Override Changes:
+- Stores the parent window to make it available via `GetParent`.
 
 | Input | Type | Description |
 | ----- | ---- | ----------- |
 | `self` | `FCMCustomWindow` |  |
-| `parent` | `FCCustomWindow\|FCMCustomWindow\|nil` |  |
+| `parent` | `FCCustomWindow \| FCMCustomWindow \| nil` |  |
 
 | Return type | Description |
 | ----------- | ----------- |

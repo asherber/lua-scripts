@@ -1,19 +1,4 @@
-__imports = __imports or {}
-__import_results = __import_results or {}
-__aaa_original_require_for_deployment__ = __aaa_original_require_for_deployment__ or require
-function require(item)
-    if not __imports[item] then
-        return __aaa_original_require_for_deployment__(item)
-    end
-    if __import_results[item] == nil then
-        __import_results[item] = __imports[item]()
-        if __import_results[item] == nil then
-            __import_results[item] = true
-        end
-    end
-    return __import_results[item]
-end
-__imports["library.client"] = __imports["library.client"] or function()
+package.preload["library.client"] = package.preload["library.client"] or function()
 
     local client = {}
     local function to_human_string(feature)
@@ -111,7 +96,7 @@ __imports["library.client"] = __imports["library.client"] or function()
     end
     return client
 end
-__imports["library.clef"] = __imports["library.clef"] or function()
+package.preload["library.clef"] = package.preload["library.clef"] or function()
 
     local clef = {}
 
@@ -378,8 +363,9 @@ function plugindef()
 
     finaleplugin.Author = "Jacob Winkler"
     finaleplugin.Copyright = "2022"
-    finaleplugin.Version = "1.0"
+    finaleplugin.Version = "1.0.1"
     finaleplugin.Date = "2022-08-30"
+    finaleplugin.RequireSelection = true
 
     finaleplugin.AuthorEmail = "jacob.winkler@mac.com"
     finaleplugin.AdditionalMenuOptions = [[
@@ -409,7 +395,7 @@ function plugindef()
     clef_type = "tenor"
     clef_type = "tenor_voice"
     clef_type = "percussion"
-    ]]
+    ]]    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/clef_change.hash"
     return "Clef 1: Treble", "Clef 1: Treble", "Changes the selected region to treble clef"
 end
 

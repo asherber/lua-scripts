@@ -1,19 +1,4 @@
-__imports = __imports or {}
-__import_results = __import_results or {}
-__aaa_original_require_for_deployment__ = __aaa_original_require_for_deployment__ or require
-function require(item)
-    if not __imports[item] then
-        return __aaa_original_require_for_deployment__(item)
-    end
-    if __import_results[item] == nil then
-        __import_results[item] = __imports[item]()
-        if __import_results[item] == nil then
-            __import_results[item] = true
-        end
-    end
-    return __import_results[item]
-end
-__imports["library.enigma_string"] = __imports["library.enigma_string"] or function()
+package.preload["library.enigma_string"] = package.preload["library.enigma_string"] or function()
 
     local enigma_string = {}
     local starts_with_font_command = function(string)
@@ -149,6 +134,7 @@ function plugindef()
     finaleplugin.Version = "1.0.1"
     finaleplugin.Date = "June 12, 2020"
     finaleplugin.CategoryTags = "Lyric"
+    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/prefs_reset_lyrics_fonts.hash"
     return "Reset Lyrics Fonts", "Reset Lyrics Fonts", "Reset lyrics to document\'s default font settings."
 end
 local enigma_string = require("library.enigma_string")

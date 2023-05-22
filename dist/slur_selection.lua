@@ -1,19 +1,4 @@
-__imports = __imports or {}
-__import_results = __import_results or {}
-__aaa_original_require_for_deployment__ = __aaa_original_require_for_deployment__ or require
-function require(item)
-    if not __imports[item] then
-        return __aaa_original_require_for_deployment__(item)
-    end
-    if __import_results[item] == nil then
-        __import_results[item] = __imports[item]()
-        if __import_results[item] == nil then
-            __import_results[item] = true
-        end
-    end
-    return __import_results[item]
-end
-__imports["library.smartshape"] = __imports["library.smartshape"] or function()
+package.preload["library.smartshape"] = package.preload["library.smartshape"] or function()
 
     local smartshape = {}
     local smartshape_type = {
@@ -52,10 +37,13 @@ __imports["library.smartshape"] = __imports["library.smartshape"] or function()
     function smartshape.add_entry_based_smartshape(start_note, end_note, shape_type)
         local smartshape = finale.FCSmartShape()
         smartshape:SetEntryAttachedFlags(true)
-        shape_type = shape_type or "slur"
-
-        shape_type = string.lower(shape_type)
-        local shape = smartshape_type[shape_type]
+        local shape
+        if shape_type and type(shape_type) == "number" and shape_type <= finale.SMARTSHAPE_DASHEDSLURAUTO then
+            shape = shape_type
+        else
+            shape_type = shape_type or "slur"
+            shape = smartshape_type[string.lower(shape_type)]
+        end
         smartshape:SetShapeType(shape)
         smartshape.PresetShape = true
         if smartshape:IsAutoSlur() then
@@ -113,7 +101,13 @@ __imports["library.smartshape"] = __imports["library.smartshape"] or function()
     end
 
     function smartshape.delete_entry_based_smartshape(music_region, shape_type)
-        local shape = smartshape_type[shape_type]
+        local shape
+        if shape_type and type(shape_type) == "number" and shape_type <= finale.SMARTSHAPE_DASHEDSLURAUTO then
+            shape = shape_type
+        else
+            shape_type = shape_type or "slur"
+            shape = smartshape_type[string.lower(shape_type)]
+        end
         for noteentry in eachentrysaved(music_region) do
             local smartshape_entry_marks = finale.FCSmartShapeEntryMarks(noteentry)
             smartshape_entry_marks:LoadAll(music_region)
@@ -148,7 +142,7 @@ __imports["library.smartshape"] = __imports["library.smartshape"] or function()
     end
     return smartshape
 end
-__imports["library.layer"] = __imports["library.layer"] or function()
+package.preload["library.layer"] = package.preload["library.layer"] or function()
 
     local layer = {}
 
@@ -264,6 +258,7 @@ function plugindef()
         If you want to automate slurs on specific note patterns then try
         JW Pattern (Performance Notation -> Slurs) or TGTools (Music -> Create Slurs...").
     ]]
+    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/slur_selection.hash"
     return "Slur Selection", "Slur Selection", "Create slurs across the current selection"
 end
 local smartshape = require("library.smartshape")
