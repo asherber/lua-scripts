@@ -1,20 +1,25 @@
-function plugindef()    
-    return "Lua Playground", "", "Lua Playground"
+function plugindef()
+    finaleplugin.RequireScore = true
+    finaleplugin.RequireSelection = true
+    finaleplugin.RequireDocument = true
+    finaleplugin.Author = "Aaron Sherber"
+    finaleplugin.AuthorURL = "https://aaron.sherber.com"
+    finaleplugin.Copyright = "CC0 https://creativecommons.org/publicdomain/zero/1.0/"
+    finaleplugin.Version = "0.9.1"
+    finaleplugin.Date = "2023-05-27"
+    finaleplugin.Id = "1fef3a2d-42c3-4ab1-a75a-6f245c6b5ec2" 
+    finaleplugin.RevisionNotes = [[
+        v0.9.1      First internal version
+    ]]
+    finaleplugin.Notes = [[
+        This script will insert one or more measures and will adjust current and following
+        measure number regions.
+    ]]
+
+    return "Insert Measure(s) and Shift Regions", "Insert Measure(s) and Shift Regions", 
+        "Inserts one or more measures and adjusts measure number regions"
 end
 
---[[
-local home = os.getenv("HOME") or os.getenv("HOMEDRIVE") .. os.getenv("HOMEPATH")
-package.path = home .. "/.vscode/extensions/alexeymelnichuk.lua-mobdebug-0.0.5/lua/?.lua"
-    .. ";" .. package.path
-local mobdebug = require ("vscode-mobdebug")
-mobdebug.start('127.0.0.1', 8172)
---]]
-
-
-
--- insert measure
--- loop through measure number regions
--- increment any start/end number greater than inserted measure
 
 function measure_insert_and_shift_regions()
     local region = finenv.Region()
@@ -30,6 +35,7 @@ function measure_insert_and_shift_regions()
             local str = finale.FCString()
             r:GetPrefix(str)
             local prefix = str.LuaString
+            
             if prefix == '' then
                 r.StartNumber = r.StartNumber + insert_count
             else
