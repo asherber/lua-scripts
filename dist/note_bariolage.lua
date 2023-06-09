@@ -2,7 +2,6 @@ package.preload["library.layer"] = package.preload["library.layer"] or function(
 
     local layer = {}
 
-
     function layer.copy(region, source_layer, destination_layer, clone_articulations)
         local start = region.StartMeasure
         local stop = region.EndMeasure
@@ -35,7 +34,6 @@ package.preload["library.layer"] = package.preload["library.layer"] or function(
         end
     end
 
-
     function layer.clear(region, layer_to_clear)
         layer_to_clear = layer_to_clear - 1
         local start = region.StartMeasure
@@ -50,7 +48,6 @@ package.preload["library.layer"] = package.preload["library.layer"] or function(
             noteentry_layer:ClearAllEntries()
         end
     end
-
 
     function layer.swap(region, swap_a, swap_b)
 
@@ -90,12 +87,9 @@ package.preload["library.layer"] = package.preload["library.layer"] or function(
         end
     end
 
-
-
     function layer.max_layers()
         return finale.FCLayerPrefs.GetMaxLayers and finale.FCLayerPrefs.GetMaxLayers() or 4
     end
-
     return layer
 end
 package.preload["library.note_entry"] = package.preload["library.note_entry"] or function()
@@ -331,6 +325,24 @@ package.preload["library.note_entry"] = package.preload["library.note_entry"] or
     function note_entry.add_augmentation_dot(entry)
 
         entry.Duration = bit32.bor(entry.Duration, bit32.rshift(entry.Duration, 1))
+    end
+
+    function note_entry.remove_augmentation_dot(entry)
+        if entry.Duration <= 0 then
+            return false
+        end
+        local lowest_order_bit = 1
+        if bit32.band(entry.Duration, lowest_order_bit) == 0 then
+
+            lowest_order_bit = bit32.bxor(bit32.band(entry.Duration, entry.Duration - 1), entry.Duration)
+        end
+
+        local new_value = bit32.band(entry.Duration, bit32.bnot(lowest_order_bit))
+        if new_value ~= 0 then
+            entry.Duration = new_value
+            return true
+        end
+        return false
     end
 
     function note_entry.get_next_same_v(entry)
