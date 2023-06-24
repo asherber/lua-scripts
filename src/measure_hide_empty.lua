@@ -6,13 +6,15 @@ function plugindef()
     finaleplugin.Author = "Aaron Sherber"
     finaleplugin.AuthorURL = "https://aaron.sherber.com"
     finaleplugin.Copyright = "CC0 https://creativecommons.org/publicdomain/zero/1.0/"
-    finaleplugin.Version = "0.9.2"
+    finaleplugin.Version = "0.9.3"
     finaleplugin.Date = "2023-06-24"
     finaleplugin.Id = "4aebe066-d648-4111-b8b3-22ac2420c37d"
     finaleplugin.RevisionNotes = [[
         v0.9.1      First internal version
         v0.9.2      Reuse adjacent staff style assignments
                     Pick from multiple "Hide Staff" staff styles
+        v0.9.3      Fix table index bug
+                    Use both adjacent assignments if available
     ]]
     finaleplugin.Notes = [[
         This script will apply a "Hide Staff" staff style to any measures in
@@ -56,7 +58,7 @@ local function pick_style(styles)
     dialog:CreateOkButton()
     dialog:CreateCancelButton()
     if dialog:ExecuteModal(nil) == finale.EXECMODAL_OK then
-        return styles[group:GetSelectedItem() + 1]
+        return styles[group:GetSelectedItem() + 1][1]
     end
 end
 
@@ -120,8 +122,14 @@ local function hide_empty_measures()
                 and get_hide_staff_style_assign(range_end + 1, staff_id)
 
             if previous_assign then
-                previous_assign.EndMeasure = range_end
-                previous_assign:Save()
+                if next_assign then
+                    previous_assign.EndMeasure = next_assign.EndMeasure
+                    previous_assign:Save()
+                    next_assign:DeleteData()
+                else
+                    previous_assign.EndMeasure = range_end
+                    previous_assign:Save()
+                end
             elseif next_assign then
                 next_assign.StartMeasure = range_start
                 next_assign:Save()
