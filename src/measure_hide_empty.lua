@@ -6,8 +6,8 @@ function plugindef()
     finaleplugin.Author = "Aaron Sherber"
     finaleplugin.AuthorURL = "https://aaron.sherber.com"
     finaleplugin.Copyright = "CC0 https://creativecommons.org/publicdomain/zero/1.0/"
-    finaleplugin.Version = "0.9.3"
-    finaleplugin.Date = "2023-06-24"
+    finaleplugin.Version = "0.9.4"
+    finaleplugin.Date = "2023-06-25"
     finaleplugin.Id = "4aebe066-d648-4111-b8b3-22ac2420c37d"
     finaleplugin.RevisionNotes = [[
         v0.9.1      First internal version
@@ -15,6 +15,7 @@ function plugindef()
                     Pick from multiple "Hide Staff" staff styles
         v0.9.3      Fix table index bug
                     Use both adjacent assignments if available
+        v0.9.4      Minimum dialog width
     ]]
     finaleplugin.Notes = [[
         This script will apply a "Hide Staff" staff style to any measures in
@@ -47,7 +48,7 @@ local function pick_style(styles)
 
     local group = dialog:CreateRadioButtonGroup(0, 0, #styles)
     local labels = finale.FCStrings()
-    local max_width = 0
+    local max_width = 175
     for _, style in ipairs(styles) do
         labels:AddCopy(make_str(style[2]))
         max_width = math.max(max_width, style[2]:len() * 6)
