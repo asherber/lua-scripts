@@ -6,16 +6,17 @@ function plugindef()
     finaleplugin.Author = "Aaron Sherber"
     finaleplugin.AuthorURL = "https://aaron.sherber.com"
     finaleplugin.Copyright = "CC0 https://creativecommons.org/publicdomain/zero/1.0/"
-    finaleplugin.Version = "0.9.4"
+    finaleplugin.Version = "0.9.5"
     finaleplugin.Date = "2023-06-25"
     finaleplugin.Id = "4aebe066-d648-4111-b8b3-22ac2420c37d"
     finaleplugin.RevisionNotes = [[
-        v0.9.1      First internal version
-        v0.9.2      Reuse adjacent staff style assignments
-                    Pick from multiple "Hide Staff" staff styles
+        v0.9.5      Simplify: Finale combines assignments for us
+        v0.9.4      Minimum dialog width
         v0.9.3      Fix table index bug
                     Use both adjacent assignments if available
-        v0.9.4      Minimum dialog width
+        v0.9.2      Reuse adjacent staff style assignments
+                    Pick from multiple "Hide Staff" staff styles
+        v0.9.1      First internal version
     ]]
     finaleplugin.Notes = [[
         This script will apply a "Hide Staff" staff style to any measures in
@@ -76,72 +77,37 @@ local function get_hide_staff_style_id()
     return pick_style(hide_staff_styles)
 end
 
-local function get_staff_style_assign(m, s, style_id)
-    local assigns = finale.FCStaffStyleAssigns()
-    assigns:LoadAllForItem(s)
-    for a in each(assigns) do
-        if a.StartMeasure <= m and a.EndMeasure >= m
-                and a.StyleID == style_id then
-            return a
-        end
-    end
-end
-
 local function hide_empty_measures()
     local hide_staff_style_id = get_hide_staff_style_id()
     if not hide_staff_style_id then
         return
     end
 
-    local function get_hide_staff_style_assign(m, s)
-        return get_staff_style_assign(m, s, hide_staff_style_id)
+    local current_staff = nil
+    local assigns_for_staff = finale.FCStaffStyleAssigns()
+
+    local function measure_is_hidden(m)
+        for a in each (assigns_for_staff) do
+            if a.StartMeasure <= m and a.EndMeasure >= m
+                    and a.StyleID == hide_staff_style_id then
+                return true
+            end
+        end
     end
-
-    local function is_candidate_cell(m, s)
-        local cell = finale.FCCell(m, s)
-        return not cell:CalcContainsEntries()
-            and not get_hide_staff_style_assign(m, s)
-    end
-
-
-    local document = finale.FCMusicRegion()
-    document:SetFullDocument()
-    local doc_measure_count = document:CalcMeasureSpan()
 
     local region = finenv.Region()
-    for range_start, staff_id in eachcell(region) do
-        if is_candidate_cell(range_start, staff_id) then
-            local range_end = range_start
-
-            while region:IsMeasureIncluded(range_end + 1) and is_candidate_cell(range_end + 1, staff_id) do
-                range_end = range_end + 1
-            end
-
-            local previous_assign = range_start > 1
-                and get_hide_staff_style_assign(range_start - 1, staff_id)
-            local next_assign = range_end < doc_measure_count
-                and get_hide_staff_style_assign(range_end + 1, staff_id)
-
-            if previous_assign then
-                if next_assign then
-                    previous_assign.EndMeasure = next_assign.EndMeasure
-                    previous_assign:Save()
-                    next_assign:DeleteData()
-                else
-                    previous_assign.EndMeasure = range_end
-                    previous_assign:Save()
-                end
-            elseif next_assign then
-                next_assign.StartMeasure = range_start
-                next_assign:Save()
-            else
-                local assign = finale.FCStaffStyleAssign()
-                assign.StyleID = hide_staff_style_id
-                assign.StartMeasure = range_start
-                assign.EndMeasure = range_end
-                assign:SaveNew(staff_id)
-            end
-
+    for m, s in eachcell(region) do
+        if current_staff ~= s then
+            assigns_for_staff:LoadAllForItem(s)
+            current_staff = s
+        end
+        local cell = finale.FCCell(m, s)
+        if not cell:CalcContainsEntries() and not measure_is_hidden(m) then
+            local assign = finale.FCStaffStyleAssign()
+            assign.StyleID = hide_staff_style_id
+            assign.StartMeasure = m
+            assign.EndMeasure = m
+            assign:SaveNew(s)
         end
     end
 end
