@@ -6,10 +6,11 @@ function plugindef()
     finaleplugin.Author = "Aaron Sherber"
     finaleplugin.AuthorURL = "https://aaron.sherber.com"
     finaleplugin.Copyright = "CC0 https://creativecommons.org/publicdomain/zero/1.0/"
-    finaleplugin.Version = "0.9.5"
+    finaleplugin.Version = "0.9.6"
     finaleplugin.Date = "2023-06-25"
     finaleplugin.Id = "4aebe066-d648-4111-b8b3-22ac2420c37d"
     finaleplugin.RevisionNotes = [[
+        v0.9.6      Fix bug with single staff style
         v0.9.5      Simplify: Finale combines assignments for us
         v0.9.4      Minimum dialog width
         v0.9.3      Fix table index bug
@@ -35,7 +36,7 @@ local function pick_style(styles)
         finenv.UI():AlertInfo('No "Hide Staff" staff style found.', "Error")
         return
     elseif #styles == 1 then
-        return next(styles)
+        return styles[1][1]
     end
 
     local function make_str(str)

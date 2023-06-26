@@ -12,9 +12,9 @@ mobdebug.start('127.0.0.1', 8172)
 
 
 
---dofile(finenv.RunningLuaFolderPath() .. "measure_hide_empty.lua")
+dofile(finenv.RunningLuaFolderPath() .. "measure_hide_empty.lua")
 
----[[
+--[[
 local assigns = finale.FCStaffStyleAssigns()
 assigns:LoadAllForItem(5)
 for a in each(assigns) do
