@@ -6,10 +6,12 @@ function plugindef()
     finaleplugin.Author = "Aaron Sherber"
     finaleplugin.AuthorURL = "https://aaron.sherber.com"
     finaleplugin.Copyright = "CC0 https://creativecommons.org/publicdomain/zero/1.0/"
-    finaleplugin.Version = "0.9.6"
-    finaleplugin.Date = "2023-06-25"
+    finaleplugin.Version = "1.0.1"
+    finaleplugin.Date = "2023-06-26"
     finaleplugin.Id = "4aebe066-d648-4111-b8b3-22ac2420c37d"
     finaleplugin.RevisionNotes = [[
+        v1.0.1      First public release
+                    Apply to to consecutive measures at once
         v0.9.6      Fix bug with single staff style
         v0.9.5      Simplify: Finale combines assignments for us
         v0.9.4      Minimum dialog width
@@ -86,6 +88,7 @@ local function hide_empty_measures()
 
     local current_staff = nil
     local assigns_for_staff = finale.FCStaffStyleAssigns()
+    local region = finenv.Region()
 
     local function measure_is_hidden(m)
         for a in each (assigns_for_staff) do
@@ -96,19 +99,35 @@ local function hide_empty_measures()
         end
     end
 
-    local region = finenv.Region()
+    local function is_candidate_measure(m)
+        if region:IsMeasureIncluded(m) and not measure_is_hidden(m) then
+            local cell = finale.FCCell(m, current_staff)
+            return not cell:CalcContainsEntries()
+        end
+    end
+
     for m, s in eachcell(region) do
         if current_staff ~= s then
             assigns_for_staff:LoadAllForItem(s)
             current_staff = s
         end
-        local cell = finale.FCCell(m, s)
-        if not cell:CalcContainsEntries() and not measure_is_hidden(m) then
+
+        if is_candidate_measure(m) then
+            local start_measure = m
+            local end_measure = m
+            local function next_measure() return end_measure + 1 end
+
+            while is_candidate_measure(next_measure()) do
+                end_measure = next_measure()
+            end
+
             local assign = finale.FCStaffStyleAssign()
             assign.StyleID = hide_staff_style_id
-            assign.StartMeasure = m
-            assign.EndMeasure = m
+            assign.StartMeasure = start_measure
+            assign.EndMeasure = end_measure
             assign:SaveNew(s)
+
+            assigns_for_staff:LoadAllForItem(s)
         end
     end
 end
