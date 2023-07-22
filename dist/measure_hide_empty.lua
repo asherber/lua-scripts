@@ -23,16 +23,14 @@ function plugindef()
     ]]
     finaleplugin.Notes = [[
         This script will apply a "Hide Staff" staff style to any full measures in
-        the selected region of the active score/part that do not have any entries. 
-        If you have more than one "Hide Staff" staff style defined, you can pick 
+        the selected region of the active score/part that do not have any entries.
+        If you have more than one "Hide Staff" staff style defined, you can pick
         the one you want to use.
     ]]
-
+    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/measure_hide_empty.hash"
     return "Hide Empty Measures", "Hide Empty Measures",
         "Applies a \"Hide Staff\" staff style to empty measures."
 end
-
-
 local function pick_style(styles)
     if #styles == 0 then
         finenv.UI():AlertInfo('No "Hide Staff" staff style found.', "Error")
@@ -40,16 +38,13 @@ local function pick_style(styles)
     elseif #styles == 1 then
         return styles[1][1]
     end
-
     local function make_str(str)
         local s = finale.FCString()
         s.LuaString = str
         return s
     end
-
     local dialog = finale.FCCustomWindow()
     dialog:SetTitle(make_str('Select "Hide Staff" Style'))
-
     local group = dialog:CreateRadioButtonGroup(0, 0, #styles)
     local labels = finale.FCStrings()
     local max_width = 175
@@ -59,14 +54,12 @@ local function pick_style(styles)
     end
     group:SetText(labels)
     group:SetWidth(max_width)
-
     dialog:CreateOkButton()
     dialog:CreateCancelButton()
     if dialog:ExecuteModal(nil) == finale.EXECMODAL_OK then
         return styles[group:GetSelectedItem() + 1][1]
     end
 end
-
 local function get_hide_staff_style_id()
     local hide_staff_styles = {}
     for def in loadall(finale.FCStaffStyleDefs()) do
@@ -76,20 +69,16 @@ local function get_hide_staff_style_id()
             table.insert(hide_staff_styles, { def.ItemNo, str.LuaString })
         end
     end
-
     return pick_style(hide_staff_styles)
 end
-
 local function hide_empty_measures()
     local hide_staff_style_id = get_hide_staff_style_id()
     if not hide_staff_style_id then
         return
     end
-
     local current_staff = nil
     local assigns_for_staff = finale.FCStaffStyleAssigns()
     local region = finenv.Region()
-
     local function measure_is_hidden(m)
         for a in each (assigns_for_staff) do
             if a.StartMeasure <= m and a.EndMeasure >= m
@@ -98,39 +87,31 @@ local function hide_empty_measures()
             end
         end
     end
-
     local function is_candidate_measure(m)
         if region:IsMeasureIncluded(m) and not measure_is_hidden(m) then
             local cell = finale.FCCell(m, current_staff)
             return not cell:CalcContainsEntries()
         end
     end
-
     for m, s in eachcell(region) do
         if current_staff ~= s then
             assigns_for_staff:LoadAllForItem(s)
             current_staff = s
         end
-
         if is_candidate_measure(m) then
             local start_measure = m
             local end_measure = m
             local function next_measure() return end_measure + 1 end
-
             while is_candidate_measure(next_measure()) do
                 end_measure = next_measure()
             end
-
             local assign = finale.FCStaffStyleAssign()
             assign.StyleID = hide_staff_style_id
             assign.StartMeasure = start_measure
             assign.EndMeasure = end_measure
             assign:SaveNew(s)
-
             assigns_for_staff:LoadAllForItem(s)
         end
     end
 end
-
-
 hide_empty_measures()

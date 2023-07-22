@@ -4790,58 +4790,165 @@ package.preload["library.mixin"] = package.preload["library.mixin"] or function(
     end
     return mixin
 end
+package.preload["library.layer"] = package.preload["library.layer"] or function()
+
+    local layer = {}
+
+    function layer.copy(region, source_layer, destination_layer, clone_articulations)
+        local start = region.StartMeasure
+        local stop = region.EndMeasure
+        local sysstaves = finale.FCSystemStaves()
+        sysstaves:LoadAllForRegion(region)
+        source_layer = source_layer - 1
+        destination_layer = destination_layer - 1
+        for sysstaff in each(sysstaves) do
+            staffNum = sysstaff.Staff
+            local noteentry_source_layer = finale.FCNoteEntryLayer(source_layer, staffNum, start, stop)
+            noteentry_source_layer:SetUseVisibleLayer(false)
+            noteentry_source_layer:Load()
+            local noteentry_destination_layer = noteentry_source_layer:CreateCloneEntries(
+                destination_layer, staffNum, start)
+            noteentry_destination_layer:Save()
+            noteentry_destination_layer:CloneTuplets(noteentry_source_layer)
+
+            if clone_articulations and noteentry_source_layer.Count == noteentry_destination_layer.Count then
+                for index = 0, noteentry_destination_layer.Count - 1 do
+                    local source_entry = noteentry_source_layer:GetItemAt(index)
+                    local destination_entry = noteentry_destination_layer:GetItemAt(index)
+                    local source_artics = source_entry:CreateArticulations()
+                    for articulation in each (source_artics) do
+                        articulation:SetNoteEntry(destination_entry)
+                        articulation:SaveNew()
+                    end
+                end
+            end
+            noteentry_destination_layer:Save()
+        end
+    end
+
+    function layer.clear(region, layer_to_clear)
+        layer_to_clear = layer_to_clear - 1
+        local start = region.StartMeasure
+        local stop = region.EndMeasure
+        local sysstaves = finale.FCSystemStaves()
+        sysstaves:LoadAllForRegion(region)
+        for sysstaff in each(sysstaves) do
+            staffNum = sysstaff.Staff
+            local  noteentry_layer = finale.FCNoteEntryLayer(layer_to_clear, staffNum, start, stop)
+            noteentry_layer:SetUseVisibleLayer(false)
+            noteentry_layer:Load()
+            noteentry_layer:ClearAllEntries()
+        end
+    end
+
+    function layer.swap(region, swap_a, swap_b)
+
+        swap_a = swap_a - 1
+        swap_b = swap_b - 1
+        for measure, staff_number in eachcell(region) do
+            local cell_frame_hold = finale.FCCellFrameHold()
+            cell_frame_hold:ConnectCell(finale.FCCell(measure, staff_number))
+            local loaded = cell_frame_hold:Load()
+            local cell_clef_changes = loaded and cell_frame_hold.IsClefList and cell_frame_hold:CreateCellClefChanges() or nil
+            local  noteentry_layer_one = finale.FCNoteEntryLayer(swap_a, staff_number, measure, measure)
+            noteentry_layer_one:SetUseVisibleLayer(false)
+            noteentry_layer_one:Load()
+            noteentry_layer_one.LayerIndex = swap_b
+
+            local  noteentry_layer_two = finale.FCNoteEntryLayer(swap_b, staff_number, measure, measure)
+            noteentry_layer_two:SetUseVisibleLayer(false)
+            noteentry_layer_two:Load()
+            noteentry_layer_two.LayerIndex = swap_a
+            noteentry_layer_one:Save()
+            noteentry_layer_two:Save()
+            if loaded then
+                local new_cell_frame_hold = finale.FCCellFrameHold()
+                new_cell_frame_hold:ConnectCell(finale.FCCell(measure, staff_number))
+                if new_cell_frame_hold:Load() then
+                    if cell_frame_hold.IsClefList then
+                        if new_cell_frame_hold.SetCellClefChanges then
+                            new_cell_frame_hold:SetCellClefChanges(cell_clef_changes)
+                        end
+
+                    else
+                        new_cell_frame_hold.ClefIndex = cell_frame_hold.ClefIndex
+                    end
+                    new_cell_frame_hold:Save()
+                end
+            end
+        end
+    end
+
+    function layer.max_layers()
+        return finale.FCLayerPrefs.GetMaxLayers and finale.FCLayerPrefs.GetMaxLayers() or 4
+    end
+    return layer
+end
 function plugindef()
     finaleplugin.RequireSelection = true
     finaleplugin.Author = "Carl Vine"
     finaleplugin.AuthorURL = "https://carlvine.com/lua/"
-    finaleplugin.Copyright = "https://creativecommons.org/licenses/by/4.0/"
-    finaleplugin.Version = "v0.67"
-    finaleplugin.Date = "2023/06/19"
-    finaleplugin.AdditionalMenuOptions = [[
-        Gracenote Slash Configuration...
-    ]]
-    finaleplugin.AdditionalUndoText = [[
-        Gracenote Slash Configuration
-    ]]
-    finaleplugin.AdditionalDescriptions = [[
-        Configure Gracenote Slash parameters
-    ]]
-    finaleplugin.AdditionalPrefixes = [[
-        slash_configure = true
-    ]]
-    finaleplugin.CategoryTags = "Articulation"
+    finaleplugin.Copyright = "CC0 https://creativecommons.org/publicdomain/zero/1.0/"
+    finaleplugin.Version = "v0.62"
+    finaleplugin.Date = "2023/07/09"
+    finaleplugin.MinJWLuaVersion = 0.62
     finaleplugin.Notes = [[
-        This script duplicates Jari Williamsson's original 2017 JWGraceNoteSlash plug-in so it can be
-        incorporated into modern operating systems through RGPLua.
-        A `Configuration` menu item is provided to change the script's parameters.
-        They can also be changed by holding down either the SHIFT or ALT (option) key when calling the script.
-    ]]
-    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/gracenote_slash.hash"
-    return "Gracenote Slash", "Gracenote Slash", "Add a slash to beamed gracenote groups in the current selection"
+        Change the condition of tuplets in the current selection to:
+        - Avoid Staff
+        - Don't Avoid Staff
+        - Flat
+        - Not Flat
+        - Flip
+        - Invisible
+        - Visible
+        - Bracket Unbeamed Only
+        - Bracket Always
+        - Bracket Opposite Beamed Side
+        - Reset (to Default Preferences)
+
+        The script provides a list of options, each line beginning with a configurable "hotkey".
+        Open the script, type the hotkey and hit [Enter] or [Return].
+        Actions may optionally be limited to one of 4 layers.
+	]]
+    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/tuplet_chooser.hash"
+    return "Tuplet Chooser...", "Tuplet Chooser", "Change the condition of tuplets in the current selection"
 end
-slash_configure = slash_configure or false
-local configuration = require("library.configuration")
-local mixin = require("library.mixin")
-local script_name = "gracenote_slash"
+local dialog_options = {
+    { "avoid", "Avoid Staff" },
+    { "not_avoid", "Don't Avoid Staff" },
+    { "flat", "Flat" },
+    { "not_flat", "Not Flat" },
+    { "flip", "Flip" },
+    { "invisible", "Invisible" },
+    { "visible", "Visible" },
+    { "bracket_unbeam", "Bracket Unbeamed Only" },
+    { "bracket_always", "Bracket Always" },
+    { "bracket_opp_beam", "Bracket Opp. Beamed Side" },
+    { "reset", "Reset (Default Preferences)" },
+}
 local config = {
-    upstem_line_width = 2.25,
-    upstem_y_start = 0,
-    upstem_line_to_x = 36,
-    upstem_line_to_y = 44,
-    upstem_artic_x_offset = 4,
-    upstem_artic_y_offset = -32,
-
-    downstem_line_width = 2.25,
-    downstem_y_start = 44,
-    downstem_line_to_x = 36,
-    downstem_line_to_y = -44,
-    downstem_artic_x_offset = -8,
-    downstem_artic_y_offset = 8,
-
-    measurement_unit = finale.MEASUREMENTUNIT_DEFAULT,
+    avoid =  "A",
+    not_avoid = "D",
+    flat = "F",
+    not_flat = "N",
+    flip = "X",
+    visible = "V",
+    invisible = "I",
+    bracket_unbeam = "U",
+    bracket_always = "J",
+    bracket_opp_beam = "O",
+    reset = "R",
+    layer_num = 0,
+    ignore_duplicates = 0,
+    last_selected = 0,
     window_pos_x = false,
     window_pos_y = false,
 }
+local configuration = require("library.configuration")
+local mixin = require("library.mixin")
+local layer = require("library.layer")
+local script_name = "tuplet_chooser"
+configuration.get_user_settings(script_name, config, true)
 function dialog_set_position(dialog)
     if config.window_pos_x and config.window_pos_y then
         dialog:StorePosition()
@@ -4855,115 +4962,150 @@ function dialog_save_position(dialog)
     config.window_pos_y = dialog.StoredY
     configuration.save_user_settings(script_name, config)
 end
-function make_slash_definition(stem)
-    local shape = finale.FCShapeDef()
-    local shape_inst = shape:CreateInstructions()
-    shape_inst:AddStartObject( finale.FCPoint(0, 0), finale.FCPoint(0, 64), finale.FCPoint(64, 0), 1000, 1000, 0)
-    shape_inst:AddRMoveTo(0, config[stem .. "y_start"])
-    shape_inst:AddLineWidth(config[stem .. "line_width"] * 64)
-    shape_inst:AddSetDash(18, 0)
-    shape_inst:AddRLineTo(config[stem .. "line_to_x"], config[stem .. "line_to_y"])
-    shape_inst:AddStroke()
-    shape_inst:AddNull()
-    shape:RebuildInstructions(shape_inst)
-    shape:SaveNewWithType(finale.SHAPEDEFTYPE_ARTICULATION)
-    shape_inst:ClearAll()
-    local art_def = mixin.FCMArticulationDef()
-    art_def:SetMainSymbolIsShape(true)
-        :SetMainSymbolShapeID(shape.ItemNo)
-        :SetAboveUsesMain(true)
-        :SetBelowUsesMain(true)
-        :SetAutoPosSide(finale.ARTPOS_ALWAYS_STEM_SIDE)
-        :SetCenterHorizontally(false)
-        :SetAlwaysPlaceOutsideStaff(false)
-        :SaveNew()
-    return art_def
-end
-function add_slashes()
-    local new_slash = { }
-    for entry in eachentrysaved(finenv.Region()) do
-        if entry.GraceNote then
-            if entry:CalcUnbeamedNote() then
-                entry.GraceNoteSlash = (entry.Duration < finale.QUARTER_NOTE)
-            elseif (entry:CalcGraceNoteIndex() == 0) then
-                local stem = entry.StemUp and "upstem_" or "downstem_"
-                if not new_slash[stem] then
-                    new_slash[stem] = make_slash_definition(stem)
+function change_tuplet_state(state)
+    for entry in eachentry(finenv.Region(), config.layer_num) do
+        if entry:IsStartOfTuplet() then
+            for tuplet in each(entry:CreateTuplets()) do
+                if state == "visible" or state == "invisible" then
+                    tuplet.Visible = (state == "visible")
+                elseif state == "flat" or state == "not_flat" then
+                    tuplet.AlwaysFlat = (state == "flat")
+                elseif state == "avoid" or state == "not_avoid" then
+                    tuplet.AvoidStaff = (state == "avoid")
+                elseif state == "reset" then
+                    tuplet:PrefsReset(true)
+                elseif state == "flip" then
+                    local placement = tuplet.PlacementMode
+                    if placement == finale.TUPLETPLACEMENT_STEMSIDE then
+                        tuplet.PlacementMode = finale.TUPLETPLACEMENT_NOTESIDE
+                    elseif placement == finale.TUPLETPLACEMENT_NOTESIDE then
+                        tuplet.PlacementMode = finale.TUPLETPLACEMENT_STEMSIDE
+                    elseif placement == finale.TUPLETPLACEMENT_ABOVE then
+                        tuplet.PlacementMode = finale.TUPLETPLACEMENT_BELOW
+                    elseif placement == finale.TUPLETPLACEMENT_BELOW then
+                        tuplet.PlacementMode = finale.TUPLETPLACEMENT_ABOVE
+                    end
+                elseif state:find("bracket") then
+                    local bracket = finale.TUPLETBRACKET_ALWAYS
+                    if state == "bracket_unbeam" then
+                        bracket = finale.TUPLETBRACKET_UNBEAMEDONLY
+                    elseif state == "bracket_opp_beam" then
+                        bracket = finale.TUPLETBRACKET_NEVERBEAMEDONBEAMSIDE
+                    end
+                    tuplet.BracketMode = bracket
                 end
-                local art = finale.FCArticulation()
-                art:SetNoteEntry(entry)
-                art:SetArticulationDef(new_slash[stem])
-                art.HorizontalPos = config[stem .. "artic_x_offset"]
-                art.VerticalPos = config[stem .. "artic_y_offset"]
-                art:SaveNew()
+                tuplet:Save()
             end
         end
     end
 end
-function user_sets_parameters()
-
-    local dialog_options = {
-        {"line_width", "width of slash line"},
-        {"y_start", "vertical offset at start of slash shape"},
-        {"line_to_x", "horizontal length of slash line"},
-        {"line_to_y", "vertical length of slash line"},
-        {"artic_x_offset", "articulation horizontal offset"},
-        {"artic_y_offset", "articulation vertical offset"},
-    }
-    local dialog = mixin.FCXCustomLuaWindow():SetTitle("Gracenote Slash Configuration")
-    dialog:SetMeasurementUnit(config.measurement_unit)
-    local y_step, y_pos = 18, 0
-    local max_wide = 200
-    local x_offset = { 0, 50, 130, 200 }
-    local mac_offset = finenv.UI():IsOnMac() and 3 or 0
-    for _, stem in ipairs({"upstem", "downstem"}) do
-        dialog:CreateStatic(x_offset[1], y_pos):SetWidth(max_wide):SetText(string.upper(stem) .. " VALUES:")
-        y_pos = y_pos + y_step
-        for i, v in ipairs(dialog_options) do
-            dialog:CreateStatic(x_offset[2], y_pos):SetWidth(80):SetText(string.gsub(v[1], "_", " ") .. ":")
-            dialog:CreateStatic(x_offset[4], y_pos):SetWidth(max_wide):SetText(v[2])
-            local name = stem .. "_" .. v[1]
-            local edit = dialog.CreateMeasurementEdit(dialog, x_offset[3], y_pos - mac_offset, name):SetWidth(60)
-            if i == 1 then
-                edit:SetTypeMeasurement():SetMeasurement(config[name])
-            else
-                edit:SetTypeMeasurementInteger():SetMeasurementInteger(config[name])
-            end
-            y_pos = y_pos + y_step
-        end
-        y_pos = y_pos + (y_step / 2)
+function reassign_keystrokes()
+    local y_step, x_wide = 17, 180
+    local offset = finenv.UI():IsOnMac() and 3 or 0
+    local is_duplicate, errors = false, {}
+    local y = 0
+    local dialog = mixin.FCXCustomLuaWindow():SetTitle("Tuplets: Reassign Keys")
+    for _, v in ipairs(dialog_options) do
+        dialog:CreateEdit(0, y - offset, v[1]):SetText(config[v[1]]):SetWidth(20)
+        dialog:CreateStatic(25, y):SetText(v[2]):SetWidth(x_wide)
+        y = y + y_step
     end
-
-    dialog:CreateStatic(x_offset[3] - 40, y_pos):SetText("Units:")
-    dialog:CreateMeasurementUnitPopup(x_offset[3], y_pos)
-    dialog:CreateOkButton()
+    y = y + 7
+    local ignore = dialog:CreateCheckbox(0, y):SetWidth(x_wide)
+        :SetText("Ignore duplicate assignments"):SetCheck(config.ignore_duplicates or 0)
+    dialog:CreateOkButton():SetText("Save")
     dialog:CreateCancelButton()
-    dialog:RegisterInitWindow(function(self)
-        local first_edit = self:GetControl("upstem_" .. dialog_options[1][1])
-        first_edit:SetKeyboardFocus()
-    end)
+    dialog_set_position(dialog)
     dialog:RegisterHandleOkButtonPressed(function(self)
-        for _, stem in ipairs({"upstem_", "downstem_"}) do
-            for i, v in ipairs(dialog_options) do
-                local edit = self:GetControl(stem .. v[1])
-                config[stem .. v[1]] = (i == 1) and edit:GetMeasurement() or edit:GetMeasurementInteger()
+        local assigned = {}
+        for i, v in ipairs(dialog_options) do
+            local key = self:GetControl(v[1]):GetText()
+            key = string.upper(string.sub(key, 1, 1))
+            if key == "" then key = "?" end
+            config[v[1]] = key
+            config.ignore_duplicates = ignore:GetCheck()
+            if config.ignore_duplicates == 0 then
+                if assigned[key] then
+                    is_duplicate = true
+                    if not errors[key] then errors[key] = { assigned[key] } end
+                    table.insert(errors[key], i)
+                else
+                    assigned[key] = i
+                end
             end
         end
-        config.measurement_unit = self:GetMeasurementUnit()
+        if is_duplicate then
+            local msg = ""
+            for k, v in pairs(errors) do
+                msg = msg .. "Key \"" .. k .. "\" is assigned to: "
+                for i, w in ipairs(v) do
+                    if i > 1 then msg = msg .. " and " end
+                    msg = msg .. "\"" .. dialog_options[w][2] .. "\""
+                end
+                msg = msg .. "\n\n"
+            end
+            finenv.UI():AlertError(msg, "Duplicate Key Assignment")
+        end
+    end)
+    local ok = (dialog:ExecuteModal(nil) == finale.EXECMODAL_OK)
+    return ok, is_duplicate
+end
+function user_chooses()
+    local max = layer.max_layers()
+    local offset = finenv.UI():IsOnMac() and 3 or 0
+    local join = finenv.UI():IsOnMac() and "\t" or ": "
+    local y_step = 17
+    local box_wide = 220
+    local box_high = (#dialog_options * y_step) + 5
+    local dialog = mixin.FCXCustomLuaWindow():SetTitle(plugindef())
+    dialog:CreateStatic(0, 0):SetText("Change Tuplets To:"):SetWidth(box_wide)
+    local key_list = dialog:CreateListBox(0, 20):SetWidth(box_wide):SetHeight(box_high)
+    local function fill_key_list()
+        key_list:Clear()
+        for _, option in ipairs(dialog_options) do
+            key_list:AddString(config[option[1]] .. join .. option[2])
+        end
+        key_list:SetSelectedItem(config.last_selected or 0)
+    end
+    fill_key_list()
+    local x_off = box_wide / 4
+    local y = box_high + 30
+    local reassign = dialog:CreateButton(x_off, y)
+        :SetText("Reassign Keys"):SetWidth(x_off * 2)
+    reassign:AddHandleCommand(function()
+        local ok, is_duplicate = true, true
+        while ok and is_duplicate do
+            ok, is_duplicate = reassign_keystrokes()
+        end
+        if ok then
+            configuration.save_user_settings(script_name, config)
+            fill_key_list()
+        end
+    end)
+    y = y + 25
+    dialog:CreateStatic(12, y):SetWidth(x_off * 2)
+        :SetText("Active Layer 1-" .. max .. ":")
+    local layer_num = dialog:CreateEdit(x_off * 2, y - offset):SetWidth(20)
+        :SetInteger(config.layer_num or 0)
+    dialog:CreateStatic(x_off * 2 + 24, y):SetWidth(80)
+        :SetText("(0 = all)")
+    dialog:CreateOkButton():SetText("Select")
+    dialog:CreateCancelButton()
+    dialog_set_position(dialog)
+    dialog:RegisterInitWindow(function() key_list:SetKeyboardFocus() end)
+    dialog:RegisterHandleOkButtonPressed(function(self)
+        config.last_selected = key_list:GetSelectedItem()
+        config.layer_num = math.min(math.max(layer_num:GetInteger(), 0), max)
         dialog_save_position(self)
     end)
-    dialog_set_position(dialog)
+    dialog:RegisterCloseWindow(function(self) dialog_save_position(self) end)
     return (dialog:ExecuteModal(nil) == finale.EXECMODAL_OK)
 end
-function main()
-    configuration.get_user_settings(script_name, config)
-    local mod_down = finenv.QueryInvokedModifierKeys and (finenv.QueryInvokedModifierKeys(finale.CMDMODKEY_ALT) or finenv.QueryInvokedModifierKeys(finale.CMDMODKEY_SHIFT))
-    local ok = true
-    if slash_configure or mod_down then
-        ok = user_sets_parameters()
-    end
-    if ok and not slash_configure then
-        add_slashes()
+function tuplets_change()
+    if user_chooses() then
+        local state = dialog_options[config.last_selected + 1][1]
+        change_tuplet_state(state)
+        finenv.UI():ActivateDocumentWindow()
     end
 end
-main()
+tuplets_change()

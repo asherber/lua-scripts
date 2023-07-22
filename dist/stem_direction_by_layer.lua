@@ -4790,58 +4790,125 @@ package.preload["library.mixin"] = package.preload["library.mixin"] or function(
     end
     return mixin
 end
+package.preload["library.layer"] = package.preload["library.layer"] or function()
+
+    local layer = {}
+
+    function layer.copy(region, source_layer, destination_layer, clone_articulations)
+        local start = region.StartMeasure
+        local stop = region.EndMeasure
+        local sysstaves = finale.FCSystemStaves()
+        sysstaves:LoadAllForRegion(region)
+        source_layer = source_layer - 1
+        destination_layer = destination_layer - 1
+        for sysstaff in each(sysstaves) do
+            staffNum = sysstaff.Staff
+            local noteentry_source_layer = finale.FCNoteEntryLayer(source_layer, staffNum, start, stop)
+            noteentry_source_layer:SetUseVisibleLayer(false)
+            noteentry_source_layer:Load()
+            local noteentry_destination_layer = noteentry_source_layer:CreateCloneEntries(
+                destination_layer, staffNum, start)
+            noteentry_destination_layer:Save()
+            noteentry_destination_layer:CloneTuplets(noteentry_source_layer)
+
+            if clone_articulations and noteentry_source_layer.Count == noteentry_destination_layer.Count then
+                for index = 0, noteentry_destination_layer.Count - 1 do
+                    local source_entry = noteentry_source_layer:GetItemAt(index)
+                    local destination_entry = noteentry_destination_layer:GetItemAt(index)
+                    local source_artics = source_entry:CreateArticulations()
+                    for articulation in each (source_artics) do
+                        articulation:SetNoteEntry(destination_entry)
+                        articulation:SaveNew()
+                    end
+                end
+            end
+            noteentry_destination_layer:Save()
+        end
+    end
+
+    function layer.clear(region, layer_to_clear)
+        layer_to_clear = layer_to_clear - 1
+        local start = region.StartMeasure
+        local stop = region.EndMeasure
+        local sysstaves = finale.FCSystemStaves()
+        sysstaves:LoadAllForRegion(region)
+        for sysstaff in each(sysstaves) do
+            staffNum = sysstaff.Staff
+            local  noteentry_layer = finale.FCNoteEntryLayer(layer_to_clear, staffNum, start, stop)
+            noteentry_layer:SetUseVisibleLayer(false)
+            noteentry_layer:Load()
+            noteentry_layer:ClearAllEntries()
+        end
+    end
+
+    function layer.swap(region, swap_a, swap_b)
+
+        swap_a = swap_a - 1
+        swap_b = swap_b - 1
+        for measure, staff_number in eachcell(region) do
+            local cell_frame_hold = finale.FCCellFrameHold()
+            cell_frame_hold:ConnectCell(finale.FCCell(measure, staff_number))
+            local loaded = cell_frame_hold:Load()
+            local cell_clef_changes = loaded and cell_frame_hold.IsClefList and cell_frame_hold:CreateCellClefChanges() or nil
+            local  noteentry_layer_one = finale.FCNoteEntryLayer(swap_a, staff_number, measure, measure)
+            noteentry_layer_one:SetUseVisibleLayer(false)
+            noteentry_layer_one:Load()
+            noteentry_layer_one.LayerIndex = swap_b
+
+            local  noteentry_layer_two = finale.FCNoteEntryLayer(swap_b, staff_number, measure, measure)
+            noteentry_layer_two:SetUseVisibleLayer(false)
+            noteentry_layer_two:Load()
+            noteentry_layer_two.LayerIndex = swap_a
+            noteentry_layer_one:Save()
+            noteentry_layer_two:Save()
+            if loaded then
+                local new_cell_frame_hold = finale.FCCellFrameHold()
+                new_cell_frame_hold:ConnectCell(finale.FCCell(measure, staff_number))
+                if new_cell_frame_hold:Load() then
+                    if cell_frame_hold.IsClefList then
+                        if new_cell_frame_hold.SetCellClefChanges then
+                            new_cell_frame_hold:SetCellClefChanges(cell_clef_changes)
+                        end
+
+                    else
+                        new_cell_frame_hold.ClefIndex = cell_frame_hold.ClefIndex
+                    end
+                    new_cell_frame_hold:Save()
+                end
+            end
+        end
+    end
+
+    function layer.max_layers()
+        return finale.FCLayerPrefs.GetMaxLayers and finale.FCLayerPrefs.GetMaxLayers() or 4
+    end
+    return layer
+end
 function plugindef()
     finaleplugin.RequireSelection = true
     finaleplugin.Author = "Carl Vine"
     finaleplugin.AuthorURL = "https://carlvine.com/lua/"
     finaleplugin.Copyright = "https://creativecommons.org/licenses/by/4.0/"
-    finaleplugin.Version = "v0.67"
-    finaleplugin.Date = "2023/06/19"
-    finaleplugin.AdditionalMenuOptions = [[
-        Gracenote Slash Configuration...
+    finaleplugin.Version = "0.11"
+    finaleplugin.Date = "2023/06/23"
+    finaleplugin.MinJWLuaVersion = 0.62
+	finaleplugin.Notes = [[
+        Set stems on a specific layer in the current selection to point up, down or in the "default" direction.
     ]]
-    finaleplugin.AdditionalUndoText = [[
-        Gracenote Slash Configuration
-    ]]
-    finaleplugin.AdditionalDescriptions = [[
-        Configure Gracenote Slash parameters
-    ]]
-    finaleplugin.AdditionalPrefixes = [[
-        slash_configure = true
-    ]]
-    finaleplugin.CategoryTags = "Articulation"
-    finaleplugin.Notes = [[
-        This script duplicates Jari Williamsson's original 2017 JWGraceNoteSlash plug-in so it can be
-        incorporated into modern operating systems through RGPLua.
-        A `Configuration` menu item is provided to change the script's parameters.
-        They can also be changed by holding down either the SHIFT or ALT (option) key when calling the script.
-    ]]
-    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/gracenote_slash.hash"
-    return "Gracenote Slash", "Gracenote Slash", "Add a slash to beamed gracenote groups in the current selection"
+    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/stem_direction_by_layer.hash"
+    return "Stem Direction By Layer", "Stem Direction By Layer", "Change stem directions on a specific layer in the current selection"
 end
-slash_configure = slash_configure or false
-local configuration = require("library.configuration")
-local mixin = require("library.mixin")
-local script_name = "gracenote_slash"
+local direction_choice = { "Up", "Down", "Default" }
 local config = {
-    upstem_line_width = 2.25,
-    upstem_y_start = 0,
-    upstem_line_to_x = 36,
-    upstem_line_to_y = 44,
-    upstem_artic_x_offset = 4,
-    upstem_artic_y_offset = -32,
-
-    downstem_line_width = 2.25,
-    downstem_y_start = 44,
-    downstem_line_to_x = 36,
-    downstem_line_to_y = -44,
-    downstem_artic_x_offset = -8,
-    downstem_artic_y_offset = 8,
-
-    measurement_unit = finale.MEASUREMENTUNIT_DEFAULT,
+    direction = "Default",
+    layer_num = 0,
     window_pos_x = false,
     window_pos_y = false,
 }
+local configuration = require("library.configuration")
+local mixin = require("library.mixin")
+local layer = require("library.layer")
+local script_name = "stem_direction_by_layer"
 function dialog_set_position(dialog)
     if config.window_pos_x and config.window_pos_y then
         dialog:StorePosition()
@@ -4855,115 +4922,47 @@ function dialog_save_position(dialog)
     config.window_pos_y = dialog.StoredY
     configuration.save_user_settings(script_name, config)
 end
-function make_slash_definition(stem)
-    local shape = finale.FCShapeDef()
-    local shape_inst = shape:CreateInstructions()
-    shape_inst:AddStartObject( finale.FCPoint(0, 0), finale.FCPoint(0, 64), finale.FCPoint(64, 0), 1000, 1000, 0)
-    shape_inst:AddRMoveTo(0, config[stem .. "y_start"])
-    shape_inst:AddLineWidth(config[stem .. "line_width"] * 64)
-    shape_inst:AddSetDash(18, 0)
-    shape_inst:AddRLineTo(config[stem .. "line_to_x"], config[stem .. "line_to_y"])
-    shape_inst:AddStroke()
-    shape_inst:AddNull()
-    shape:RebuildInstructions(shape_inst)
-    shape:SaveNewWithType(finale.SHAPEDEFTYPE_ARTICULATION)
-    shape_inst:ClearAll()
-    local art_def = mixin.FCMArticulationDef()
-    art_def:SetMainSymbolIsShape(true)
-        :SetMainSymbolShapeID(shape.ItemNo)
-        :SetAboveUsesMain(true)
-        :SetBelowUsesMain(true)
-        :SetAutoPosSide(finale.ARTPOS_ALWAYS_STEM_SIDE)
-        :SetCenterHorizontally(false)
-        :SetAlwaysPlaceOutsideStaff(false)
-        :SaveNew()
-    return art_def
-end
-function add_slashes()
-    local new_slash = { }
-    for entry in eachentrysaved(finenv.Region()) do
-        if entry.GraceNote then
-            if entry:CalcUnbeamedNote() then
-                entry.GraceNoteSlash = (entry.Duration < finale.QUARTER_NOTE)
-            elseif (entry:CalcGraceNoteIndex() == 0) then
-                local stem = entry.StemUp and "upstem_" or "downstem_"
-                if not new_slash[stem] then
-                    new_slash[stem] = make_slash_definition(stem)
-                end
-                local art = finale.FCArticulation()
-                art:SetNoteEntry(entry)
-                art:SetArticulationDef(new_slash[stem])
-                art.HorizontalPos = config[stem .. "artic_x_offset"]
-                art.VerticalPos = config[stem .. "artic_y_offset"]
-                art:SaveNew()
-            end
-        end
+function user_choices()
+    local max = layer.max_layers()
+    local offset = finenv.UI():IsOnMac() and 3 or 0
+    local edit_x = 110
+    local dialog = mixin.FCXCustomLuaWindow():SetTitle(plugindef())
+    dialog:CreateStatic(0, 0):SetText("Choose Stem Direction:"):SetWidth(150)
+    local y = 20
+    local direction_list = dialog:CreateListBox(0, y):SetWidth(150):SetHeight(54)
+    for i, v in ipairs(direction_choice) do
+        direction_list:AddString(v)
+        if v == config.direction then direction_list:SetSelectedItem(i - 1) end
     end
-end
-function user_sets_parameters()
-
-    local dialog_options = {
-        {"line_width", "width of slash line"},
-        {"y_start", "vertical offset at start of slash shape"},
-        {"line_to_x", "horizontal length of slash line"},
-        {"line_to_y", "vertical length of slash line"},
-        {"artic_x_offset", "articulation horizontal offset"},
-        {"artic_y_offset", "articulation vertical offset"},
-    }
-    local dialog = mixin.FCXCustomLuaWindow():SetTitle("Gracenote Slash Configuration")
-    dialog:SetMeasurementUnit(config.measurement_unit)
-    local y_step, y_pos = 18, 0
-    local max_wide = 200
-    local x_offset = { 0, 50, 130, 200 }
-    local mac_offset = finenv.UI():IsOnMac() and 3 or 0
-    for _, stem in ipairs({"upstem", "downstem"}) do
-        dialog:CreateStatic(x_offset[1], y_pos):SetWidth(max_wide):SetText(string.upper(stem) .. " VALUES:")
-        y_pos = y_pos + y_step
-        for i, v in ipairs(dialog_options) do
-            dialog:CreateStatic(x_offset[2], y_pos):SetWidth(80):SetText(string.gsub(v[1], "_", " ") .. ":")
-            dialog:CreateStatic(x_offset[4], y_pos):SetWidth(max_wide):SetText(v[2])
-            local name = stem .. "_" .. v[1]
-            local edit = dialog.CreateMeasurementEdit(dialog, x_offset[3], y_pos - mac_offset, name):SetWidth(60)
-            if i == 1 then
-                edit:SetTypeMeasurement():SetMeasurement(config[name])
-            else
-                edit:SetTypeMeasurementInteger():SetMeasurementInteger(config[name])
-            end
-            y_pos = y_pos + y_step
-        end
-        y_pos = y_pos + (y_step / 2)
-    end
-
-    dialog:CreateStatic(x_offset[3] - 40, y_pos):SetText("Units:")
-    dialog:CreateMeasurementUnitPopup(x_offset[3], y_pos)
+    y = y + 60
+    dialog:CreateStatic(0, y + offset):SetText("Layer 1-" .. max .. " (0 = all):"):SetWidth(edit_x)
+    local layer_num = dialog:CreateEdit(edit_x - 5, y):SetInteger(config.layer_num or 0):SetWidth(25)
     dialog:CreateOkButton()
     dialog:CreateCancelButton()
-    dialog:RegisterInitWindow(function(self)
-        local first_edit = self:GetControl("upstem_" .. dialog_options[1][1])
-        first_edit:SetKeyboardFocus()
-    end)
-    dialog:RegisterHandleOkButtonPressed(function(self)
-        for _, stem in ipairs({"upstem_", "downstem_"}) do
-            for i, v in ipairs(dialog_options) do
-                local edit = self:GetControl(stem .. v[1])
-                config[stem .. v[1]] = (i == 1) and edit:GetMeasurement() or edit:GetMeasurementInteger()
-            end
+    dialog:RegisterHandleOkButtonPressed(function()
+        local n = layer_num:GetInteger()
+        if n < 0 then n = 0
+        elseif n > max then n = max
         end
-        config.measurement_unit = self:GetMeasurementUnit()
-        dialog_save_position(self)
+        config.layer_num = n
+        config.direction = direction_choice[direction_list:GetSelectedItem() + 1]
     end)
+    dialog:RegisterInitWindow(function() direction_list:SetKeyboardFocus() end)
+    dialog:RegisterCloseWindow(function() dialog_save_position(dialog) end)
     dialog_set_position(dialog)
     return (dialog:ExecuteModal(nil) == finale.EXECMODAL_OK)
 end
-function main()
-    configuration.get_user_settings(script_name, config)
-    local mod_down = finenv.QueryInvokedModifierKeys and (finenv.QueryInvokedModifierKeys(finale.CMDMODKEY_ALT) or finenv.QueryInvokedModifierKeys(finale.CMDMODKEY_SHIFT))
-    local ok = true
-    if slash_configure or mod_down then
-        ok = user_sets_parameters()
-    end
-    if ok and not slash_configure then
-        add_slashes()
+function stem_direction()
+    configuration.get_user_settings(script_name, config, true)
+    if user_choices() then
+        for entry in eachentrysaved(finenv.Region(), config.layer_num) do
+            if entry:IsNote() then
+                entry.FreezeStem = (config.direction ~= "Default")
+                if config.direction ~= "Default" then
+                    entry.StemUp = (config.direction == "Up")
+                end
+            end
+        end
     end
 end
-main()
+stem_direction()
