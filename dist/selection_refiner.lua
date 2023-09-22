@@ -1,242 +1,3 @@
-package.preload["library.notehead"] = package.preload["library.notehead"] or function()
-
-    local notehead = {}
-    local configuration = require("library.configuration")
-    local library = require("library.general_library")
-    local config = {
-        diamond = {
-            quarter = { glyph = 79, size = 110 },
-            half  = { glyph = 79, size = 110 },
-            whole = { glyph = 79, size = 110, offset = 5 },
-            breve = { glyph = 79, size = 110, offset = 14 },
-        },
-        diamond_guitar = {
-            quarter = { glyph = 226, size = 110 },
-            half  = { glyph = 79, size = 110 },
-            whole = { glyph = 79, size = 110, offset = 5 },
-            breve = { glyph = 79, size = 110, offset = 14 },
-        },
-        x = {
-            quarter = { glyph = 192 },
-            half  = { glyph = 192 },
-            whole = { glyph = 192 },
-            breve = { glyph = 192, size = 120 },
-        },
-        triangle = {
-
-
-
-            quarter = { glyph = 209 },
-            half  = { glyph = 177 },
-            whole = { glyph = 177 },
-            breve = { glyph = 177 },
-        },
-        triangle_down = {
-            quarter = { glyph = 224 },
-            half  = { glyph = 198 },
-            whole = { glyph = 198 },
-            breve = { glyph = 198 },
-        },
-        triangle_up = {
-            quarter = { glyph = 209 },
-            half  = { glyph = 177 },
-            whole = { glyph = 177 },
-            breve = { glyph = 177 },
-        },
-        slash = {
-            quarter = { glyph = 243 },
-            half  = { glyph = 203 },
-            whole = { glyph = 213 },
-            breve = { glyph = 213 },
-        },
-        square = {
-            quarter = { glyph = 208 },
-            half  = { glyph = 173 },
-            whole = { glyph = 194 },
-            breve = { glyph = 221 },
-        },
-        wedge = {
-            quarter = { glyph = 108 },
-            half  = { glyph = 231 },
-            whole = { glyph = 231 },
-            breve = { glyph = 231 },
-        },
-        strikethrough = {
-            quarter = { glyph = 191 },
-            half  = { glyph = 191 },
-            whole = { glyph = 191 },
-            breve = { glyph = 191 },
-        },
-        circled = {
-            quarter = { glyph = 76 },
-            half  = { glyph = 76 },
-            whole = { glyph = 76 },
-            breve = { glyph = 76 },
-        },
-        round = {
-            quarter = { glyph = 76 },
-            half  = { glyph = 76 },
-            whole = { glyph = 191 },
-            breve = { glyph = 191 },
-        },
-        hidden = {
-            quarter = { glyph = 202 },
-            half  = { glyph = 202 },
-            whole = { glyph = 202 },
-            breve = { glyph = 202 },
-        },
-        default = {
-            quarter = { glyph = 207 }
-        },
-    }
-
-    if library.is_font_smufl_font() then
-        config = {
-            diamond = {
-                quarter = { glyph = 0xe0e1, size = 110 },
-                half  = { glyph = 0xe0e1, size = 110 },
-                whole = { glyph = 0xe0d8, size = 110 },
-                breve = { glyph = 0xe0d7, size = 110 },
-            },
-            diamond_guitar = {
-                quarter = { glyph = 0xe0e2, size = 110 },
-                half  = { glyph = 0xe0e1, size = 110 },
-                whole = { glyph = 0xe0d8, size = 110 },
-                breve = { glyph = 0xe0d7, size = 110 },
-            },
-            x = {
-                quarter = { glyph = 0xe0a9 },
-                half  = { glyph = 0xe0a8 },
-                whole = { glyph = 0xe0a7 },
-                breve = { glyph = 0xe0a6 },
-            },
-            triangle = {
-
-
-
-                quarter = { glyph = 0xe0be },
-                half  = { glyph = 0xe0bd },
-                whole = { glyph = 0xe0bc },
-                breve = { glyph = 0xe0bb },
-            },
-            triangle_down = {
-                quarter = { glyph = 0xe0c7 },
-                half  = { glyph = 0xe0c6 },
-                whole = { glyph = 0xe0c5 },
-                breve = { glyph = 0xe0c4 },
-            },
-            triangle_up = {
-                quarter = { glyph = 0xe0be },
-                half  = { glyph = 0xe0bd },
-                whole = { glyph = 0xe0bc },
-                breve = { glyph = 0xe0bb },
-            },
-            slash = {
-                quarter = { glyph = 0xe100 },
-                half  = { glyph = 0xe103 },
-                whole = { glyph = 0xe102 },
-                breve = { glyph = 0xe10a },
-            },
-            square = {
-                quarter = { glyph = 0xe934 },
-                half  = { glyph = 0xe935 },
-                whole = { glyph = 0xe937 },
-                breve = { glyph = 0xe933 },
-            },
-            wedge = {
-                quarter = { glyph = 0xe1c5 },
-                half  = { glyph = 0xe1c8, size = 120 },
-                whole = { glyph = 0xe1c4, size = 120 },
-                breve = { glyph = 0xe1ca, size = 120 },
-            },
-            strikethrough = {
-                quarter = { glyph = 0xe0cf },
-                half  = { glyph = 0xe0d1 },
-                whole = { glyph = 0xe0d3 },
-                breve = { glyph = 0xe0d5 },
-            },
-            circled = {
-                quarter = { glyph = 0xe0e4 },
-                half  = { glyph = 0xe0e5 },
-                whole = { glyph = 0xe0e6 },
-                breve = { glyph = 0xe0e7 },
-            },
-            round = {
-                quarter = { glyph = 0xe113 },
-                half  = { glyph = 0xe114 },
-                whole = { glyph = 0xe115 },
-                breve = { glyph = 0xe112 },
-            },
-            hidden = {
-                quarter = { glyph = 0xe0a5 },
-                half  = { glyph = 0xe0a5 },
-                whole = { glyph = 0xe0a5 },
-                breve = { glyph = 0xe0a5 },
-            },
-            default = {
-                quarter = { glyph = 0xe0a4 }
-            },
-        }
-    end
-    configuration.get_parameters("notehead.config.txt", config)
-
-    function notehead.change_shape(note, shape)
-        local notehead_mod = finale.FCNoteheadMod()
-        notehead_mod:EraseAt(note)
-        local notehead_char = config.default.quarter.glyph
-        if type(shape) == "number" then
-            notehead_char = shape
-            shape = "number"
-        elseif not config[shape] then
-            shape = "default"
-        end
-        if shape == "default" then
-            notehead_mod:ClearChar()
-            notehead_mod.Resize = 100
-            notehead_mod.HorizontalPos = 0
-        else
-            local entry = note:GetEntry()
-            if not entry then return end
-            local duration = entry.Duration
-            local offset = 0
-            local resize = 100
-            if shape ~= "number" then
-                local note_type = "quarter"
-                if duration >= finale.BREVE then
-                    note_type = "breve"
-                elseif duration >= finale.WHOLE_NOTE then
-                    note_type = "whole"
-                elseif duration >= finale.HALF_NOTE then
-                    note_type = "half"
-                end
-                local ref_table = config[shape][note_type]
-                if shape == "triangle" and entry:CalcStemUp() then
-                    ref_table = config["triangle_down"][note_type]
-                end
-                if ref_table.glyph then
-                    notehead_char = ref_table.glyph
-                end
-                if ref_table.size then
-                    resize = ref_table.size
-                end
-                if ref_table.offset then
-                    offset = ref_table.offset
-                end
-            end
-
-            notehead_mod.CustomChar = notehead_char
-            if resize > 0 and resize ~= 100 then
-                notehead_mod.Resize = resize
-            end
-            if offset ~= 0 then
-                notehead_mod.HorizontalPos = (entry:CalcStemUp()) and (-1 * offset) or offset
-            end
-        end
-        notehead_mod:SaveAt(note)
-        return notehead_mod
-    end
-    return notehead
-end
 package.preload["mixin.FCMControl"] = package.preload["mixin.FCMControl"] or function()
 
 
@@ -4220,302 +3981,6 @@ package.preload["library.mixin"] = package.preload["library.mixin"] or function(
     end
     return mixin
 end
-package.preload["library.configuration"] = package.preload["library.configuration"] or function()
-
-
-
-    local configuration = {}
-    local utils = require("library.utils")
-    local script_settings_dir = "script_settings"
-    local comment_marker = "--"
-    local parameter_delimiter = "="
-    local path_delimiter = "/"
-    local file_exists = function(file_path)
-        local f = io.open(file_path, "r")
-        if nil ~= f then
-            io.close(f)
-            return true
-        end
-        return false
-    end
-    parse_parameter = function(val_string)
-        if "\"" == val_string:sub(1, 1) and "\"" == val_string:sub(#val_string, #val_string) then
-            return string.gsub(val_string, "\"(.+)\"", "%1")
-        elseif "'" == val_string:sub(1, 1) and "'" == val_string:sub(#val_string, #val_string) then
-            return string.gsub(val_string, "'(.+)'", "%1")
-        elseif "{" == val_string:sub(1, 1) and "}" == val_string:sub(#val_string, #val_string) then
-            return load("return " .. val_string)()
-        elseif "true" == val_string then
-            return true
-        elseif "false" == val_string then
-            return false
-        end
-        return tonumber(val_string)
-    end
-    local get_parameters_from_file = function(file_path, parameter_list)
-        local file_parameters = {}
-        if not file_exists(file_path) then
-            return false
-        end
-        for line in io.lines(file_path) do
-            local comment_at = string.find(line, comment_marker, 1, true)
-            if nil ~= comment_at then
-                line = string.sub(line, 1, comment_at - 1)
-            end
-            local delimiter_at = string.find(line, parameter_delimiter, 1, true)
-            if nil ~= delimiter_at then
-                local name = utils.trim(string.sub(line, 1, delimiter_at - 1))
-                local val_string = utils.trim(string.sub(line, delimiter_at + 1))
-                file_parameters[name] = parse_parameter(val_string)
-            end
-        end
-        local function process_table(param_table, param_prefix)
-            param_prefix = param_prefix and param_prefix.."." or ""
-            for param_name, param_val in pairs(param_table) do
-                local file_param_name = param_prefix .. param_name
-                local file_param_val = file_parameters[file_param_name]
-                if nil ~= file_param_val then
-                    param_table[param_name] = file_param_val
-                elseif type(param_val) == "table" then
-                        process_table(param_val, param_prefix..param_name)
-                end
-            end
-        end
-        process_table(parameter_list)
-        return true
-    end
-
-    function configuration.get_parameters(file_name, parameter_list)
-        local path = ""
-        if finenv.IsRGPLua then
-            path = finenv.RunningLuaFolderPath()
-        else
-            local str = finale.FCString()
-            str:SetRunningLuaFolderPath()
-            path = str.LuaString
-        end
-        local file_path = path .. script_settings_dir .. path_delimiter .. file_name
-        return get_parameters_from_file(file_path, parameter_list)
-    end
-
-
-    local calc_preferences_filepath = function(script_name)
-        local str = finale.FCString()
-        str:SetUserOptionsPath()
-        local folder_name = str.LuaString
-        if not finenv.IsRGPLua and finenv.UI():IsOnMac() then
-
-            folder_name = os.getenv("HOME") .. folder_name:sub(2)
-        end
-        if finenv.UI():IsOnWindows() then
-            folder_name = folder_name .. path_delimiter .. "FinaleLua"
-        end
-        local file_path = folder_name .. path_delimiter
-        if finenv.UI():IsOnMac() then
-            file_path = file_path .. "com.finalelua."
-        end
-        file_path = file_path .. script_name .. ".settings.txt"
-        return file_path, folder_name
-    end
-
-    function configuration.save_user_settings(script_name, parameter_list)
-        local file_path, folder_path = calc_preferences_filepath(script_name)
-        local file = io.open(file_path, "w")
-        if not file and finenv.UI():IsOnWindows() then
-
-            local osutils = finenv.EmbeddedLuaOSUtils and utils.require_embedded("luaosutils")
-            if osutils then
-                osutils.process.make_dir(folder_path)
-            else
-                os.execute('mkdir "' .. folder_path ..'"')
-            end
-            file = io.open(file_path, "w")
-        end
-        if not file then
-            return false
-        end
-        file:write("-- User settings for " .. script_name .. ".lua\n\n")
-        for k,v in pairs(parameter_list) do
-            if type(v) == "string" then
-                v = "\"" .. v .."\""
-            else
-                v = tostring(v)
-            end
-            file:write(k, " = ", v, "\n")
-        end
-        file:close()
-        return true
-    end
-
-    function configuration.get_user_settings(script_name, parameter_list, create_automatically)
-        if create_automatically == nil then create_automatically = true end
-        local exists = get_parameters_from_file(calc_preferences_filepath(script_name), parameter_list)
-        if not exists and create_automatically then
-            configuration.save_user_settings(script_name, parameter_list)
-        end
-        return exists
-    end
-    return configuration
-end
-package.preload["library.utils"] = package.preload["library.utils"] or function()
-
-    local utils = {}
-
-
-
-
-    function utils.copy_table(t)
-        if type(t) == "table" then
-            local new = {}
-            for k, v in pairs(t) do
-                new[utils.copy_table(k)] = utils.copy_table(v)
-            end
-            setmetatable(new, utils.copy_table(getmetatable(t)))
-            return new
-        else
-            return t
-        end
-    end
-
-    function utils.table_remove_first(t, value)
-        for k = 1, #t do
-            if t[k] == value then
-                table.remove(t, k)
-                return
-            end
-        end
-    end
-
-    function utils.iterate_keys(t)
-        local a, b, c = pairs(t)
-        return function()
-            c = a(b, c)
-            return c
-        end
-    end
-
-    function utils.round(value, places)
-        places = places or 0
-        local multiplier = 10^places
-        local ret = math.floor(value * multiplier + 0.5)
-
-        return places == 0 and ret or ret / multiplier
-    end
-
-    function utils.to_integer_if_whole(value)
-        local int = math.floor(value)
-        return value == int and int or value
-    end
-
-    function utils.calc_roman_numeral(num)
-        local thousands = {'M','MM','MMM'}
-        local hundreds = {'C','CC','CCC','CD','D','DC','DCC','DCCC','CM'}
-        local tens = {'X','XX','XXX','XL','L','LX','LXX','LXXX','XC'}	
-        local ones = {'I','II','III','IV','V','VI','VII','VIII','IX'}
-        local roman_numeral = ''
-        if math.floor(num/1000)>0 then roman_numeral = roman_numeral..thousands[math.floor(num/1000)] end
-        if math.floor((num%1000)/100)>0 then roman_numeral=roman_numeral..hundreds[math.floor((num%1000)/100)] end
-        if math.floor((num%100)/10)>0 then roman_numeral=roman_numeral..tens[math.floor((num%100)/10)] end
-        if num%10>0 then roman_numeral = roman_numeral..ones[num%10] end
-        return roman_numeral
-    end
-
-    function utils.calc_ordinal(num)
-        local units = num % 10
-        local tens = num % 100
-        if units == 1 and tens ~= 11 then
-            return num .. "st"
-        elseif units == 2 and tens ~= 12 then
-            return num .. "nd"
-        elseif units == 3 and tens ~= 13 then
-            return num .. "rd"
-        end
-        return num .. "th"
-    end
-
-    function utils.calc_alphabet(num)
-        local letter = ((num - 1) % 26) + 1
-        local n = math.floor((num - 1) / 26)
-        return string.char(64 + letter) .. (n > 0 and n or "")
-    end
-
-    function utils.clamp(num, minimum, maximum)
-        return math.min(math.max(num, minimum), maximum)
-    end
-
-    function utils.ltrim(str)
-        return string.match(str, "^%s*(.*)")
-    end
-
-    function utils.rtrim(str)
-        return string.match(str, "(.-)%s*$")
-    end
-
-    function utils.trim(str)
-        return utils.ltrim(utils.rtrim(str))
-    end
-
-    local pcall_wrapper
-    local rethrow_placeholder = "tryfunczzz"
-    local pcall_line = debug.getinfo(1, "l").currentline + 2
-    function utils.call_and_rethrow(levels, tryfunczzz, ...)
-        return pcall_wrapper(levels, pcall(function(...) return 1, tryfunczzz(...) end, ...))
-
-    end
-
-    local source = debug.getinfo(1, "S").source
-    local source_is_file = source:sub(1, 1) == "@"
-    if source_is_file then
-        source = source:sub(2)
-    end
-
-    pcall_wrapper = function(levels, success, result, ...)
-        if not success then
-            local file
-            local line
-            local msg
-            file, line, msg = result:match("([a-zA-Z]-:?[^:]+):([0-9]+): (.+)")
-            msg = msg or result
-            local file_is_truncated = file and file:sub(1, 3) == "..."
-            file = file_is_truncated and file:sub(4) or file
-
-
-
-            if file
-                and line
-                and source_is_file
-                and (file_is_truncated and source:sub(-1 * file:len()) == file or file == source)
-                and tonumber(line) == pcall_line
-            then
-                local d = debug.getinfo(levels, "n")
-
-                msg = msg:gsub("'" .. rethrow_placeholder .. "'", "'" .. (d.name or "") .. "'")
-
-                if d.namewhat == "method" then
-                    local arg = msg:match("^bad argument #(%d+)")
-                    if arg then
-                        msg = msg:gsub("#" .. arg, "#" .. tostring(tonumber(arg) - 1), 1)
-                    end
-                end
-                error(msg, levels + 1)
-
-
-            else
-                error(result, 0)
-            end
-        end
-        return ...
-    end
-
-    function utils.rethrow_placeholder()
-        return "'" .. rethrow_placeholder .. "'"
-    end
-
-    function utils.require_embedded(library_name)
-        return require(library_name)
-    end
-    return utils
-end
 package.preload["library.client"] = package.preload["library.client"] or function()
 
     local client = {}
@@ -5029,155 +4494,338 @@ package.preload["library.general_library"] = package.preload["library.general_li
     end
     return library
 end
-package.preload["library.layer"] = package.preload["library.layer"] or function()
+package.preload["library.utils"] = package.preload["library.utils"] or function()
 
-    local layer = {}
+    local utils = {}
 
-    function layer.copy(region, source_layer, destination_layer, clone_articulations)
-        local start = region.StartMeasure
-        local stop = region.EndMeasure
-        local sysstaves = finale.FCSystemStaves()
-        sysstaves:LoadAllForRegion(region)
-        source_layer = source_layer - 1
-        destination_layer = destination_layer - 1
-        for sysstaff in each(sysstaves) do
-            staffNum = sysstaff.Staff
-            local noteentry_source_layer = finale.FCNoteEntryLayer(source_layer, staffNum, start, stop)
-            noteentry_source_layer:SetUseVisibleLayer(false)
-            noteentry_source_layer:Load()
-            local noteentry_destination_layer = noteentry_source_layer:CreateCloneEntries(
-                destination_layer, staffNum, start)
-            noteentry_destination_layer:Save()
-            noteentry_destination_layer:CloneTuplets(noteentry_source_layer)
 
-            if clone_articulations and noteentry_source_layer.Count == noteentry_destination_layer.Count then
-                for index = 0, noteentry_destination_layer.Count - 1 do
-                    local source_entry = noteentry_source_layer:GetItemAt(index)
-                    local destination_entry = noteentry_destination_layer:GetItemAt(index)
-                    local source_artics = source_entry:CreateArticulations()
-                    for articulation in each (source_artics) do
-                        articulation:SetNoteEntry(destination_entry)
-                        articulation:SaveNew()
-                    end
-                end
+
+
+    function utils.copy_table(t)
+        if type(t) == "table" then
+            local new = {}
+            for k, v in pairs(t) do
+                new[utils.copy_table(k)] = utils.copy_table(v)
             end
-            noteentry_destination_layer:Save()
+            setmetatable(new, utils.copy_table(getmetatable(t)))
+            return new
+        else
+            return t
         end
     end
 
-    function layer.clear(region, layer_to_clear)
-        layer_to_clear = layer_to_clear - 1
-        local start = region.StartMeasure
-        local stop = region.EndMeasure
-        local sysstaves = finale.FCSystemStaves()
-        sysstaves:LoadAllForRegion(region)
-        for sysstaff in each(sysstaves) do
-            staffNum = sysstaff.Staff
-            local  noteentry_layer = finale.FCNoteEntryLayer(layer_to_clear, staffNum, start, stop)
-            noteentry_layer:SetUseVisibleLayer(false)
-            noteentry_layer:Load()
-            noteentry_layer:ClearAllEntries()
-        end
-    end
-
-    function layer.swap(region, swap_a, swap_b)
-
-        swap_a = swap_a - 1
-        swap_b = swap_b - 1
-        for measure, staff_number in eachcell(region) do
-            local cell_frame_hold = finale.FCCellFrameHold()
-            cell_frame_hold:ConnectCell(finale.FCCell(measure, staff_number))
-            local loaded = cell_frame_hold:Load()
-            local cell_clef_changes = loaded and cell_frame_hold.IsClefList and cell_frame_hold:CreateCellClefChanges() or nil
-            local  noteentry_layer_one = finale.FCNoteEntryLayer(swap_a, staff_number, measure, measure)
-            noteentry_layer_one:SetUseVisibleLayer(false)
-            noteentry_layer_one:Load()
-            noteentry_layer_one.LayerIndex = swap_b
-
-            local  noteentry_layer_two = finale.FCNoteEntryLayer(swap_b, staff_number, measure, measure)
-            noteentry_layer_two:SetUseVisibleLayer(false)
-            noteentry_layer_two:Load()
-            noteentry_layer_two.LayerIndex = swap_a
-            noteentry_layer_one:Save()
-            noteentry_layer_two:Save()
-            if loaded then
-                local new_cell_frame_hold = finale.FCCellFrameHold()
-                new_cell_frame_hold:ConnectCell(finale.FCCell(measure, staff_number))
-                if new_cell_frame_hold:Load() then
-                    if cell_frame_hold.IsClefList then
-                        if new_cell_frame_hold.SetCellClefChanges then
-                            new_cell_frame_hold:SetCellClefChanges(cell_clef_changes)
-                        end
-
-                    else
-                        new_cell_frame_hold.ClefIndex = cell_frame_hold.ClefIndex
-                    end
-                    new_cell_frame_hold:Save()
-                end
+    function utils.table_remove_first(t, value)
+        for k = 1, #t do
+            if t[k] == value then
+                table.remove(t, k)
+                return
             end
         end
     end
 
-    function layer.max_layers()
-        return finale.FCLayerPrefs.GetMaxLayers and finale.FCLayerPrefs.GetMaxLayers() or 4
+    function utils.iterate_keys(t)
+        local a, b, c = pairs(t)
+        return function()
+            c = a(b, c)
+            return c
+        end
     end
-    return layer
+
+    function utils.round(value, places)
+        places = places or 0
+        local multiplier = 10^places
+        local ret = math.floor(value * multiplier + 0.5)
+
+        return places == 0 and ret or ret / multiplier
+    end
+
+    function utils.to_integer_if_whole(value)
+        local int = math.floor(value)
+        return value == int and int or value
+    end
+
+    function utils.calc_roman_numeral(num)
+        local thousands = {'M','MM','MMM'}
+        local hundreds = {'C','CC','CCC','CD','D','DC','DCC','DCCC','CM'}
+        local tens = {'X','XX','XXX','XL','L','LX','LXX','LXXX','XC'}	
+        local ones = {'I','II','III','IV','V','VI','VII','VIII','IX'}
+        local roman_numeral = ''
+        if math.floor(num/1000)>0 then roman_numeral = roman_numeral..thousands[math.floor(num/1000)] end
+        if math.floor((num%1000)/100)>0 then roman_numeral=roman_numeral..hundreds[math.floor((num%1000)/100)] end
+        if math.floor((num%100)/10)>0 then roman_numeral=roman_numeral..tens[math.floor((num%100)/10)] end
+        if num%10>0 then roman_numeral = roman_numeral..ones[num%10] end
+        return roman_numeral
+    end
+
+    function utils.calc_ordinal(num)
+        local units = num % 10
+        local tens = num % 100
+        if units == 1 and tens ~= 11 then
+            return num .. "st"
+        elseif units == 2 and tens ~= 12 then
+            return num .. "nd"
+        elseif units == 3 and tens ~= 13 then
+            return num .. "rd"
+        end
+        return num .. "th"
+    end
+
+    function utils.calc_alphabet(num)
+        local letter = ((num - 1) % 26) + 1
+        local n = math.floor((num - 1) / 26)
+        return string.char(64 + letter) .. (n > 0 and n or "")
+    end
+
+    function utils.clamp(num, minimum, maximum)
+        return math.min(math.max(num, minimum), maximum)
+    end
+
+    function utils.ltrim(str)
+        return string.match(str, "^%s*(.*)")
+    end
+
+    function utils.rtrim(str)
+        return string.match(str, "(.-)%s*$")
+    end
+
+    function utils.trim(str)
+        return utils.ltrim(utils.rtrim(str))
+    end
+
+    local pcall_wrapper
+    local rethrow_placeholder = "tryfunczzz"
+    local pcall_line = debug.getinfo(1, "l").currentline + 2
+    function utils.call_and_rethrow(levels, tryfunczzz, ...)
+        return pcall_wrapper(levels, pcall(function(...) return 1, tryfunczzz(...) end, ...))
+
+    end
+
+    local source = debug.getinfo(1, "S").source
+    local source_is_file = source:sub(1, 1) == "@"
+    if source_is_file then
+        source = source:sub(2)
+    end
+
+    pcall_wrapper = function(levels, success, result, ...)
+        if not success then
+            local file
+            local line
+            local msg
+            file, line, msg = result:match("([a-zA-Z]-:?[^:]+):([0-9]+): (.+)")
+            msg = msg or result
+            local file_is_truncated = file and file:sub(1, 3) == "..."
+            file = file_is_truncated and file:sub(4) or file
+
+
+
+            if file
+                and line
+                and source_is_file
+                and (file_is_truncated and source:sub(-1 * file:len()) == file or file == source)
+                and tonumber(line) == pcall_line
+            then
+                local d = debug.getinfo(levels, "n")
+
+                msg = msg:gsub("'" .. rethrow_placeholder .. "'", "'" .. (d.name or "") .. "'")
+
+                if d.namewhat == "method" then
+                    local arg = msg:match("^bad argument #(%d+)")
+                    if arg then
+                        msg = msg:gsub("#" .. arg, "#" .. tostring(tonumber(arg) - 1), 1)
+                    end
+                end
+                error(msg, levels + 1)
+
+
+            else
+                error(result, 0)
+            end
+        end
+        return ...
+    end
+
+    function utils.rethrow_placeholder()
+        return "'" .. rethrow_placeholder .. "'"
+    end
+
+    function utils.require_embedded(library_name)
+        return require(library_name)
+    end
+    return utils
+end
+package.preload["library.configuration"] = package.preload["library.configuration"] or function()
+
+
+
+    local configuration = {}
+    local utils = require("library.utils")
+    local script_settings_dir = "script_settings"
+    local comment_marker = "--"
+    local parameter_delimiter = "="
+    local path_delimiter = "/"
+    local file_exists = function(file_path)
+        local f = io.open(file_path, "r")
+        if nil ~= f then
+            io.close(f)
+            return true
+        end
+        return false
+    end
+    parse_parameter = function(val_string)
+        if "\"" == val_string:sub(1, 1) and "\"" == val_string:sub(#val_string, #val_string) then
+            return string.gsub(val_string, "\"(.+)\"", "%1")
+        elseif "'" == val_string:sub(1, 1) and "'" == val_string:sub(#val_string, #val_string) then
+            return string.gsub(val_string, "'(.+)'", "%1")
+        elseif "{" == val_string:sub(1, 1) and "}" == val_string:sub(#val_string, #val_string) then
+            return load("return " .. val_string)()
+        elseif "true" == val_string then
+            return true
+        elseif "false" == val_string then
+            return false
+        end
+        return tonumber(val_string)
+    end
+    local get_parameters_from_file = function(file_path, parameter_list)
+        local file_parameters = {}
+        if not file_exists(file_path) then
+            return false
+        end
+        for line in io.lines(file_path) do
+            local comment_at = string.find(line, comment_marker, 1, true)
+            if nil ~= comment_at then
+                line = string.sub(line, 1, comment_at - 1)
+            end
+            local delimiter_at = string.find(line, parameter_delimiter, 1, true)
+            if nil ~= delimiter_at then
+                local name = utils.trim(string.sub(line, 1, delimiter_at - 1))
+                local val_string = utils.trim(string.sub(line, delimiter_at + 1))
+                file_parameters[name] = parse_parameter(val_string)
+            end
+        end
+        local function process_table(param_table, param_prefix)
+            param_prefix = param_prefix and param_prefix.."." or ""
+            for param_name, param_val in pairs(param_table) do
+                local file_param_name = param_prefix .. param_name
+                local file_param_val = file_parameters[file_param_name]
+                if nil ~= file_param_val then
+                    param_table[param_name] = file_param_val
+                elseif type(param_val) == "table" then
+                        process_table(param_val, param_prefix..param_name)
+                end
+            end
+        end
+        process_table(parameter_list)
+        return true
+    end
+
+    function configuration.get_parameters(file_name, parameter_list)
+        local path = ""
+        if finenv.IsRGPLua then
+            path = finenv.RunningLuaFolderPath()
+        else
+            local str = finale.FCString()
+            str:SetRunningLuaFolderPath()
+            path = str.LuaString
+        end
+        local file_path = path .. script_settings_dir .. path_delimiter .. file_name
+        return get_parameters_from_file(file_path, parameter_list)
+    end
+
+
+    local calc_preferences_filepath = function(script_name)
+        local str = finale.FCString()
+        str:SetUserOptionsPath()
+        local folder_name = str.LuaString
+        if not finenv.IsRGPLua and finenv.UI():IsOnMac() then
+
+            folder_name = os.getenv("HOME") .. folder_name:sub(2)
+        end
+        if finenv.UI():IsOnWindows() then
+            folder_name = folder_name .. path_delimiter .. "FinaleLua"
+        end
+        local file_path = folder_name .. path_delimiter
+        if finenv.UI():IsOnMac() then
+            file_path = file_path .. "com.finalelua."
+        end
+        file_path = file_path .. script_name .. ".settings.txt"
+        return file_path, folder_name
+    end
+
+    function configuration.save_user_settings(script_name, parameter_list)
+        local file_path, folder_path = calc_preferences_filepath(script_name)
+        local file = io.open(file_path, "w")
+        if not file and finenv.UI():IsOnWindows() then
+
+            local osutils = finenv.EmbeddedLuaOSUtils and utils.require_embedded("luaosutils")
+            if osutils then
+                osutils.process.make_dir(folder_path)
+            else
+                os.execute('mkdir "' .. folder_path ..'"')
+            end
+            file = io.open(file_path, "w")
+        end
+        if not file then
+            return false
+        end
+        file:write("-- User settings for " .. script_name .. ".lua\n\n")
+        for k,v in pairs(parameter_list) do
+            if type(v) == "string" then
+                v = "\"" .. v .."\""
+            else
+                v = tostring(v)
+            end
+            file:write(k, " = ", v, "\n")
+        end
+        file:close()
+        return true
+    end
+
+    function configuration.get_user_settings(script_name, parameter_list, create_automatically)
+        if create_automatically == nil then create_automatically = true end
+        local exists = get_parameters_from_file(calc_preferences_filepath(script_name), parameter_list)
+        if not exists and create_automatically then
+            configuration.save_user_settings(script_name, parameter_list)
+        end
+        return exists
+    end
+    return configuration
 end
 function plugindef()
     finaleplugin.RequireSelection = true
     finaleplugin.Author = "Carl Vine"
-    finaleplugin.AuthorURL = "http://carlvine.com/lua/"
-    finaleplugin.Copyright = "https://creativecommons.org/licenses/by/4.0/"
-    finaleplugin.Version = "v0.19"
-    finaleplugin.Date = "2023/06/12"
-    finaleplugin.MinJWLuaVersion = 0.62
+    finaleplugin.AuthorURL = "https://carlvine.com/lua/"
+    finaleplugin.Copyright = "CC0 https://creativecommons.org/publicdomain/zero/1.0/"
+    finaleplugin.Version = "0.41"
+    finaleplugin.Date = "2023/08/14"
+    finaleplugin.CategoryTags = "Measures, Region, Selection"
+    finaleplugin.MinJWLuaVersion = 0.67
     finaleplugin.Notes = [[
-        Change notehead shapes on a specific layer of the current selection to one of these shapes:
-        Circled / Default / Diamond / Guitar Diamond / Hidden / Number
-        Round / Slash / Square / Strikethrough / Triangle / Wedge / X
-        This script produces an ordered list
-        of notehead types, each line beginning with a configurable "key" code.
-        Call the script, type the key code and hit [Enter] or [Return].
-        In SMuFL fonts like Finale Maestro, shapes will change according to duration values.
-        Most duration-dependent shapes are not available in Finale's old (non-SMuFL) Maestro font.
-        "Diamond (Guitar)" is like "Diamond" except quarter notes and shorter use filled diamonds.
-        "Number" lets you specify any shape character as a number including SMuFL numbers like "0xe0e1".
+        The selected score area can be refined in Finale by measure and
+        either beat or EDU at "Edit" → "Select Region...".
+        This script offers a more organic option for precise positioning with
+        slider controls to change the beat and EDU position in each measure,
+        continuously updating the score highlighting as the selection changes.
+        == BEAT BOUNDARIES ==
+        The duration of a Finale quarter note is 1024 EDUs,
+        but to select all of of the first beat in a 4/4 measure the
+        selection must be from 0 to 1023 EDU, otherwise it will
+        include notes starting ON the second beat.
+        This "minus one" adjustment is applied to all END positions
+        relative to the beat, as happens when entering beat numbers
+        on the inbuilt "Select Region" option.
+        Note that when one slider collides with the other in the same
+        measure, it will be pushed out of the way creating a "null" selection
+        (start = end). This doesn't break anything but creates a
+        selection containing no notes.
     ]]
-    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/noteheads_change_by_layer.hash"
-    return "Noteheads Change by Layer...", "Noteheads Change by Layer", "Change notehead shapes on a specific layer of the current selection"
+    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/selection_refiner.hash"
+    return "Selection Refiner...", "Selection Refiner", "Refine the selected music area with visual feedback"
 end
-local notehead = require("library.notehead")
+local config = { window_pos_x = false, window_pos_y = false }
 local mixin = require("library.mixin")
-local configuration = require("library.configuration")
 local library = require("library.general_library")
-local layer = require("library.layer")
-local diamond = { smufl = 0xE0E1, non_smufl = 79 }
-local dialog_options = {
-    "Circled", "Default", "Diamond", "Diamond_Guitar", "Hidden",
-    "Number", "Round", "Slash", "Square", "Strikethrough", "Triangle", "Wedge", "X"
-}
-local config = {
-    Circled = "C",
-    Default = "A",
-    Diamond = "D",
-    Diamond_Guitar = "G",
-    Hidden = "H",
-    Number = "N",
-    Round = "R",
-    Slash = "S",
-    Square = "Q",
-    Strikethrough = "E",
-    Triangle = "T",
-    Wedge = "W",
-    X = "X",
-    layer = 0,
-    ignore_duplicates = 0,
-    shape = "default",
-    glyph = "0xe0e1",
-    window_pos_x = false,
-    window_pos_y = false
-}
-local script_name = "noteheads_change_by_layer"
+local configuration = require("library.configuration")
+local script_name = "selection_refiner"
 function dialog_set_position(dialog)
     if config.window_pos_x and config.window_pos_y then
         dialog:StorePosition()
@@ -5191,155 +4839,385 @@ function dialog_save_position(dialog)
     config.window_pos_y = dialog.StoredY
     configuration.save_user_settings(script_name, config)
 end
-function user_chooses_glyph()
-    local dialog = mixin.FCXCustomLuaWindow():SetTitle(plugindef())
-    local x = 230
-    local y_diff = finenv.UI():IsOnMac() and 3 or 0
-    local base_glyph = tonumber(config.glyph) or diamond.smufl
-    local msg = ""
+function power_of_2(duration)
+    local test_rest = finale.NOTE_128TH / 2
+    local power = 1
+    while test_rest < duration and power < 10 do
+        test_rest = test_rest * 2
+        power = power + 1
+    end
+    return power
+end
+function score_limits()
+    local all_rgn = mixin.FCMMusicRegion()
+    all_rgn:SetRegion(finenv.Region()):SetFullMeasureStack()
+    local max_slot = all_rgn.EndSlot
+    local m = finale.FCMeasures()
+    m:LoadAll()
+    local max_measure = m.Count
+    return max_measure, max_slot
+end
+function compile_rest_strings(power)
+    power = math.min(math.max(power, 1), 10)
+
+    local rests = { "…", "Â", "Ù", "®", "≈", "‰", "Œ", "Ó", "∑", "„" }
+    local array = { dot = "k", space = " ", gap = "  ", vert = 18 }
     if library.is_font_smufl_font() then
-        if base_glyph < 0xE000 then base_glyph = diamond.smufl end
-        config.glyph = string.format("0x%X", base_glyph)
-        msg = "The Default Music Font is SMuFL compliant so glyph numbers "
-        .. "should be higher than 57344 (\"0xE000\")"
+        rests = {
+            "\u{E4EB}", "\u{E4EA}", "\u{E4E9}", "\u{E4E8}", "\u{E4E7}",
+            "\u{E4E6}", "\u{E4E5}", "\u{E4E4}", "\u{E4E3}", "\u{E4E2}"
+        }
+        array = { dot = "\u{E044}", space = "\u{E548}", gap = "\u{E548}\u{E548}", vert = 0 }
+    end
+    local p = power - 3
+    array.div = {
+        rests[p],
+        rests[p + 1],
+        rests[p + 1] .. array.space .. array.dot,
+        rests[p + 2],
+        rests[p + 2] .. array.space .. rests[p],
+        rests[p + 2] .. array.space .. array.dot,
+        rests[p + 2] .. array.space .. array.dot .. array.space .. array. dot
+    }
+    array.div[8] = rests[power]
+    array.beat = rests[power]
+    return array
+end
+function get_measure_details(region, is_start_sector)
+    local measure = finale.FCMeasure()
+    measure:Load(is_start_sector and region.StartMeasure or region.EndMeasure)
+    local time_sig = measure:GetTimeSignature()
+    local md = {
+        dur = measure:GetDuration(),
+        beats = time_sig.Beats,
+        compound = false,
+        beatdur = time_sig.BeatDuration,
+        composite = time_sig.CompositeTop
+    }
+    if is_start_sector then
+        md.measure = region.StartMeasure
+        md.pos = region.StartMeasurePos
+        md.slot = region.StartSlot
     else
-        if base_glyph >= 0x1000 then base_glyph = diamond.non_smufl end
-        config.glyph = tostring(base_glyph)
-        msg = "The Default Music Font is not SMuFL compliant so glyph numbers "
-        .. "should be lower than 4096 (\"0x1000\")"
+        md.measure = region.EndMeasure
+        md.pos = region.EndMeasurePos
+        md.slot = region.EndSlot
     end
-    dialog:CreateStatic(0, y_diff):SetWidth(x + 70)
-        :SetText("Enter required character (glyph) number:")
-    dialog:CreateStatic(0, y_diff + 25):SetWidth(x + 100):SetHeight(60)
-        :SetText("... as plain integer, or hex value like \"0xE0E1\".\n\n" .. msg)
-    local glyph = dialog:CreateEdit(x, 0):SetText(config.glyph)
-    dialog:CreateOkButton()
-    dialog:CreateCancelButton()
-    dialog_set_position(dialog)
-    dialog:RegisterInitWindow(function() glyph:SetKeyboardFocus() end)
-    dialog:RegisterHandleOkButtonPressed(function(self)
-        config.glyph = glyph:GetText()
-        dialog_save_position(self)
-    end)
-    return (dialog:ExecuteModal(nil) == finale.EXECMODAL_OK)
+    md.pos = math.min(md.pos, md.dur)
+    if time_sig.CompositeBottom then
+        md.beatdur = time_sig:CreateCompositeBottom():GetGroupElementBeatDuration(0, 0)
+    end
+    if md.beatdur % 3 == 0 then
+        md.compound = true
+        md.mark = md.beatdur / 3
+        md.steps = 12
+    else
+        md.mark = md.beatdur / 2
+        md.steps = 8
+    end
+    local power = power_of_2(md.mark * 2)
+    md.div_dur = md.beatdur / md.steps
+    md.divisions = md.beats * md.steps
+    if md.composite then
+        md.divisions = md.dur / md.div_dur
+        while md.divisions < 32 and md.div_dur >= 32 do
+
+            md.beats = md.beats * 2
+            md.beatdur = md.beatdur / 2
+            power = power - 1
+            md.div_dur = md.div_dur / 2
+            md.divisions = md.divisions * 2
+        end
+    end
+    md.rests = compile_rest_strings(power)
+    return md
 end
-function reassign_keystrokes()
-    local y_step, x_wide = 17, 180
-    local offset = finenv.UI():IsOnMac() and 3 or 0
-    local dialog = mixin.FCXCustomLuaWindow():SetTitle("Noteheads: Reassign Keys")
-    local is_duplicate, errors = false, {}
-    local y = 0
-    for _, v in ipairs(dialog_options) do
-        dialog:CreateEdit(0, y - offset, v):SetText(config[v]):SetWidth(20)
-        dialog:CreateStatic(25, y):SetText(v):SetWidth(x_wide)
-        y = y + y_step
+function get_staff_name(region, slot)
+    local staff_number = region:CalcStaffNumber(slot)
+    local staff = finale.FCStaff()
+    staff:Load(staff_number)
+    return staff:CreateDisplayFullNameString()
+end
+function convert_position_to_rest(index, md, backwards)
+    if backwards then index = md.divisions - index end
+    local beat = md.rests.beat
+    if md.compound then beat = beat .. md.rests.space .. md.rests.dot end
+    local rest_string = ""
+    for _ = 1, math.floor(index / md.steps) do
+        rest_string = rest_string .. beat .. md.rests.gap
     end
-    y = y + 7
-    local ignore = dialog:CreateCheckbox(0, y):SetWidth(x_wide)
-        :SetText("Ignore duplicate assignments"):SetCheck(config.ignore_duplicates or 0)
-    dialog:CreateOkButton()
-    dialog:CreateCancelButton()
-    dialog_set_position(dialog)
-    dialog:RegisterHandleOkButtonPressed(function(self)
-        local assigned = {}
-        for i, v in ipairs(dialog_options) do
-            local key = self:GetControl(v):GetText() or "?"
-            key = string.upper(string.sub(key, 1, 1))
-            config[v] = key
-            config.ignore_duplicates = ignore:GetCheck()
-            if config.ignore_duplicates == 0 then
-                if assigned[key] then
-                    is_duplicate = true
-                    if not errors[key] then errors[key] = { assigned[key] } end
-                    table.insert(errors[key], i)
-                else
-                    assigned[key] = i
-                end
+    index = index % md.steps
+    if md.compound then
+        for _ = 1, math.floor(index / 4) do
+            if backwards then
+                rest_string = md.rests.div[4] .. md.rests.space .. rest_string
+            else
+                rest_string = rest_string .. md.rests.div[4] .. md.rests.space
             end
         end
-        if is_duplicate then
-            local msg = ""
-            for k, v in pairs(errors) do
-                msg = msg .. "Key \"" .. k .. "\" is assigned to: "
-                for i, w in ipairs(v) do
-                    if i > 1 then msg = msg .. " and " end
-                    msg = msg .. "\"" .. dialog_options[w] .. "\""
-                end
-                msg = msg .. "\n\n"
-            end
-            finenv.UI():AlertError(msg, "Duplicate Key Assignment")
+        index = index % 4
+    end
+    if index > 0 then
+        if backwards then
+            rest_string = md.rests.div[index] .. md.rests.space .. rest_string
+        else
+            rest_string = rest_string .. md.rests.div[index]
         end
-    end)
-    local ok = (dialog:ExecuteModal(nil) == finale.EXECMODAL_OK)
-    return ok, is_duplicate
+    end
+    return rest_string
 end
-function user_chooses_shape()
-    local x_offset = 185
-    local y_step = 17
-    local join = finenv.UI():IsOnMac() and "\t" or ": "
-    local box_high = (#dialog_options * y_step) + 5
-    local mac_offset = finenv.UI():IsOnMac() and 3 or 0
+function user_chooses(rgn)
+    local y, rest_wide, x_wide =  40, 130, 236
+    local x_offset = finenv.UI():IsOnMac() and 0 or 3
+        local function yd(diff)
+            y = diff and y + diff or y + 16
+        end
+
+    local measure, sliders, offset, rest, buttons, index, staff = {}, {}, {}, {}, {}, {}, {}
+    local max_measure, max_slot = score_limits()
+
+    local md = { get_measure_details(rgn, true), get_measure_details(rgn, false) }
+    index[1] = math.floor(md[1].pos * md[1].divisions / md[1].dur)
+    index[2] = math.floor(md[2].pos * md[2].divisions / md[2].dur)
+
     local dialog = mixin.FCXCustomLuaWindow():SetTitle(plugindef())
-    dialog:CreateStatic(0, 0):SetText("Select note shape:"):SetWidth(150)
-    local shape_list = dialog:CreateListBox(0, y_step):SetWidth(x_offset - 20):SetHeight(box_high)
-        local function fill_shape_list()
-            shape_list:Clear()
-            for i, v in ipairs(dialog_options) do
-                local item = (i == 4) and "Guitar Diamond" or v
-                shape_list:AddString(config[v] .. join .. item)
-                if v:lower() == config.shape then
-                    shape_list:SetSelectedItem(i - 1)
-                end
+    dialog:CreateStatic(0, y):SetText("START of Selection:"):SetWidth(x_wide)
+
+    local sys_finfo = finale.FCFontInfo()
+    sys_finfo:LoadFontPrefs(finale.FONTPREF_MUSIC)
+    rest[1] = dialog:CreateStatic(x_wide + 65, md[1].rests.vert):SetWidth(rest_wide):SetHeight(80)
+        :SetFont(sys_finfo):SetText(convert_position_to_rest(index[1], md[1], false))
+    rest[2] = dialog:CreateStatic(x_wide + 65, 83 + md[2].rests.vert):SetWidth(rest_wide):SetHeight(80)
+        :SetFont(sys_finfo):SetText(convert_position_to_rest(index[2], md[2], false))
+
+    measure[1] = dialog:CreateStatic(x_wide - 80, y):SetWidth(rest_wide)
+        :SetText("m. " .. md[1].measure)
+    staff[1] = dialog:CreateStatic(x_wide - 20, y):SetWidth(rest_wide)
+        :SetText(get_staff_name(rgn, md[1].slot))
+    dialog:CreateButton(x_wide + rest_wide + 30, y):SetText("?"):SetWidth(20)
+        :AddHandleCommand(function()
+            finenv.UI():AlertInfo(finaleplugin.Notes:gsub(" %s+", " "), "About " .. plugindef())
+        end)
+    yd()
+    sliders[1] = dialog:CreateSlider(0, y):SetMinValue(0):SetMaxValue(md[1].divisions)
+        :SetThumbPosition(index[1]):SetWidth(x_wide)
+    offset[1] = dialog:CreateEdit(x_wide + 7, y - x_offset):SetInteger(md[1].pos):SetWidth(50)
+    local button_x = (x_wide + rest_wide + 14) / 4
+    local button_mid = button_x * 2 + 24
+        local function make_buttons(i)
+            buttons[i] = {
+                up    = dialog:CreateButton(0, y):SetText("Staff ↑")
+                    :SetWidth(button_x):SetEnable(md[i].slot > 1),
+                down  = dialog:CreateButton(button_x + 12, y):SetText("Staff ↓")
+                    :SetWidth(button_x):SetEnable(md[i].slot < max_slot),
+                left  = dialog:CreateButton(button_mid, y):SetText("← Measure")
+                    :SetWidth(button_x):SetEnable(md[i].measure > 1),
+                right = dialog:CreateButton(button_mid + button_x + 12, y):SetText("Measure →")
+                    :SetWidth(button_x):SetEnable(md[i].measure < max_measure)
+            }
+        end
+    yd(29)
+    make_buttons(1)
+    yd(32)
+    dialog:CreateHorizontalLine(0, y, button_x * 4)
+    yd(10)
+
+    dialog:CreateStatic(0, y):SetText("END of Selection:"):SetWidth(x_wide)
+    measure[2] = dialog:CreateStatic(x_wide - 80, y):SetWidth(60)
+        :SetText("m. " .. md[2].measure)
+    staff[2] = dialog:CreateStatic(x_wide - 20, y):SetWidth(rest_wide)
+        :SetText(get_staff_name(rgn, md[2].slot))
+    yd()
+    sliders[2] = dialog:CreateSlider(0, y):SetMinValue(0):SetMaxValue(md[2].divisions)
+        :SetThumbPosition(index[2]):SetWidth(x_wide)
+    offset[2] = dialog:CreateEdit(x_wide + 7, y - x_offset):SetWidth(50):SetInteger(md[2].pos)
+    yd(29)
+    make_buttons(2)
+
+        local function set_measure_pos(side)
+            if side == 1 then rgn.StartMeasurePos = md[side].pos
+            else rgn.EndMeasurePos = md[side].pos
             end
         end
-    fill_shape_list()
-    local max = layer.max_layers()
-    dialog:CreateStatic(x_offset, y_step * 3):SetText("Layer number (1-" .. max .. "):"):SetWidth(110)
-    dialog:CreateEdit(x_offset + 35, (y_step * 4) - mac_offset, "layer"):SetWidth(30):SetInteger(config.layer or 0)
-    dialog:CreateStatic(x_offset + 15, y_step * 5):SetText("(0 = all layers)"):SetWidth(105)
-    local reassign = dialog:CreateButton(x_offset, y_step * 9)
-        :SetText("Reassign Keys"):SetWidth(100)
-    reassign:AddHandleCommand(function()
-        local ok, is_duplicate = true, true
-        while ok and is_duplicate do
-            ok, is_duplicate = reassign_keystrokes()
+        local function set_rest_and_offset(side, thumb)
+            rest[side]:SetText(convert_position_to_rest(thumb, md[side], false))
+            local edu = thumb * md[side].div_dur
+            if side == 2 and edu > 0 and edu < md[2].dur and edu > offset[1]:GetInteger() then
+                edu = edu - 1
+            end
+            md[side].pos = edu
+            set_measure_pos(side)
+            offset[side]:SetInteger(edu)
         end
-        if ok then
-            configuration.save_user_settings(script_name, config)
-            fill_shape_list()
+        local function set_indicators(side)
+            local thumb = math.floor(md[side].pos * md[side].divisions / md[side].dur)
+            sliders[side]:SetMaxValue(md[side].divisions):SetThumbPosition(thumb)
+            rest[side]:SetText(convert_position_to_rest(thumb, md[side], false))
+            offset[side]:SetInteger(md[side].pos)
+            measure[side]:SetText("m. " .. md[side].measure)
         end
-    end)
+        local function swap_pos()
+            local save_pos = md[1].pos
+            md[1].pos = md[2].pos
+            md[2].pos = save_pos
+            set_measure_pos(1)
+            set_measure_pos(2)
+        end
+        local function clamp_measure_pos(side)
+            md[side] = get_measure_details(rgn, (side == 1))
+            if md[side].pos > md[side].dur then
+                md[side].pos = md[side].dur
+                set_measure_pos(side)
+            end
+            set_indicators(side)
+        end
+        local function measure_button_visibility(clamp_side)
+            for side = 1, 2 do
+                buttons[side].left:SetEnable(md[side].measure > 1)
+                buttons[side].right:SetEnable(md[side].measure < max_measure)
+            end
+            clamp_measure_pos(clamp_side)
+            rgn:SetInDocument()
+            rgn:Redraw()
+        end
+        local function staff_button_visibility()
+            for side = 1, 2 do
+                buttons[side].up:SetEnable(md[side].slot > 1)
+                buttons[side].down:SetEnable(md[side].slot < max_slot)
+                staff[side]:SetText(get_staff_name(rgn, md[side].slot))
+            end
+            rgn:SetInDocument()
+            rgn:Redraw()
+        end
     dialog:CreateOkButton()
     dialog:CreateCancelButton()
-    dialog_set_position(dialog)
-    dialog:RegisterInitWindow(function() shape_list:SetKeyboardFocus() end)
-    dialog:RegisterHandleOkButtonPressed(function(self)
 
-        config.shape = string.lower( dialog_options[shape_list:GetSelectedItem() + 1] )
-        local n = self:GetControl("layer"):GetInteger()
-        if n < 0 or n > max then
-            n = 0
-        end
-        config.layer = n
-        dialog_save_position(self)
-    end)
+    for side = 1, 2 do
+        local other_side = (side % 2) + 1
+
+        sliders[side]:AddHandleCommand(function()
+            local thumb = sliders[side]:GetThumbPosition()
+            set_rest_and_offset(side, thumb)
+            if (rgn.StartMeasure == rgn.EndMeasure) then
+                local other_thumb = sliders[other_side]:GetThumbPosition()
+                if side == 1 then
+                    if thumb > other_thumb or md[1].pos > md[2].pos then
+                        if thumb <= md[2].divisions then other_thumb = thumb end
+                        set_rest_and_offset(2, other_thumb)
+                        sliders[2]:SetThumbPosition(other_thumb)
+                    end
+                else
+                    if thumb < other_thumb or md[2].pos < md[1].pos then
+                        if thumb > 0 then other_thumb = thumb end
+                        set_rest_and_offset(1, other_thumb)
+                        sliders[1]:SetThumbPosition(other_thumb)
+                    end
+                end
+            end
+            rgn:SetInDocument()
+            rgn:Redraw()
+        end)
+
+        buttons[side].up:AddHandleCommand(function()
+            if md[side].slot > 1 then
+                md[side].slot = md[side].slot - 1
+                if side == 1 then
+                    rgn.StartSlot = md[1].slot
+                else
+                    rgn.EndSlot = md[2].slot
+                    if md[1].slot > md[2].slot  then
+                        md[1].slot = md[2].slot
+                        rgn.StartSlot = md[2].slot
+                    end
+                end
+                staff_button_visibility()
+            end
+        end)
+
+        buttons[side].down:AddHandleCommand(function()
+            if md[side].slot < max_slot then
+                md[side].slot = md[side].slot + 1
+                if side == 1 then
+                    rgn.StartSlot = md[1].slot
+                    if md[2].slot < md[1].slot  then
+                        md[2].slot = md[1].slot
+                        rgn.EndSlot = md[1].slot
+                    end
+                else
+                    rgn.EndSlot = md[2].slot
+                end
+                staff_button_visibility()
+            end
+        end)
+
+        buttons[side].left:AddHandleCommand(function()
+            if md[side].measure > 1 then
+                md[side].measure = md[side].measure - 1
+                md[side].pos = offset[side]:GetInteger()
+                md[other_side].pos = offset[other_side]:GetInteger()
+                if side == 1 then
+                    rgn.StartMeasure = md[1].measure
+                else
+                    rgn.EndMeasure = md[2].measure
+                    if md[2].measure < md[1].measure then
+                        md[1].measure = md[2].measure
+                        rgn.StartMeasure = md[1].measure
+                        clamp_measure_pos(1)
+                    end
+                    if md[1].measure == md[2].measure and md[2].pos < md[1].pos then
+                        swap_pos()
+                        set_indicators(1)
+                    end
+                end
+                measure_button_visibility(side)
+            end
+        end)
+
+        buttons[side].right:AddHandleCommand(function()
+            if md[side].measure < max_measure then
+                md[side].measure = md[side].measure + 1
+                md[side].pos = offset[side]:GetInteger()
+                md[other_side].pos = offset[other_side]:GetInteger()
+                if side == 1 then
+                    rgn.StartMeasure = md[1].measure
+                    if md[1].measure > md[2].measure then
+                        md[2].measure = md[1].measure
+                        rgn.EndMeasure = md[2].measure
+                        clamp_measure_pos(2)
+                    end
+                    if md[1].measure == md[2].measure and md[1].pos > md[2].pos then
+                        swap_pos()
+                        set_indicators(2)
+                    end
+                else
+                    rgn.EndMeasure = md[2].measure
+                end
+                measure_button_visibility(side)
+            end
+        end)
+
+        offset[side]:AddHandleCommand(function()
+            local n = offset[side]:GetInteger()
+            n = math.min(math.max(n, 0), md[side].dur)
+            offset[side]:SetInteger(n)
+            md[side].pos = n
+            set_indicators(side)
+            set_measure_pos(side)
+            rgn:SetInDocument()
+            rgn:Redraw()
+        end)
+    end
+    dialog_set_position(dialog)
+    dialog:RegisterCloseWindow(function(self) dialog_save_position(self) end)
     return (dialog:ExecuteModal(nil) == finale.EXECMODAL_OK)
 end
-function change_noteheads()
-    configuration.get_user_settings(script_name, config, true)
-    if not user_chooses_shape() then return end
-
-    if config.shape == "number" then
-        if not user_chooses_glyph() then return end
-        config.shape = tonumber(config.glyph)
+function refine_selection()
+    configuration.get_user_settings(script_name, config)
+    local rgn = mixin.FCMMusicRegion()
+    rgn:SetRegion(finenv.Region())
+    if not user_chooses(rgn) then
+        rgn:SetRegion(finenv.Region())
     end
-    for entry in eachentrysaved(finenv.Region(), config.layer) do
-        if entry:IsNote() then
-            for note in each(entry) do
-                notehead.change_shape(note, config.shape)
-            end
-        end
-    end
-    finenv.UI():ActivateDocumentWindow()
+    rgn:SetInDocument()
 end
-change_noteheads()
+refine_selection()

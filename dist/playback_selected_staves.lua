@@ -294,173 +294,200 @@ package.preload["library.configuration"] = package.preload["library.configuratio
     end
     return configuration
 end
+package.preload["library.layer"] = package.preload["library.layer"] or function()
+
+    local layer = {}
+
+    function layer.copy(region, source_layer, destination_layer, clone_articulations)
+        local start = region.StartMeasure
+        local stop = region.EndMeasure
+        local sysstaves = finale.FCSystemStaves()
+        sysstaves:LoadAllForRegion(region)
+        source_layer = source_layer - 1
+        destination_layer = destination_layer - 1
+        for sysstaff in each(sysstaves) do
+            staffNum = sysstaff.Staff
+            local noteentry_source_layer = finale.FCNoteEntryLayer(source_layer, staffNum, start, stop)
+            noteentry_source_layer:SetUseVisibleLayer(false)
+            noteentry_source_layer:Load()
+            local noteentry_destination_layer = noteentry_source_layer:CreateCloneEntries(
+                destination_layer, staffNum, start)
+            noteentry_destination_layer:Save()
+            noteentry_destination_layer:CloneTuplets(noteentry_source_layer)
+
+            if clone_articulations and noteentry_source_layer.Count == noteentry_destination_layer.Count then
+                for index = 0, noteentry_destination_layer.Count - 1 do
+                    local source_entry = noteentry_source_layer:GetItemAt(index)
+                    local destination_entry = noteentry_destination_layer:GetItemAt(index)
+                    local source_artics = source_entry:CreateArticulations()
+                    for articulation in each (source_artics) do
+                        articulation:SetNoteEntry(destination_entry)
+                        articulation:SaveNew()
+                    end
+                end
+            end
+            noteentry_destination_layer:Save()
+        end
+    end
+
+    function layer.clear(region, layer_to_clear)
+        layer_to_clear = layer_to_clear - 1
+        local start = region.StartMeasure
+        local stop = region.EndMeasure
+        local sysstaves = finale.FCSystemStaves()
+        sysstaves:LoadAllForRegion(region)
+        for sysstaff in each(sysstaves) do
+            staffNum = sysstaff.Staff
+            local  noteentry_layer = finale.FCNoteEntryLayer(layer_to_clear, staffNum, start, stop)
+            noteentry_layer:SetUseVisibleLayer(false)
+            noteentry_layer:Load()
+            noteentry_layer:ClearAllEntries()
+        end
+    end
+
+    function layer.swap(region, swap_a, swap_b)
+
+        swap_a = swap_a - 1
+        swap_b = swap_b - 1
+        for measure, staff_number in eachcell(region) do
+            local cell_frame_hold = finale.FCCellFrameHold()
+            cell_frame_hold:ConnectCell(finale.FCCell(measure, staff_number))
+            local loaded = cell_frame_hold:Load()
+            local cell_clef_changes = loaded and cell_frame_hold.IsClefList and cell_frame_hold:CreateCellClefChanges() or nil
+            local  noteentry_layer_one = finale.FCNoteEntryLayer(swap_a, staff_number, measure, measure)
+            noteentry_layer_one:SetUseVisibleLayer(false)
+            noteentry_layer_one:Load()
+            noteentry_layer_one.LayerIndex = swap_b
+
+            local  noteentry_layer_two = finale.FCNoteEntryLayer(swap_b, staff_number, measure, measure)
+            noteentry_layer_two:SetUseVisibleLayer(false)
+            noteentry_layer_two:Load()
+            noteentry_layer_two.LayerIndex = swap_a
+            noteentry_layer_one:Save()
+            noteentry_layer_two:Save()
+            if loaded then
+                local new_cell_frame_hold = finale.FCCellFrameHold()
+                new_cell_frame_hold:ConnectCell(finale.FCCell(measure, staff_number))
+                if new_cell_frame_hold:Load() then
+                    if cell_frame_hold.IsClefList then
+                        if new_cell_frame_hold.SetCellClefChanges then
+                            new_cell_frame_hold:SetCellClefChanges(cell_clef_changes)
+                        end
+
+                    else
+                        new_cell_frame_hold.ClefIndex = cell_frame_hold.ClefIndex
+                    end
+                    new_cell_frame_hold:Save()
+                end
+            end
+        end
+    end
+
+    function layer.max_layers()
+        return finale.FCLayerPrefs.GetMaxLayers and finale.FCLayerPrefs.GetMaxLayers() or 4
+    end
+    return layer
+end
 function plugindef()
     finaleplugin.RequireSelection = false
-    finaleplugin.Author = "Jacob Winkler"
-    finaleplugin.Copyright = "©2022 Jacob Winkler"
-    finaleplugin.AuthorEmail = "jacob.winkler@mac.com"
-    finaleplugin.Version = "1.0"
-    finaleplugin.Date = "2022-07-02"
-    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/lyrics_baseline_spacing.hash"
-    return "Lyrics - Space Baselines", "Lyrics - Space Baselines", "Lyrics - Space Baselines"
+    finaleplugin.Author = "Nick Mazuk"
+    finaleplugin.Copyright = "CC0 https://creativecommons.org/publicdomain/zero/1.0/"
+    finaleplugin.Version = "2.0"
+    finaleplugin.Date = "August 23, 2023"
+    finaleplugin.CategoryTags = "Playback"
+    finaleplugin.AuthorURL = "https://nickmazuk.com"
+    finaleplugin.ScriptGroupName = "Playback selected staves"
+    finaleplugin.ScriptGroupDescription = [[
+        Set up playback to the selected staves and measures, using either Solo or Mute
+        and (optionally) modifying the playback start/end measures.
+    ]]
+    finaleplugin.AdditionalMenuOptions = [[
+        Mute selected staves
+    ]]
+    finaleplugin.AdditionalDescriptions = [[
+        Sets up playback to the selected region by muting selected staves.
+    ]]
+    finaleplugin.AdditionalPrefixes = [[
+        mute_staves = true
+    ]]
+    finaleplugin.Notes = [[
+        Select the staves you want soloed or muted, then run this script. If nothing is selected, all solos and mutes
+        are cleared.
+        You can optionally use a configuration to start playback at the beginning of the selected region.
+        (If nothing is selected, it reverts playback to a selected default start option.)
+        To set the options, create a plain text file called
+        playback_selected_region.config.txt in a folder called `script_settings` within the same
+        folder as the script. It can contain any or all of the following configuration parameters.
+        (The default values are shown.)
+        ```
+        set_playback_start = false
+        revert_playback_start = 0
+        include_chord_playback = true
+        include_expression_playback = true
+        include_end_measure = true
+        ```
+    ]]
+    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/playback_selected_staves.hash"
+    return "Solo selected staves", "Solo selected staves", "Sets up playback to the selected region."
 end
 local configuration = require("library.configuration")
-config = {all_lyrics = "true"}
-local script_name = "lyrics_baseline_spacing"
-configuration.get_user_settings(script_name, config, true)
-function lyrics_spacing(title)
-    local independent_lyrics = false
-    local baseline_verse = finale.FCBaseline()
-    baseline_verse:LoadDefaultForLyricNumber(finale.BASELINEMODE_LYRICSVERSE,1)
-    local verse1_start = -baseline_verse.VerticalOffset
-    baseline_verse:LoadDefaultForLyricNumber(finale.BASELINEMODE_LYRICSVERSE,2)
-    local verse_gap =  -baseline_verse.VerticalOffset - verse1_start
-
-    local baseline_chorus = finale.FCBaseline()
-    baseline_chorus:LoadDefaultForLyricNumber(finale.BASELINEMODE_LYRICSCHORUS,1)
-    local chorus1_start = -baseline_chorus.VerticalOffset
-    baseline_chorus:LoadDefaultForLyricNumber(finale.BASELINEMODE_LYRICSCHORUS,2)
-    local chorus_gap =  -baseline_chorus.VerticalOffset - chorus1_start
-
-    local baseline_section = finale.FCBaseline()
-    baseline_section:LoadDefaultForLyricNumber(finale.BASELINEMODE_LYRICSSECTION,1)
-    local section1_start = -baseline_section.VerticalOffset
-    baseline_section:LoadDefaultForLyricNumber(finale.BASELINEMODE_LYRICSSECTION,2)
-    local section_gap = -baseline_section.VerticalOffset - section1_start
-
-    local row_h = 20
-    local col_w = 60
-    local col_gap = 10
-    local str = finale.FCString()
-    str.LuaString = title
-    local dialog = finale.FCCustomLuaWindow()
-    dialog:SetTitle(str)
-    local row = {}
-    for i = 1, 100 do
-        row[i] = (i -1) * row_h
-    end
-    local col = {}
-    for i = 1, 20 do
-        col[i] = (i - 1) * col_w
-    end
-    function add_ctrl(dialog, ctrl_type, text, x, y, h, w, min, max)
-        str.LuaString = tostring(text)
-        local ctrl = ""
-        if ctrl_type == "checkbox" then
-            ctrl = dialog:CreateCheckbox(x, y)
-        elseif ctrl_type == "edit" then
-            ctrl = dialog:CreateEdit(x, y - 2)
-        elseif ctrl_type == "static" then
-            ctrl = dialog:CreateStatic(x, y)
+local layer = require("library.layer")
+local config = {
+    set_playback_start = false,
+    revert_playback_start = finale.PLAYBACKSTART_MEASURE,
+    include_chord_playback = true,
+    include_expression_playback = true,
+    include_end_measure = true
+}
+configuration.get_parameters("playback_selected_region.config.txt", config)
+function set_layer_playback_data(layer_playback_data, region, staff_number)
+    layer_playback_data.Play = not region:IsStaffIncluded(staff_number) or not mute_staves
+    layer_playback_data.Solo = region:IsStaffIncluded(staff_number) and not mute_staves
+end
+function playback_selected_staves()
+    local full_doc_region = finale.FCMusicRegion()
+    full_doc_region:SetFullDocument()
+    local region = finenv.Region()
+    for slot = full_doc_region.StartSlot, full_doc_region.EndSlot do
+        local staff_number = region:CalcStaffNumber(slot)
+        local staff = finale.FCStaff()
+        staff:Load(staff_number)
+        local playback_data = staff:CreateInstrumentPlaybackData()
+        for layer = 1, layer.max_layers() do
+            set_layer_playback_data(playback_data:GetNoteLayerData(layer), region, staff_number)
         end
-        if ctrl_type == "edit" then
-            ctrl:SetHeight(h-2)
-            ctrl:SetWidth(w - col_gap)
-        else
-            ctrl:SetHeight(h)
-            ctrl:SetWidth(w)
+        if config.include_chord_playback then
+            set_layer_playback_data(playback_data:GetChordLayerData(), region, staff_number)
         end
-        ctrl:SetText(str)
-        return ctrl
+        if config.include_expression_playback then
+            set_layer_playback_data(playback_data:GetMidiExpressionLayerData(), region, staff_number)
+        end
+        playback_data:Save()
     end
-    local verse_static = add_ctrl(dialog, "static", "All Lyrics", col[3], row[1], row_h, col_w, 0, 0)
-    local chorus_static = add_ctrl(dialog, "static", "", col[4], row[1], row_h, col_w, 0, 0)
-    local section_static = add_ctrl(dialog, "static", "", col[5], row[1], row_h, col_w, 0, 0)
-
-    local lyric1_static = add_ctrl(dialog, "static", "Lyric 1 baseline:", col[1] + 31, row[2], row_h, col_w * 2, 0, 0)
-    local verse1_edit = add_ctrl(dialog, "edit", verse1_start, col[3], row[2], row_h, col_w, 0, 0)
-    local chorus1_edit = add_ctrl(dialog, "edit", chorus1_start, col[4], row[2], row_h, col_w, 0, 0)
-    local section1_edit = add_ctrl(dialog, "edit", section1_start, col[5], row[2], row_h, col_w, 0, 0)
-
-    local gap_static = add_ctrl(dialog, "static", "Gap:", col[2] + 29, row[3], row_h, col_w, 0, 0)
-    local verse_gap_edit = add_ctrl(dialog, "edit", verse_gap, col[3], row[3], row_h, col_w, 0, 0)
-    local chorus_gap_edit = add_ctrl(dialog, "edit", chorus_gap, col[4], row[3], row_h, col_w, 0, 0)
-    local section_gap_edit = add_ctrl(dialog, "edit", section_gap, col[5], row[3], row_h, col_w, 0, 0)
-
-        local all_lyrics_static = add_ctrl(dialog, "static", "Edit all:", col[2] + 14, row[4], row_h, col_w, 0, 0)
-    local all_lyrics_check = add_ctrl(dialog, "checkbox", "", col[3], row[4], row_h, col_w * 2, 0, 0)
-    dialog:CreateOkButton()
-    dialog:CreateCancelButton()
-
-    function apply()
-        if config.all_lyrics == true then
-            verse1_edit:GetText(str)
-            chorus1_edit:SetText(str)
-            section1_edit:SetText(str)
-
-            verse_gap_edit:GetText(str)
-            chorus_gap_edit:SetText(str)
-            section_gap_edit:SetText(str)
-        end
-        verse1_edit:GetText(str)
-        verse1_start = tonumber(str.LuaString)
-        chorus1_edit:GetText(str)
-        chorus1_start = tonumber(str.LuaString)
-        section1_edit:GetText(str)
-        section1_start = tonumber(str.LuaString)
-        verse_gap_edit:GetText(str)
-        verse_gap = tonumber(str.LuaString)
-        chorus_gap_edit:GetText(str)
-        chorus_gap = tonumber(str.LuaString)
-        section_gap_edit:GetText(str)
-        section_gap = tonumber(str.LuaString)
-
-        for i = 1, 100, 1 do
-            baseline_verse:LoadDefaultForLyricNumber(finale.BASELINEMODE_LYRICSVERSE,i)
-            baseline_verse.VerticalOffset = -verse1_start - (verse_gap * (i - 1))
-            baseline_verse:Save()
-
-            baseline_chorus:LoadDefaultForLyricNumber(finale.BASELINEMODE_LYRICSCHORUS,i)
-            baseline_chorus.VerticalOffset = -chorus1_start - (chorus_gap * (i - 1))
-            baseline_chorus:Save()
-
-            baseline_section:LoadDefaultForLyricNumber(finale.BASELINEMODE_LYRICSSECTION,i)
-            baseline_section.VerticalOffset = -section1_start - (section_gap * (i - 1))
-            baseline_section:Save()
-        end
-    end
-    function callback(ctrl)
-        if ctrl:GetControlID() == all_lyrics_check:GetControlID()  then
-            if all_lyrics_check:GetCheck() == 1 then
-                config.all_lyrics = true
+    if config.set_playback_start then
+        local playback_prefs = finale.FCPlaybackPrefs()
+        if playback_prefs:Load(1) then
+            if region:IsEmpty() then
+                playback_prefs.StartMode = config.revert_playback_start
+                playback_prefs.StartMeasure = 1
+                if playback_prefs.ConfigurePlaybackToEnd then
+                    playback_prefs:ConfigurePlaybackToEnd()
+                else
+                    playback_prefs.StopMeasure = 0x7ffe
+                end
             else
-                config.all_lyrics = false
+                if playback_prefs.ConfigurePlaybackRegion then
+                    playback_prefs:ConfigurePlaybackRegion(region, not config.include_end_measure)
+                else
+                    playback_prefs.StartMode = finale.PLAYBACKSTART_MEASURE
+                    playback_prefs.StartMeasure = region.StartMeasure
+                    if config.include_end_measure then
+                        playback_prefs.StopMeasure = region.EndMeasure
+                    end
+                end
             end
-            update()
+            playback_prefs:Save()
         end
-    end
-
-    dialog:RegisterHandleCommand(callback)
-
-    function update()
-        if not config.all_lyrics then
-            independent_lyrics = true
-            str.LuaString = "Verse"
-            verse_static:SetText(str)
-            str.LuaString = "Chorus"
-            chorus_static:SetText(str)
-            str.LuaString = "Section"
-            section_static:SetText(str)
-            all_lyrics_check:SetCheck(0)
-        else
-            independent_lyrics = false
-            str.LuaString = "All Lyrics"
-            verse_static:SetText(str)
-            str.LuaString = ""
-            chorus_static:SetText(str)
-            section_static:SetText(str)
-            all_lyrics_check:SetCheck(1)
-        end
-        chorus1_edit:SetEnable(independent_lyrics)
-        section1_edit:SetEnable(independent_lyrics)
-        chorus_gap_edit:SetEnable(independent_lyrics)
-        section_gap_edit:SetEnable(independent_lyrics)
-
-    end
-    update()
-    if dialog:ExecuteModal(nil) == finale.EXECMODAL_OK then
-        apply()
-        configuration.save_user_settings(script_name, config)
     end
 end
-lyrics_spacing("Lyrics - Space Baselines")
+playback_selected_staves()

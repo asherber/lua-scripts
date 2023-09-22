@@ -1578,7 +1578,7 @@ package.preload["mixin.FCMCustomLuaWindow"] = package.preload["mixin.FCMCustomLu
         function methods:RegisterHandleControlEvent(control, callback)
             mixin_helper.assert_argument_type(2, control, "FCControl", "FCMControl")
             mixin_helper.assert_argument_type(3, callback, "function")
-            if not self:RegisterHandleControlEvent_(control, function(ctrl)
+            if not self:RegisterHandleControlEvent__(control, function(ctrl)
                 callback(self:FindControl(ctrl:GetControlID()))
             end) then
                 error("'FCMCustomLuaWindow.RegisterHandleControlEvent' has encountered an error.", 2)
@@ -4264,7 +4264,7 @@ package.preload["library.mixin"] = package.preload["library.mixin"] or function(
         end
         local function find_property_name_clash(name, attr_to_check)
             for _, attr in pairs(attr_to_check) do
-                if attr == "StaticMethods" or (lookup[attr] and lookup[attr][nane]) then
+                if attr == "StaticMethods" or (lookup[attr] and lookup[attr][name]) then
                     local cl = find_ancestor_with_prop(class, attr, name)
                     return cl and (cl .. "." .. attr .. "." .. name) or nil
                 end
