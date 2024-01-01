@@ -1,97 +1,3 @@
-package.preload["library.layer"] = package.preload["library.layer"] or function()
-
-    local layer = {}
-
-    function layer.copy(region, source_layer, destination_layer, clone_articulations)
-        local start = region.StartMeasure
-        local stop = region.EndMeasure
-        local sysstaves = finale.FCSystemStaves()
-        sysstaves:LoadAllForRegion(region)
-        source_layer = source_layer - 1
-        destination_layer = destination_layer - 1
-        for sysstaff in each(sysstaves) do
-            staffNum = sysstaff.Staff
-            local noteentry_source_layer = finale.FCNoteEntryLayer(source_layer, staffNum, start, stop)
-            noteentry_source_layer:SetUseVisibleLayer(false)
-            noteentry_source_layer:Load()
-            local noteentry_destination_layer = noteentry_source_layer:CreateCloneEntries(
-                destination_layer, staffNum, start)
-            noteentry_destination_layer:Save()
-            noteentry_destination_layer:CloneTuplets(noteentry_source_layer)
-
-            if clone_articulations and noteentry_source_layer.Count == noteentry_destination_layer.Count then
-                for index = 0, noteentry_destination_layer.Count - 1 do
-                    local source_entry = noteentry_source_layer:GetItemAt(index)
-                    local destination_entry = noteentry_destination_layer:GetItemAt(index)
-                    local source_artics = source_entry:CreateArticulations()
-                    for articulation in each (source_artics) do
-                        articulation:SetNoteEntry(destination_entry)
-                        articulation:SaveNew()
-                    end
-                end
-            end
-            noteentry_destination_layer:Save()
-        end
-    end
-
-    function layer.clear(region, layer_to_clear)
-        layer_to_clear = layer_to_clear - 1
-        local start = region.StartMeasure
-        local stop = region.EndMeasure
-        local sysstaves = finale.FCSystemStaves()
-        sysstaves:LoadAllForRegion(region)
-        for sysstaff in each(sysstaves) do
-            staffNum = sysstaff.Staff
-            local  noteentry_layer = finale.FCNoteEntryLayer(layer_to_clear, staffNum, start, stop)
-            noteentry_layer:SetUseVisibleLayer(false)
-            noteentry_layer:Load()
-            noteentry_layer:ClearAllEntries()
-        end
-    end
-
-    function layer.swap(region, swap_a, swap_b)
-
-        swap_a = swap_a - 1
-        swap_b = swap_b - 1
-        for measure, staff_number in eachcell(region) do
-            local cell_frame_hold = finale.FCCellFrameHold()
-            cell_frame_hold:ConnectCell(finale.FCCell(measure, staff_number))
-            local loaded = cell_frame_hold:Load()
-            local cell_clef_changes = loaded and cell_frame_hold.IsClefList and cell_frame_hold:CreateCellClefChanges() or nil
-            local  noteentry_layer_one = finale.FCNoteEntryLayer(swap_a, staff_number, measure, measure)
-            noteentry_layer_one:SetUseVisibleLayer(false)
-            noteentry_layer_one:Load()
-            noteentry_layer_one.LayerIndex = swap_b
-
-            local  noteentry_layer_two = finale.FCNoteEntryLayer(swap_b, staff_number, measure, measure)
-            noteentry_layer_two:SetUseVisibleLayer(false)
-            noteentry_layer_two:Load()
-            noteentry_layer_two.LayerIndex = swap_a
-            noteentry_layer_one:Save()
-            noteentry_layer_two:Save()
-            if loaded then
-                local new_cell_frame_hold = finale.FCCellFrameHold()
-                new_cell_frame_hold:ConnectCell(finale.FCCell(measure, staff_number))
-                if new_cell_frame_hold:Load() then
-                    if cell_frame_hold.IsClefList then
-                        if new_cell_frame_hold.SetCellClefChanges then
-                            new_cell_frame_hold:SetCellClefChanges(cell_clef_changes)
-                        end
-
-                    else
-                        new_cell_frame_hold.ClefIndex = cell_frame_hold.ClefIndex
-                    end
-                    new_cell_frame_hold:Save()
-                end
-            end
-        end
-    end
-
-    function layer.max_layers()
-        return finale.FCLayerPrefs.GetMaxLayers and finale.FCLayerPrefs.GetMaxLayers() or 4
-    end
-    return layer
-end
 package.preload["mixin.FCMControl"] = package.preload["mixin.FCMControl"] or function()
 
 
@@ -201,19 +107,19 @@ package.preload["mixin.FCMControl"] = package.preload["mixin.FCMControl"] or fun
         private[self].Text = temp_str.LuaString
         private[self].Enable = self:GetEnable__()
         private[self].Visible = self:GetVisible__()
-        private[self].Left = self:GetLeft__()
-        private[self].Top = self:GetTop__()
         private[self].Height = self:GetHeight__()
         private[self].Width = self:GetWidth__()
+        private[self].Left = self:GetLeft__()
+        private[self].Top = self:GetTop__()
     end
 
     function methods:RestoreState()
         self:SetEnable__(private[self].Enable)
         self:SetVisible__(private[self].Visible)
-        self:SetLeft__(private[self].Left)
-        self:SetTop__(private[self].Top)
         self:SetHeight__(private[self].Height)
         self:SetWidth__(private[self].Width)
+        self:SetLeft__(private[self].Left)
+        self:SetTop__(private[self].Top)
 
         temp_str.LuaString = private[self].Text
         self:SetText__(temp_str)
@@ -1806,9 +1712,10 @@ package.preload["mixin.FCMCustomWindow"] = package.preload["mixin.FCMCustomWindo
 
 
 
+
     for num_args, ctrl_types in pairs({
         [0] = {"CancelButton", "OkButton",},
-        [2] = {"Button", "Checkbox", "CloseButton", "DataList", "Edit",
+        [2] = {"Button", "Checkbox", "CloseButton", "DataList", "Edit", "TextEditor",
             "ListBox", "Popup", "Slider", "Static", "Switcher", "Tree", "UpDown",
         },
         [3] = {"HorizontalLine", "VerticalLine",},
@@ -3613,17 +3520,17 @@ package.preload["library.general_library"] = package.preload["library.general_li
         return false
     end
 
-    function library.simple_input(title, text)
-        local return_value = finale.FCString()
-        return_value.LuaString = ""
+    function library.simple_input(title, text, default)
         local str = finale.FCString()
         local min_width = 160
 
         function format_ctrl(ctrl, h, w, st)
             ctrl:SetHeight(h)
             ctrl:SetWidth(w)
-            str.LuaString = st
-            ctrl:SetText(str)
+            if st then
+                str.LuaString = st
+                ctrl:SetText(str)
+            end
         end
 
         title_width = string.len(title) * 6 + 54
@@ -3641,20 +3548,12 @@ package.preload["library.general_library"] = package.preload["library.general_li
         local descr = dialog:CreateStatic(0, 0)
         format_ctrl(descr, 16, min_width, text)
         local input = dialog:CreateEdit(0, 20)
-        format_ctrl(input, 20, min_width, "")
+        format_ctrl(input, 20, min_width, default)
         dialog:CreateOkButton()
         dialog:CreateCancelButton()
-
-        function callback(ctrl)
-        end
-
-        dialog:RegisterHandleCommand(callback)
-
         if dialog:ExecuteModal(nil) == finale.EXECMODAL_OK then
-            return_value.LuaString = input:GetText(return_value)
-
-            return return_value.LuaString
-
+            input:GetText(str)
+            return str.LuaString
         end
     end
 
@@ -3681,8 +3580,10 @@ package.preload["library.general_library"] = package.preload["library.general_li
                 end
             end
         else
-            for k, _ in pairs(class.__parent) do
-                return tostring(k)
+            if class.__parent then
+                for k, _ in pairs(class.__parent) do
+                    return tostring(k)
+                end
             end
         end
         return nil
@@ -4748,74 +4649,159 @@ package.preload["library.mixin"] = package.preload["library.mixin"] or function(
     return mixin
 end
 function plugindef()
-    finaleplugin.RequireSelection = true
-    finaleplugin.Author = "Carl Vine"
-    finaleplugin.AuthorURL = "http://carlvine.com/lua/"
-    finaleplugin.Copyright = "https://creativecommons.org/licenses/by/4.0/"
-    finaleplugin.Version = "v1.12"
-    finaleplugin.Date = "2023/02/28"
-    finaleplugin.CategoryTags = "Note"
+    finaleplugin.RequireDocument = false
+    finaleplugin.NoStore = true
+    finaleplugin.MinJWLuaVersion = 0.68
+    finaleplugin.Author = "Robert Patterson"
+    finaleplugin.Copyright = "CC0 https://creativecommons.org/publicdomain/zero/1.0/"
+    finaleplugin.Version = "1.0"
+    finaleplugin.Date = "November 15, 2023"
+    finaleplugin.CategoryTags = "Expressions"
     finaleplugin.Notes = [[
-        Clear all music from the chosen layer in the currently selected region.
-        (The chosen layer will be cleared for a whole measure even if the measure is only partially selected).
-    ]]
-    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/layer_clear_selective.hash"
-    return "Clear Layer Selective", "Clear Layer Selective", "Clear the chosen layer"
+            Allows you to construct a string from SMuFL multi-segment curved-line characters
+            that can be used, e.g., for expressions or custom lines to indicate random/uneven motion.
+        ]]
+    finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/smufl_multisegment_curves.hash"
+    return "SMuFL Multi-Segment Curves...", "SMuFL Multi-Segment Curves", "Allows you to construct a string from SMuFL multi-segment curved-line characters"
 end
-local layer = require("library.layer")
-local mixin = require("library.mixin")
-function is_error(max_layers)
-    if config.layer < 1 or config.layer > max_layers then
-        local message = "Layer number must be an\ninteger between 1 and ".. max_layers .. "\n(not " .. config.layer .. ")"
-        finenv.UI():AlertInfo(message, "User Error")
-        return true
+local library = require('library.general_library')
+local mixin = require('library.mixin')
+local smufl_list = library.get_smufl_font_list()
+local function win_mac(win_val, mac_val)
+    if finenv.UI():IsOnWindows() then
+        return win_val
     end
-    return false
+    return mac_val
 end
-function user_dialog(region, max_layers)
-    local y_offset = 3
-    local x_offset = 140
-    local mac_offset = finenv.UI():IsOnMac() and 3 or 0
-    local dialog = mixin.FCXCustomLuaWindow():SetTitle(plugindef())
-    local message = "Clear layer number (1-" .. max_layers .. "):"
-    dialog:CreateStatic(0, y_offset)
-        :SetText(message)
-        :SetWidth(x_offset + 70)
-    local layer_num = dialog:CreateEdit(x_offset, y_offset - mac_offset)
-        :SetInteger(config.layer or 1)
-        :SetWidth(50)
-    local start = region.StartMeasure
-    local stop = region.EndMeasure
-    message = (start == stop) and ("measure " .. start) or ("measures " .. start .. " to " .. stop)
-    dialog:CreateStatic(0, y_offset + 20)
-        :SetText("from " .. message)
-        :SetWidth(x_offset + 70)
-    dialog:CreateOkButton()
-    dialog:CreateCancelButton()
-    dialog:RegisterHandleOkButtonPressed(function()
-        config.layer = layer_num:GetInteger()
-        dialog:StorePosition()
-        config.pos_x = dialog.StoredX
-        config.pos_y = dialog.StoredY
-    end)
-    return dialog
+local function on_font_changed(control)
+    local fontlist = global_dialog:GetControl("fontlist")
+    local selected_item = fontlist:GetSelectedItem()
+    local fontsize = global_dialog:GetControl("editsize"):GetInteger()
+
+    local font_name = finale.FCString()
+    fontlist:GetItemText(selected_item, font_name)
+    local font = finale.FCFontInfo(font_name, fontsize)
+    global_dialog:GetControl("editor"):SetFont(font)
 end
-function clear_layer()
-    config = config or {}
-    local region = finenv.Region()
-    local max_layers = layer.max_layers()
-    local dialog = user_dialog(region, max_layers)
-    if config.pos_x and config.pos_y then
-        dialog:StorePosition()
-            :SetRestorePositionOnlyData(config.pos_x, config.pos_y)
-            :RestorePosition()
-    end
-    if dialog:ExecuteModal(nil) ~= finale.EXECMODAL_OK or is_error(max_layers) then
-        return
-    end
-    if finenv.RetainLuaState ~= nil then
-        finenv.RetainLuaState = true
-    end
-    layer.clear(region, config.layer)
+local function on_char_button_hit(control)
+    local text = finale.FCString()
+    control:GetText(text)
+    local editor = global_dialog:GetControl("editor")
+    editor:ReplaceSelectedText(text)
+    editor:SetKeyboardFocus()
 end
-clear_layer()
+local function create_dialog_box()
+    local text_height = 150
+    local text_width = 700
+    local y_off = 5
+    local x_off = 0
+    local y_sep = 10
+    local x_sep = 10
+    local button_height = 20
+    local dlg = mixin.FCXCustomLuaWindow()
+        :SetTitle("SMuFL Multi-Segment Curves")
+
+    local popup = dlg:CreatePopup(x_off, y_off, "fontlist")
+        :SetWidth(200)
+        :AddHandleCommand(on_font_changed)
+    local bravura_index
+    local finale_index
+    for fontname, _ in pairsbykeys(smufl_list) do
+        if fontname == "Bravura" then
+            bravura_index = popup:GetCount()
+        elseif fontname == "Finale Maestro" then
+            finale_index = popup:GetCount()
+        end
+        popup:AddString(fontname)
+    end
+    if popup:GetCount() <= 0 then
+        finenv.UI():AlertInfo("No SMuFL fonts found on system.", "Not Found")
+        finenv.RetainLuaState = false
+        return nil
+    end
+    if bravura_index then
+        popup:SetSelectedItem(bravura_index)
+    elseif finale_index then
+        popup:SetSelectedItem(finale_index)
+    else
+        popup:SetSelectedItem(0)
+    end
+    x_off = x_off + 200 + x_sep
+    dlg:CreateStatic(x_off, y_off)
+        :SetText("Size:")
+        :SetWidth(35)
+    x_off = x_off + 35 + x_sep
+    dlg:CreateEdit(x_off, y_off - win_mac(1, 5), "editsize")
+        :SetInteger(24)
+        :AddHandleCommand(on_font_changed)
+    y_off = y_off + button_height + y_sep
+
+    x_off = 0
+    local fontname_text = finale.FCString()
+    popup:GetItemText(popup:GetSelectedItem(), fontname_text)
+    local initial_font = finale.FCFontInfo(fontname_text, dlg:GetControl("editsize"):GetInteger())
+    dlg:CreateTextEditor(x_off, y_off, "editor")
+        :SetWidth(text_width)
+        :SetHeight(text_height)
+        :SetFont(initial_font)
+        :SetWordWrap(false)
+        :SetReadOnly(false)
+        :SetUseRichText(true)
+        :SetAutomaticEditing(false)
+    y_off = y_off + text_height + y_sep
+
+    local function add_button(utf8char, fontsize)
+        dlg:CreateButton(x_off, y_off)
+            :SetWidth(30)
+            :SetText(finale.FCString(utf8.char(utf8char)))
+            :SetFont(finale.FCFontInfo(fontname_text, fontsize))
+            :AddHandleCommand(on_char_button_hit)
+        x_off = x_off + 30 + x_sep
+    end
+    local function add_button_row(label_text, utf8_first, utf8_last, fontsize, right_side)
+        curr_y_off = y_off
+        x_off = right_side and text_width/2 + 40 or 0
+        dlg:CreateStatic(x_off, y_off)
+            :SetWidth(250)
+            :SetText("–––––––––––" .. label_text .. "–––––––––––")
+        y_off = y_off + button_height
+        for utf8char = utf8_first, utf8_last do
+            add_button(utf8char, fontsize)
+        end
+        y_off = y_off + button_height + 5
+        if not right_side then
+            y_off = curr_y_off
+        end
+    end
+    add_button_row("smallest", 0xeacd, 0xead3, win_mac(24, 24), false)
+    add_button_row("small", 0xead4, 0xeada, win_mac(24, 24), true)
+    add_button_row("medium", 0xeadb, 0xeae1, win_mac(20, 24), false)
+    add_button_row("large", 0xeae2, 0xeae8, win_mac(18, 24), true)
+    add_button_row("largest", 0xeae9, 0xeaef, win_mac(14, 18), false)
+    add_button_row("random", 0xeaf0, 0xeaf3, win_mac(12, 16), true)
+    add_button_row("trill", 0xeaa0, 0xeaa8, win_mac(24, 24), false)
+    add_button_row("arpeggiato", 0xeaa9, 0xeaaf, win_mac(24, 24), true)
+    add_button_row("circular motion", 0xeac4, 0xeacb, win_mac(14, 16), false)
+    add_button_row("falls and scoops", 0xe5d4, 0xe5d9, win_mac(12, 16), true)
+    y_off = y_off + y_sep
+
+    x_off = 0
+    dlg:CreateButton(x_off, y_off, "copy2clip")
+        :SetWidth(150)
+        :SetText("Copy to Clipboard")
+        :AddHandleCommand(function(control)
+            dlg:GetControl("editor"):TextToClipboard()
+            dlg:CreateChildUI():AlertInfo("Text copied to clipboard.", "Text Copied")
+        end)
+    x_off = x_off + 150 + x_sep
+    dlg:CreateCloseButton(text_width - 70, y_off)
+        :SetWidth(70)
+    return dlg
+end
+local function smufl_multisegment_curves()
+    global_dialog = global_dialog or create_dialog_box()
+    if global_dialog then
+        global_dialog:RunModeless()
+    end
+end
+smufl_multisegment_curves()

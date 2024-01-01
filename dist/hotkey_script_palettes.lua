@@ -244,19 +244,19 @@ package.preload["mixin.FCMControl"] = package.preload["mixin.FCMControl"] or fun
         private[self].Text = temp_str.LuaString
         private[self].Enable = self:GetEnable__()
         private[self].Visible = self:GetVisible__()
-        private[self].Left = self:GetLeft__()
-        private[self].Top = self:GetTop__()
         private[self].Height = self:GetHeight__()
         private[self].Width = self:GetWidth__()
+        private[self].Left = self:GetLeft__()
+        private[self].Top = self:GetTop__()
     end
 
     function methods:RestoreState()
         self:SetEnable__(private[self].Enable)
         self:SetVisible__(private[self].Visible)
-        self:SetLeft__(private[self].Left)
-        self:SetTop__(private[self].Top)
         self:SetHeight__(private[self].Height)
         self:SetWidth__(private[self].Width)
+        self:SetLeft__(private[self].Left)
+        self:SetTop__(private[self].Top)
 
         temp_str.LuaString = private[self].Text
         self:SetText__(temp_str)
@@ -1849,9 +1849,10 @@ package.preload["mixin.FCMCustomWindow"] = package.preload["mixin.FCMCustomWindo
 
 
 
+
     for num_args, ctrl_types in pairs({
         [0] = {"CancelButton", "OkButton",},
-        [2] = {"Button", "Checkbox", "CloseButton", "DataList", "Edit",
+        [2] = {"Button", "Checkbox", "CloseButton", "DataList", "Edit", "TextEditor",
             "ListBox", "Popup", "Slider", "Static", "Switcher", "Tree", "UpDown",
         },
         [3] = {"HorizontalLine", "VerticalLine",},
@@ -3497,17 +3498,17 @@ package.preload["library.general_library"] = package.preload["library.general_li
         return false
     end
 
-    function library.simple_input(title, text)
-        local return_value = finale.FCString()
-        return_value.LuaString = ""
+    function library.simple_input(title, text, default)
         local str = finale.FCString()
         local min_width = 160
 
         function format_ctrl(ctrl, h, w, st)
             ctrl:SetHeight(h)
             ctrl:SetWidth(w)
-            str.LuaString = st
-            ctrl:SetText(str)
+            if st then
+                str.LuaString = st
+                ctrl:SetText(str)
+            end
         end
 
         title_width = string.len(title) * 6 + 54
@@ -3525,20 +3526,12 @@ package.preload["library.general_library"] = package.preload["library.general_li
         local descr = dialog:CreateStatic(0, 0)
         format_ctrl(descr, 16, min_width, text)
         local input = dialog:CreateEdit(0, 20)
-        format_ctrl(input, 20, min_width, "")
+        format_ctrl(input, 20, min_width, default)
         dialog:CreateOkButton()
         dialog:CreateCancelButton()
-
-        function callback(ctrl)
-        end
-
-        dialog:RegisterHandleCommand(callback)
-
         if dialog:ExecuteModal(nil) == finale.EXECMODAL_OK then
-            return_value.LuaString = input:GetText(return_value)
-
-            return return_value.LuaString
-
+            input:GetText(str)
+            return str.LuaString
         end
     end
 
@@ -3565,8 +3558,10 @@ package.preload["library.general_library"] = package.preload["library.general_li
                 end
             end
         else
-            for k, _ in pairs(class.__parent) do
-                return tostring(k)
+            if class.__parent then
+                for k, _ in pairs(class.__parent) do
+                    return tostring(k)
+                end
             end
         end
         return nil

@@ -428,19 +428,20 @@ Creates a simple dialog box with a single 'edit' field for entering values into 
 
 @ [title] (string) the title of the input dialog box
 @ [text] (string) descriptive text above the edit field
+@ [default] (string) optional text for default value of edit field
 : string
 ]]
-function library.simple_input(title, text)
-    local return_value = finale.FCString()
-    return_value.LuaString = ""
+function library.simple_input(title, text, default)
     local str = finale.FCString()
     local min_width = 160
     --
     function format_ctrl(ctrl, h, w, st)
         ctrl:SetHeight(h)
         ctrl:SetWidth(w)
-        str.LuaString = st
-        ctrl:SetText(str)
+        if st then
+            str.LuaString = st
+            ctrl:SetText(str)
+        end
     end -- function format_ctrl
     --
     title_width = string.len(title) * 6 + 54
@@ -458,20 +459,12 @@ function library.simple_input(title, text)
     local descr = dialog:CreateStatic(0, 0)
     format_ctrl(descr, 16, min_width, text)
     local input = dialog:CreateEdit(0, 20)
-    format_ctrl(input, 20, min_width, "") -- edit "" for defualt value
+    format_ctrl(input, 20, min_width, default)
     dialog:CreateOkButton()
     dialog:CreateCancelButton()
-    --
-    function callback(ctrl)
-    end -- callback
-    --
-    dialog:RegisterHandleCommand(callback)
-    --
     if dialog:ExecuteModal(nil) == finale.EXECMODAL_OK then
-        return_value.LuaString = input:GetText(return_value)
-        -- print(return_value.LuaString)
-        return return_value.LuaString
-        -- OK button was pressed
+        input:GetText(str)
+        return str.LuaString
     end
 end -- function simple_input
 
@@ -514,8 +507,10 @@ function library.get_parent_class(classname)
             end
         end
     else
-        for k, _ in pairs(class.__parent) do
-            return tostring(k)  -- in RGP Lua the v is just a dummy value, and the key is the classname of the parent
+        if class.__parent then
+            for k, _ in pairs(class.__parent) do
+                return tostring(k)  -- in RGP Lua the v is just a dummy value, and the key is the classname of the parent
+            end
         end
     end
     return nil

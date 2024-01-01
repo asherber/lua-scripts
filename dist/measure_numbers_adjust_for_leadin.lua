@@ -526,17 +526,17 @@ package.preload["library.general_library"] = package.preload["library.general_li
         return false
     end
 
-    function library.simple_input(title, text)
-        local return_value = finale.FCString()
-        return_value.LuaString = ""
+    function library.simple_input(title, text, default)
         local str = finale.FCString()
         local min_width = 160
 
         function format_ctrl(ctrl, h, w, st)
             ctrl:SetHeight(h)
             ctrl:SetWidth(w)
-            str.LuaString = st
-            ctrl:SetText(str)
+            if st then
+                str.LuaString = st
+                ctrl:SetText(str)
+            end
         end
 
         title_width = string.len(title) * 6 + 54
@@ -554,20 +554,12 @@ package.preload["library.general_library"] = package.preload["library.general_li
         local descr = dialog:CreateStatic(0, 0)
         format_ctrl(descr, 16, min_width, text)
         local input = dialog:CreateEdit(0, 20)
-        format_ctrl(input, 20, min_width, "")
+        format_ctrl(input, 20, min_width, default)
         dialog:CreateOkButton()
         dialog:CreateCancelButton()
-
-        function callback(ctrl)
-        end
-
-        dialog:RegisterHandleCommand(callback)
-
         if dialog:ExecuteModal(nil) == finale.EXECMODAL_OK then
-            return_value.LuaString = input:GetText(return_value)
-
-            return return_value.LuaString
-
+            input:GetText(str)
+            return str.LuaString
         end
     end
 
@@ -594,8 +586,10 @@ package.preload["library.general_library"] = package.preload["library.general_li
                 end
             end
         else
-            for k, _ in pairs(class.__parent) do
-                return tostring(k)
+            if class.__parent then
+                for k, _ in pairs(class.__parent) do
+                    return tostring(k)
+                end
             end
         end
         return nil
@@ -682,7 +676,9 @@ end
 local library = require("library.general_library")
 local size_prefs = finale.FCSizePrefs()
 size_prefs:Load(1)
-local default_barline_thickness = math.floor(size_prefs.ThinBarlineThickness/64.0 + 0.5)
+local default_barline_thickness = math.floor(size_prefs.ThinBarlineThickness / 64.0 + 0.5)
+local misc_prefs = finale.FCMiscDocPrefs()
+misc_prefs:Load(1)
 local additional_offset = 0
 function measure_numbers_adjust_for_leadin()
     local systems = finale.FCStaffSystems()
@@ -718,7 +714,7 @@ function measure_numbers_adjust_for_leadin()
                                     local cell = finale.FCCell(meas_num, staff)
                                     if library.is_default_number_visible_and_left_aligned(meas_num_region, cell, system, current_is_part, is_for_multimeasure_rest) then
                                         local lead_in = 0
-                                        if cell.Measure ~= system.FirstMeasure then
+                                        if not misc_prefs.AlignMeasureNumbersWithBarline and cell.Measure ~= system.FirstMeasure then
                                             local cell_metrics = finale.FCCellMetrics()
                                             if cell_metrics:LoadAtCell(cell) then
                                                 lead_in = cell_metrics.MusicStartPos - cell_metrics:GetLeftEdge()
