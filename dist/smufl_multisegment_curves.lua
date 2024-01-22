@@ -3024,6 +3024,27 @@ package.preload["mixin.FCXCustomLuaWindow"] = package.preload["mixin.FCXCustomLu
     end
     return class
 end
+package.preload["mixin.__FCMBase"] = package.preload["mixin.__FCMBase"] or function()
+
+
+
+    local mixin = require("library.mixin")
+    local mixin_helper = require("library.mixin_helper")
+    local class = {Methods = {}}
+    local methods = class.Methods
+
+    function methods:_FallbackCall(method_name, fallback_value, ...)
+        if not self[method_name] then
+            if fallback_value ~= nil then
+                return fallback_value
+            end
+            return self
+        end
+
+        return self[method_name](self, ...)
+    end
+    return class
+end
 package.preload["library.lua_compatibility"] = package.preload["library.lua_compatibility"] or function()
 
 
@@ -3197,10 +3218,6 @@ package.preload["library.utils"] = package.preload["library.utils"] or function(
     function utils.rethrow_placeholder()
         return "'" .. rethrow_placeholder .. "'"
     end
-
-    function utils.require_embedded(library_name)
-        return require(library_name)
-    end
     return utils
 end
 package.preload["library.client"] = package.preload["library.client"] or function()
@@ -3304,7 +3321,6 @@ end
 package.preload["library.general_library"] = package.preload["library.general_library"] or function()
 
     local library = {}
-    local utils = require("library.utils")
     local client = require("library.client")
 
     function library.group_overlaps_region(staff_group, region)
@@ -3499,7 +3515,7 @@ package.preload["library.general_library"] = package.preload["library.general_li
     end
 
     function library.get_smufl_font_list()
-        local osutils = finenv.EmbeddedLuaOSUtils and utils.require_embedded("luaosutils")
+        local osutils = finenv.EmbeddedLuaOSUtils and require("luaosutils")
         local font_names = {}
         local add_to_table = function(for_user)
             local smufl_directory = calc_smufl_directory(for_user)
@@ -4672,7 +4688,7 @@ package.preload["library.mixin"] = package.preload["library.mixin"] or function(
         local c = mixin.FCMNoteEntryCell(measure, region:CalcStaffNumber(slotno))
         c:SetLoadLayerMode(layertouse)
         c:Load()
-        return function ()
+        return function()
             while true do
                 i = i + 1;
                 local returnvalue = c:GetItemAt(i - 1)
