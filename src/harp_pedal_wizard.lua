@@ -11,6 +11,9 @@ function plugindef()
   return "Harp Pedal Wizard...", "Harp Pedal Wizard", "Creates Harp Diagrams and Pedal Changes"
 end
 
+-- TEMPORARY LINT IGNORE!!
+-- luacheck: ignore
+
 local library = require("library.general_library")
 local configuration = require("library.configuration")
 --------------------------------------
@@ -53,8 +56,8 @@ local function harp_pedal_wizard()
   local sel_root
   local sel_acc
   local reset_button
-  
-  
+
+
   configuration.get_user_settings(script_name, config, true)
 
   local function split(s, delimiter)
@@ -74,7 +77,7 @@ local function harp_pedal_wizard()
     --
     local harp_tbl = split(harpnotes, ",")
 
-    for i,k in pairs(harp_tbl) do
+    for i in pairs(harp_tbl) do
       harp_tbl[i] = trim(harp_tbl[i])
       harp_tbl[i] = string.lower(harp_tbl[i])
       local first = harp_tbl[i]:sub(1,1)
@@ -84,6 +87,13 @@ local function harp_pedal_wizard()
       if second == "n" then second = "" end
       local first_upper = string.upper(first)
       harp_tbl[i] = first_upper .. second
+      if string.len(harp_tbl[i]) == 2 then
+        if string.sub(harp_tbl[i], -1) ~= "b" 
+        and string.sub(harp_tbl[i], -1) ~= "#" 
+        and string.sub(harp_tbl[i], -1) ~= "n" then
+          is_error = true
+        end
+      end
       ---- Assign to strings .. .
       if harp_tbl[i]:sub(1,1) == "A" then 
         harpstrings[7] = harp_tbl[i]
@@ -117,7 +127,7 @@ local function harp_pedal_wizard()
     end
     local new_pedals = {0, 0, 0, 0, 0, 0, 0}
     local compare_notes = split(config.last_notes, ",")
-    for i, k in pairs(compare_notes) do
+    for i in pairs(compare_notes) do
       compare_notes[i] = trim(compare_notes[i])
     end
     local changes_temp
@@ -178,14 +188,14 @@ local function harp_pedal_wizard()
 
 -----------------------------
     local compare_notes = split(config.last_notes, ",")
-    for i, k in pairs(compare_notes) do
+    for i in pairs(compare_notes) do
       compare_notes[i] = trim(compare_notes[i])
     end
     --
     local harp_tbl = split(harpnotes, ",")
     local count = 0 
 
-    for i,k in pairs(harp_tbl) do
+    for i in pairs(harp_tbl) do
       harp_tbl[i] = trim(harp_tbl[i])
       if string.len(harp_tbl[i]) > 2 then
         harp_error = true
@@ -200,11 +210,9 @@ local function harp_pedal_wizard()
       local first_upper = string.upper(first)
       harp_tbl[i] = first_upper .. second
       if string.len(harp_tbl[i]) == 2 then
-        if string.sub(harp_tbl[i], -1) == "b" 
-        or string.sub(harp_tbl[i], -1) == "#" 
-        or string.sub(harp_tbl[i], -1) == "n" then
-          harp_error = false
-        else
+        if string.sub(harp_tbl[i], -1) ~= "b" 
+        and string.sub(harp_tbl[i], -1) ~= "#" 
+        and string.sub(harp_tbl[i], -1) ~= "n" then
           harp_error = true
           goto on_error    
         end
@@ -501,15 +509,15 @@ local function harp_pedal_wizard()
       local all_ltr = {"Cb", "C", "C#", "Db", "D", "D#", "Eb", "E", "E#", "Fb", "F", "F#", "Gb", "G", "G#", "Ab", "A", "A#", "Bb", "B", "B#"}
       local enh_ltr = {"B", "B#", "Db", "C#", "D", "Eb", "D#", "Fb", "F", "E", "E#", "Gb", "F#", "G", "Ab", "G#", "A", "Bb", "A#", "Cb", "C"}
       local all_num = {11, 0, 1, 1, 2, 3, 3, 4, 5, 4, 5, 6, 6, 7, 8, 8, 9, 10, 10, 11, 0}
-      for i,j in pairs(all_ltr) do -- luacheck: ignore j
+      for i in pairs(all_ltr) do
         if all_ltr[i] == root then enharmonic.LuaString = enh_ltr[i] end
       end
 
 -- 1) Find root offset
       local root_off = 0
-      for a, b in pairs(all_ltr) do -- luacheck: ignore b
-        if all_ltr[a] == root then
-          root_off = all_num[a]
+      for i in pairs(all_ltr) do
+        if all_ltr[i] == root then
+          root_off = all_num[i]
         end -- if
       end -- for a, b .. .
 ----
@@ -538,8 +546,8 @@ local function harp_pedal_wizard()
       if scale == "dim7" then scale_new = {0, 3, 6, 9, 2, 5, 8} end
       if scale == "aug" then scale_new = {0, 4, 8, 2, 10, 6} end
       --
-      for a, b in pairs(scale_new) do -- luacheck: ignore b
-        scale_new[a] = math.fmod (scale_new[a] + root_off , 12)
+      for i in pairs(scale_new) do
+        scale_new[i] = math.fmod (scale_new[i] + root_off , 12)
       end 
 --------------------------
 -- 3) build out scale using letternames
@@ -553,7 +561,7 @@ local function harp_pedal_wizard()
       end -- temporary change for exotic scales!
 
       if not use_chord then
-        for i = 1, 2, 1 do -- luacheck: ignore i
+        for i = 1, 2, 1 do
           if last == "A"  and scale_deg <= 7 then
             local is_found = false
             for j = 1, 3, 1 do
@@ -663,13 +671,13 @@ local function harp_pedal_wizard()
       elseif use_chord then
         local ind_string_ltrs = {A_ltr, B_ltr, C_ltr, D_ltr, E_ltr, F_ltr, G_ltr}
         local ind_string_nums = {A_num, B_num, C_num, D_num, E_num, F_num, G_num}
-        for string_key, j in pairs(ind_string_ltrs) do -- luacheck: ignore j
+        for string_key in pairs(ind_string_ltrs) do
           if ind_string_ltrs[string_key][2] ~= root_string then
             local match = false
             local count = 0
             repeat
-              for scale_key, l in pairs(scale_new) do -- luacheck: ignore l
-                for string_num_key,n in pairs(ind_string_nums[string_key]) do -- luacheck: ignore n
+              for scale_key in pairs(scale_new) do
+                for string_num_key in pairs(ind_string_nums[string_key]) do
                   if ind_string_nums[string_key][string_num_key] == scale_new[scale_key] then
                     scale_ltrs = scale_ltrs .. ", " .. ind_string_ltrs[string_key][string_num_key]
                     match = true
@@ -685,8 +693,8 @@ local function harp_pedal_wizard()
                       update_scale = true
                     end
                     if update_scale then
-                      for a, b in pairs(scale_new) do  -- luacheck: ignore b
-                        scale_new[a] = math.fmod (scale_new[a] + root_off , 12)
+                      for i in pairs(scale_new) do
+                        scale_new[i] = math.fmod (scale_new[i] + root_off , 12)
                       end 
                       update_scale = false  -- luacheck: ignore update_scale
                     end
@@ -718,7 +726,7 @@ local function harp_pedal_wizard()
         local result = ui:AlertYesNo(str.LuaString, nil)
         if result == 2 then
           sel_acc:SetSelectedItem(1)
-          for i, k in pairs(roots) do -- luacheck: ignore k
+          for i in pairs(roots) do
             if string.sub(enharmonic.LuaString, 1, 1) == roots[i] then
               sel_root:SetSelectedItem(i-1)
             end
@@ -777,7 +785,7 @@ or a chord from the drop down lists.]])
         format_ctrl(root_label, 15, 30, "Root")
         sel_root = dialog:CreatePopup(8, row_y)
         format_ctrl(sel_root, 20, 36, "Root")
-        for i,j in pairs(roots) do  -- luacheck: ignore j
+        for i in pairs(roots) do
           str.LuaString = roots[i]
           sel_root:AddString(str)
         end
@@ -786,7 +794,7 @@ or a chord from the drop down lists.]])
 --      local accidentals = {"♭", "♮", "♯"} -- for later implementation
         sel_acc = dialog:CreatePopup(42, row_y)
         format_ctrl(sel_acc, 20, 32, "Accidental")
-        for i,j in pairs(accidentals) do  -- luacheck: ignore j
+        for i in pairs(accidentals) do
           str.LuaString = accidentals[i]
           sel_acc:AddString(str)
         end   
@@ -804,7 +812,7 @@ or a chord from the drop down lists.]])
           "Whole tone", "Major Pentatonic", "Minor Pentatonic"}
         local sel_scale = dialog:CreatePopup(86, row_y)
         format_ctrl(sel_scale, 20, 120, "Scale")
-        for i,j in pairs(scales) do  -- luacheck: ignore j
+        for i in pairs(scales) do
           str.LuaString = scales[i]
           sel_scale:AddString(str)
         end
@@ -822,7 +830,7 @@ or a chord from the drop down lists.]])
         local chords = {"dom7", "maj7", "min7", "m7b5", "dim7", "aug"}
         local sel_chord = dialog:CreatePopup(220, row_y)
         format_ctrl(sel_chord, 20, 100, "Chord")
-        for i,j in pairs(chords) do -- luacheck: ignore j
+        for i in pairs(chords) do
           str.LuaString = chords[i]
           sel_chord:AddString(str)
         end
@@ -1016,7 +1024,7 @@ or a chord from the drop down lists.]])
         reset_button = dialog:CreateButton(reset_button_x, reset_button_y)
         format_ctrl(reset_button, 18, 80, "Set to 'Last'")      
         --
-        local tracker_v_line = dialog:CreateVerticalLine(col_x + (col * col_width) - 8, row_y, row_h * 4) -- luacheck: ignore tracker_v_line
+        local tracker_v_line = dialog:CreateVerticalLine(col_x + (col * col_width) - 8, row_y, row_h * 4)
         col = col + 1
         --
         local last_static = dialog:CreateStatic(col_x + (col * col_width) - 19, row_y)
@@ -1443,7 +1451,7 @@ or a chord from the drop down lists.]])
           return root_str
         end
 
-         function scale_update() -- luacheck: ignore scale_update
+        function scale_update() -- luacheck: ignore scale_update
           local use_chord = false -- luacheck: ignore use_chord
           if chord_check:GetCheck() == 1 then use_chord = true end
           local return_string = finale.FCString()
@@ -1478,7 +1486,7 @@ or a chord from the drop down lists.]])
           context.window_pos_y = dialog.StoredY
         end
 
-         function apply() -- luacheck: ignore apply
+        function apply() -- luacheck: ignore apply
           update_variables()
           local return_string = finale.FCString()
           harp_notes:GetText(return_string)
@@ -1488,7 +1496,7 @@ or a chord from the drop down lists.]])
           if diagram_checkbox:GetCheck() == 1 then use_diagram = true
           else use_diagram = false end
           local root = root_calc()
-          local scale_info = "" -- luacheck: ignore scale_info
+          local scale_info -- luacheck: ignore scale_info
           if return_string.LuaString ~= "" then
             direct = true
             process_return(return_string.LuaString)
