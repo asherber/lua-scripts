@@ -14,7 +14,7 @@ end
 local library = require("library.general_library")
 local configuration = require("library.configuration")
 --------------------------------------
-function harp_pedal_wizard()
+local function harp_pedal_wizard()
   local script_name = "harp_pedal_wizard"
   local config = {root = 2, accidental = 1, scale = 0, scale_check = 1, chord = 0, chord_check = 0, diagram_check = 1, names_check = 0, partial_check = 0, stack = 1, pedal_lanes = 1, last_notes = "D, C, B, E, F, G, A"}
   local partial = false
@@ -23,16 +23,18 @@ function harp_pedal_wizard()
   local pedal_lanes = true
   local direct = false
   local override = false
-  context = -- keep context as global so that it survives across calls
+  local changes_static
+  -- keep context as global so that it survives across calls
+  context = -- luacheck: ignore context
   {
     window_pos_x = nil,
     window_pos_y = nil
   }
 
   local SMuFL = library.is_font_smufl_font(nil)
-  harpstrings = {}
-  diagram_string = finale.FCString()
-  description = finale.FCString()
+  local harpstrings = {}
+  local diagram_string = finale.FCString()
+  local description = finale.FCString()
   local changes_str = finale.FCString()
   changes_str.LuaString = ""
   local default_music_font = library.get_default_music_font_name()
@@ -46,21 +48,28 @@ function harp_pedal_wizard()
   desc_prefix.LuaString = ""
   local ui = finenv.UI()
   local direct_notes = {0, 0, 0, 0, 0, 0, 0}
+  -- declaring "global" local variables...
+  local roots
+  local sel_root
+  local sel_acc
+  local reset_button
+  
+  
   configuration.get_user_settings(script_name, config, true)
 
-  function split(s, delimiter)
-    result = {};
+  local function split(s, delimiter)
+    local result = {};
     for match in (s .. delimiter):gmatch("(.-)" .. delimiter) do
       table.insert(result, match);
     end
     return result;
   end
 
-  function trim(s)
+  local function trim(s)
     return s:match'^()%s*$' and '' or s:match'^%s*(.*%S)'
   end
 
-  function process_return(harpnotes)
+  local function process_return(harpnotes)
     direct_notes = {0, 0, 0, 0, 0, 0, 0}
     --
     local harp_tbl = split(harpnotes, ",")
@@ -101,7 +110,7 @@ function harp_pedal_wizard()
     end -- for i,j
   end
 
-  function changes_update()
+  local function changes_update()
     changes_str.LuaString = ""
     if not harpstrings[1] then
       harpstrings = {"D", "C", "B", "E", "F", "G", "A"}
@@ -133,14 +142,14 @@ function harp_pedal_wizard()
     changes_static:SetText(changes_str)
   end
 
-  function harp_diagram(harpnotes, use_diagram, scale_info, partial) -- luacheck: ignore partial
+  local function harp_diagram(harpnotes, use_diagram, scale_info, partial) -- luacheck: ignore partial
     if use_diagram then
       desc_prefix.LuaString = "Hp. Diagram: "
     else
       desc_prefix.LuaString = "Hp. Pedals: "
     end
     if partial then scale_info = nil end
-    harp_error = false
+    local harp_error = false
     local use_tech = false
     local sysstaves = finale.FCSystemStaves()
     sysstaves:LoadScrollView()
@@ -159,13 +168,13 @@ function harp_pedal_wizard()
     end
 ---------------------------------
 -- Initialize harpstring variables to 0
-    A = "A"
-    B = "B"
-    C = "C"
-    D = "D"
-    E = "E"
-    F = "F"
-    G = "G"
+    local A = "A"
+    local B = "B"
+    local C = "C"
+    local D = "D"
+    local E = "E"
+    local F = "F"
+    local G = "G"
 
 -----------------------------
     local compare_notes = split(config.last_notes, ",")
@@ -350,7 +359,7 @@ function harp_pedal_wizard()
     end
   end
 
-  function pedals_add(use_diagram)
+  local function pedals_add(use_diagram)
     local undo_str
     if use_diagram then
       undo_str = "Create harp diagram"
@@ -361,12 +370,13 @@ function harp_pedal_wizard()
     local categorydefs = finale.FCCategoryDefs()
     categorydefs:LoadAll()
     local diagrams = 0
+    local diagrams_cat = 0
     local region = finenv.Region()
     local textexpressiondefs = finale.FCTextExpressionDefs()
     textexpressiondefs:LoadAll()
     local add_expression = finale.FCExpression()
     local diag_ted = 0
-    is_dialog_assigned = false
+    local is_dialog_assigned = false
     local expressions = finale.FCExpressions()
     local measure_num = region.StartMeasure
     local measure_pos = region.StartMeasurePos
@@ -460,7 +470,7 @@ function harp_pedal_wizard()
     end -- function add_pedals
 
     -------
-    function harp_scale(root, scale, use_diagram, use_chord, partial) -- luacheck: ignore partial
+    local function harp_scale(root, scale, use_diagram, use_chord, partial) -- luacheck: ignore partial
       local scale_error = false
       local enharmonic = finale.FCString()
       local scale_info = root .. " " .. scale
@@ -726,7 +736,7 @@ function harp_pedal_wizard()
     end -- function harp_scale()
 -------
 
-    function harp_dialog()
+    local function harp_dialog()
       local str = finale.FCString()
       local use_diagram = true
       local use_chord = false -- luacheck: ignore use_chord
@@ -739,7 +749,7 @@ function harp_pedal_wizard()
 
       local row_y = 0 -- The various controls will use this to consistently place themselves vertically
 --
-      function format_ctrl(ctrl, h, w, st)
+      local function format_ctrl(ctrl, h, w, st)
         ctrl:SetHeight(h)
         ctrl:SetWidth(w)
         str.LuaString = st
@@ -1018,7 +1028,7 @@ or a chord from the drop down lists.]])
         format_ctrl(lastnotes_static, 20, 150, config.last_notes)
 --                    lastnotes_static:SetVisible(false)        
 --
-        changes_static = dialog:CreateStatic(col_x + (col * col_width) - 19, row_y + 18)
+        changes_static = dialog:CreateStatic(col_x + (col * col_width) - 19, row_y + 18) -- luacheck: ignore changes_static
         format_ctrl(changes_static, 20, 166, changes_str.LuaString)
         --
         local names_x = col_x + (col * col_width) - 19
@@ -1037,7 +1047,7 @@ or a chord from the drop down lists.]])
         str.LuaString = "Close"
         close_btn:SetText(str)
 
-        function pedals_update()
+        function pedals_update() -- luacheck: ignore pedals_update
           str.LuaString = harpstrings[1]
           d_stg_static:SetText(str)
           if harpstrings[1] == "Db" then
@@ -1153,7 +1163,7 @@ or a chord from the drop down lists.]])
           changes_update()
         end
 
-        function pedal_buttons()
+        local function pedal_buttons()
           scale_check:SetCheck(0)
           chord_check:SetCheck(0)
           sel_root:SetEnable(false)
@@ -1222,7 +1232,7 @@ or a chord from the drop down lists.]])
           lastnotes_static:SetText(str)
         end
 
-        function config_update()
+        local function config_update()
           config.root = sel_root:GetSelectedItem()
           config.accidental = sel_acc:GetSelectedItem()
           config.scale = sel_scale:GetSelectedItem()
@@ -1236,7 +1246,7 @@ or a chord from the drop down lists.]])
           config.pedal_lanes = lanes_checkbox:GetCheck()
         end
 
-        function update_variables()
+        local function update_variables()
           if diagram_checkbox:GetCheck() == 1 then use_diagram = true 
           elseif diagram_checkbox:GetCheck() == 0 then use_diagram = false end
           if names_checkbox:GetCheck() == 1 then
@@ -1254,7 +1264,7 @@ or a chord from the drop down lists.]])
           end
         end
 
-        function callback(ctrl)
+        local function callback(ctrl)
           if ctrl:GetControlID() == sel_scale:GetControlID() or ctrl:GetControlID() == sel_chord:GetControlID() then
             scale_update()
           elseif ctrl:GetControlID() == sel_root:GetControlID() or ctrl:GetControlID() == sel_acc:GetControlID() then
@@ -1415,26 +1425,25 @@ or a chord from the drop down lists.]])
           configuration.save_user_settings(script_name, config)
         end -- callback
 
-        function callback_ok()
+        local function callback_ok()
           apply()
         end
 
-        function callback_update()
+        local function callback_update()
           scale_update()
           pedals_update()
         end
 
-        function root_calc()
-          local root_calc = finale.FCString()
-          root_calc.LuaString = roots[sel_root:GetSelectedItem()+1] .. accidentals[sel_acc:GetSelectedItem()+1]
-          root_calc.LuaString = string.gsub(root_calc.LuaString, "♮", "")
-          root_calc.LuaString = string.gsub(root_calc.LuaString, "♭", "b") 
-          root_calc.LuaString = string.gsub(root_calc.LuaString, "♯", "#")
-          return root_calc
+        local function root_calc()
+          local root_str = finale.FCString()
+          root_str.LuaString = roots[sel_root:GetSelectedItem()+1] .. accidentals[sel_acc:GetSelectedItem()+1]
+          root_str.LuaString = string.gsub(root_str.LuaString, "♮", "")
+          root_str.LuaString = string.gsub(root_str.LuaString, "♭", "b") 
+          root_str.LuaString = string.gsub(root_str.LuaString, "♯", "#")
+          return root_str
         end
 
-        function scale_update()
-
+         function scale_update() -- luacheck: ignore scale_update
           local use_chord = false -- luacheck: ignore use_chord
           if chord_check:GetCheck() == 1 then use_chord = true end
           local return_string = finale.FCString()
@@ -1455,7 +1464,7 @@ or a chord from the drop down lists.]])
           configuration.save_user_settings(script_name, config)
         end
 
-        function strings_read()
+        local function strings_read()
           str.LuaString = ""
           for i = 1, 6, 1 do
             str.LuaString = str.LuaString .. harpstrings[i] .. ", "
@@ -1463,13 +1472,13 @@ or a chord from the drop down lists.]])
           str.LuaString = str.LuaString .. harpstrings[7]
         end
 
-        function on_close()
+        local function on_close()
           dialog:StorePosition()
           context.window_pos_x = dialog.StoredX
           context.window_pos_y = dialog.StoredY
         end
 
-        function apply()
+         function apply() -- luacheck: ignore apply
           update_variables()
           local return_string = finale.FCString()
           harp_notes:GetText(return_string)
