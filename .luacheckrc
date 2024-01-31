@@ -3,6 +3,7 @@ include_files = { "src/**/*.lua"}
 exclude_files = {
     "mobdebug.lua",
     "src/lunajson/**/*.lua",
+    "src/vscode-debuggee.lua",
 }
 globals = {
     "finale",
