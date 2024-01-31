@@ -1231,6 +1231,59 @@ package.preload["library.utils"] = package.preload["library.utils"] or function(
     function utils.rethrow_placeholder()
         return "'" .. rethrow_placeholder .. "'"
     end
+
+    function utils.show_notes_dialog(caption, width, height)
+        if not finaleplugin.RTFNotes and not finaleplugin.Notes then
+            return
+        end
+
+        width = width or 500
+        height = height or 350
+
+        if not caption then
+            caption = plugindef()
+            if finaleplugin.Version then
+                local version = finaleplugin.Version
+                if string.sub(version, 1, 1) ~= "v" then
+                    version = "v" .. version
+                end
+                caption = string.format("%s %s", caption, version)
+            end
+        end
+        local dlg = finale.FCCustomLuaWindow()
+        dlg:SetTitle(finale.FCString(caption))
+        local edit_text = dlg:CreateTextEditor(10, 10)
+        edit_text:SetWidth(width)
+        edit_text:SetHeight(height)
+        edit_text:SetUseRichText(finaleplugin.RTFNotes)
+        edit_text:SetReadOnly(true)
+        edit_text:SetWordWrap(true)
+        local ok = dlg:CreateOkButton()
+        local function dedent(input)
+            local first_line_indent = input:match("^(%s*)")
+            local pattern = "\n" .. string.rep(" ", #first_line_indent)
+            local result = input:gsub(pattern, "\n")
+            result = result:gsub("^%s+", "")
+            return result
+        end
+        dlg:RegisterInitWindow(
+            function()
+                local notes = dedent(finaleplugin.RTFNotes or dedent(finaleplugin.Notes))
+                local notes_str = finale.FCString(notes)
+                if edit_text:GetUseRichText() then
+                    edit_text:SetRTFString(notes_str)
+                else
+                    local edit_font = finale.FCFontInfo()
+                    edit_font.Name = "Arial"
+                    edit_font.Size = 10
+                    edit_text:SetFont(edit_font)
+                    edit_text:SetText(notes_str)
+                end
+                edit_text:ResetColors()
+                ok:SetKeyboardFocus()
+            end)
+        dlg:ExecuteModal(nil)
+    end
     return utils
 end
 package.preload["library.configuration"] = package.preload["library.configuration"] or function()
@@ -1381,18 +1434,38 @@ function plugindef()
         standalone_hairpin_adjustment.config.txt in a folder called `script_settings` within the same
         folder as the script. It can contain any or all of the following configuration parameters.
         (The default values are shown.)
+
         ```
-        left_dynamic_cushion = 9
-        right_dynamic_cushion = -9
-        left_selection_cushion = 0
-        right_selection_cushion = 0
-        extend_to_end_of_right_entry = true
-        limit_to_hairpins_on_notes = true
-        vertical_adjustment_type = "far"
-        horizontal_adjustment_type = "both"
-        vertical_displacement_for_hairpins = 12
-        extend_to_expression_in_next_bar = false
+        left_dynamic_cushion = 9                    
+        right_dynamic_cushion = -9                  
+        left_selection_cushion = 0                  
+        right_selection_cushion = 0                 
+        extend_to_end_of_right_entry = true         
+        limit_to_hairpins_on_notes = true           
+        vertical_adjustment_type = "far"            
+        horizontal_adjustment_type = "both"         
+        vertical_displacement_for_hairpins = 12     
+        extend_to_expression_in_next_bar = false    
         ```
+    ]]
+    finaleplugin.RTFNotes = [[
+        {\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier New;}}
+        {\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
+        \widowctrl\hyphauto
+        \f0\fs20
+        \f1\fs20
+        {\pard \ql \f0 \sa180 \li0 \fi0 This plugin has several configuration options. To set the options, create a plain text file called standalone_hairpin_adjustment.config.txt in a folder called {\f1 script_settings} within the same folder as the script. It can contain any or all of the following configuration parameters. (The default values are shown.)\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 \f1 left_dynamic_cushion = 9                    
+        right_dynamic_cushion = -9                  
+        left_selection_cushion = 0                  
+        right_selection_cushion = 0                 
+        extend_to_end_of_right_entry = true         
+        limit_to_hairpins_on_notes = true           
+        vertical_adjustment_type = "far"            
+        horizontal_adjustment_type = "both"         
+        vertical_displacement_for_hairpins = 12     
+        extend_to_expression_in_next_bar = false    
+        }
     ]]
     finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/standalone_hairpin_adjustment.hash"
     return "Hairpin and Dynamic Adjustments", "Hairpin and Dynamic Adjustments", "Adjusts hairpins to remove collisions with dynamics and aligns hairpins with dynamics."

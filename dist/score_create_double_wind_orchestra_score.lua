@@ -1250,6 +1250,59 @@ package.preload["library.utils"] = package.preload["library.utils"] or function(
     function utils.rethrow_placeholder()
         return "'" .. rethrow_placeholder .. "'"
     end
+
+    function utils.show_notes_dialog(caption, width, height)
+        if not finaleplugin.RTFNotes and not finaleplugin.Notes then
+            return
+        end
+
+        width = width or 500
+        height = height or 350
+
+        if not caption then
+            caption = plugindef()
+            if finaleplugin.Version then
+                local version = finaleplugin.Version
+                if string.sub(version, 1, 1) ~= "v" then
+                    version = "v" .. version
+                end
+                caption = string.format("%s %s", caption, version)
+            end
+        end
+        local dlg = finale.FCCustomLuaWindow()
+        dlg:SetTitle(finale.FCString(caption))
+        local edit_text = dlg:CreateTextEditor(10, 10)
+        edit_text:SetWidth(width)
+        edit_text:SetHeight(height)
+        edit_text:SetUseRichText(finaleplugin.RTFNotes)
+        edit_text:SetReadOnly(true)
+        edit_text:SetWordWrap(true)
+        local ok = dlg:CreateOkButton()
+        local function dedent(input)
+            local first_line_indent = input:match("^(%s*)")
+            local pattern = "\n" .. string.rep(" ", #first_line_indent)
+            local result = input:gsub(pattern, "\n")
+            result = result:gsub("^%s+", "")
+            return result
+        end
+        dlg:RegisterInitWindow(
+            function()
+                local notes = dedent(finaleplugin.RTFNotes or dedent(finaleplugin.Notes))
+                local notes_str = finale.FCString(notes)
+                if edit_text:GetUseRichText() then
+                    edit_text:SetRTFString(notes_str)
+                else
+                    local edit_font = finale.FCFontInfo()
+                    edit_font.Name = "Arial"
+                    edit_font.Size = 10
+                    edit_text:SetFont(edit_font)
+                    edit_text:SetText(notes_str)
+                end
+                edit_text:ResetColors()
+                ok:SetKeyboardFocus()
+            end)
+        dlg:ExecuteModal(nil)
+    end
     return utils
 end
 package.preload["library.configuration"] = package.preload["library.configuration"] or function()
@@ -1398,6 +1451,7 @@ function plugindef()
     finaleplugin.AuthorURL = "https://nickmazuk.com"
     finaleplugin.Notes = [[
         This script sets up a score for double wind orchestra:
+
         - Flute 1, 2
         - Oboe 1, 2
         - Clarinet 1, 2
@@ -1413,9 +1467,37 @@ function plugindef()
         - Viola
         - Cello
         - Double bass
+
         To use it, first open your default document or document styles. Then, run the script.
         All existing staffs will be deleted. And in their place, the orchestra will be created.
+
         This script uses the standard ensemble creation configuration options.
+    ]]
+    finaleplugin.RTFNotes = [[
+        {\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier New;}}
+        {\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
+        \widowctrl\hyphauto
+        \f0\fs20
+        \f1\fs20
+        {\pard \ql \f0 \sa180 \li0 \fi0 This script sets up a score for double wind orchestra:\par}
+        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Flute 1, 2\par}
+        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Oboe 1, 2\par}
+        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Clarinet 1, 2\par}
+        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Bassoon 1, 2\par}
+        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Horn in F 1, 2, 3, 4\par}
+        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Trumpet 1, 2, 3\par}
+        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Trombone 1, 2, bass\par}
+        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Tuba\par}
+        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Timpani\par}
+        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Percussion 1, 2, 3\par}
+        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Violin 1\par}
+        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Violin 2\par}
+        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Viola\par}
+        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Cello\par}
+        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Double bass\sa180\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 To use it, first open your default document or document styles. Then, run the script. All existing staffs will be deleted. And in their place, the orchestra will be created.\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 This script uses the standard ensemble creation configuration options.\par}
+        }
     ]]
     finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/score_create_double_wind_orchestra_score.hash"
     return "Create double wind orchestra score", "Create double wind orchestra score",

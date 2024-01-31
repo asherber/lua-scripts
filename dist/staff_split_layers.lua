@@ -3607,6 +3607,59 @@ package.preload["library.utils"] = package.preload["library.utils"] or function(
     function utils.rethrow_placeholder()
         return "'" .. rethrow_placeholder .. "'"
     end
+
+    function utils.show_notes_dialog(caption, width, height)
+        if not finaleplugin.RTFNotes and not finaleplugin.Notes then
+            return
+        end
+
+        width = width or 500
+        height = height or 350
+
+        if not caption then
+            caption = plugindef()
+            if finaleplugin.Version then
+                local version = finaleplugin.Version
+                if string.sub(version, 1, 1) ~= "v" then
+                    version = "v" .. version
+                end
+                caption = string.format("%s %s", caption, version)
+            end
+        end
+        local dlg = finale.FCCustomLuaWindow()
+        dlg:SetTitle(finale.FCString(caption))
+        local edit_text = dlg:CreateTextEditor(10, 10)
+        edit_text:SetWidth(width)
+        edit_text:SetHeight(height)
+        edit_text:SetUseRichText(finaleplugin.RTFNotes)
+        edit_text:SetReadOnly(true)
+        edit_text:SetWordWrap(true)
+        local ok = dlg:CreateOkButton()
+        local function dedent(input)
+            local first_line_indent = input:match("^(%s*)")
+            local pattern = "\n" .. string.rep(" ", #first_line_indent)
+            local result = input:gsub(pattern, "\n")
+            result = result:gsub("^%s+", "")
+            return result
+        end
+        dlg:RegisterInitWindow(
+            function()
+                local notes = dedent(finaleplugin.RTFNotes or dedent(finaleplugin.Notes))
+                local notes_str = finale.FCString(notes)
+                if edit_text:GetUseRichText() then
+                    edit_text:SetRTFString(notes_str)
+                else
+                    local edit_font = finale.FCFontInfo()
+                    edit_font.Name = "Arial"
+                    edit_font.Size = 10
+                    edit_text:SetFont(edit_font)
+                    edit_text:SetText(notes_str)
+                end
+                edit_text:ResetColors()
+                ok:SetKeyboardFocus()
+            end)
+        dlg:ExecuteModal(nil)
+    end
     return utils
 end
 package.preload["library.client"] = package.preload["library.client"] or function()
@@ -5102,24 +5155,38 @@ package.preload["library.mixin"] = package.preload["library.mixin"] or function(
 end
 function plugindef()
     finaleplugin.RequireSelection = false
-    finaleplugin.HandlesUndo = true
+    finaleplugin.HandlesUndo = true 
     finaleplugin.Author = "Robert Patterson"
     finaleplugin.AuthorURL = "https://www.robertgpatterson.com"
     finaleplugin.Copyright = "CC0 https://creativecommons.org/publicdomain/zero/1.0/"
     finaleplugin.Version = "v1.0.1"
     finaleplugin.Date = "2023/1/11"
     finaleplugin.Notes = [[
-        Chords from the source layers in the selected region are split into another layer on the same staff based on a split point.
-        Multiple measures and staves can be selected at once.
+        Chords from the source layers in the selected region are split into another layer on the same staff based on a split point. 
+        Multiple measures and staves can be selected at once. 
         Articulations on the original are optionally copied to the other layer.
-
+        
         The dialog box has the following options:
-
+        
         - From Layer (1-4): the source layer to split from (defaults to 1)
         - To Layer (1-4): the target layer to split to (defaults to 2)
         - Split At [ ] Notes From Top: the number of chord tones to preserve in the source layer, counting from the top of each chord. All other notes are split to the target layer.
         - Copy Articulations: if checked, copies articulations from the source to the target.
-
+        
+    ]]
+    finaleplugin.RTFNotes = [[
+        {\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier New;}}
+        {\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
+        \widowctrl\hyphauto
+        \f0\fs20
+        \f1\fs20
+        {\pard \ql \f0 \sa180 \li0 \fi0 Chords from the source layers in the selected region are split into another layer on the same staff based on a split point. Multiple measures and staves can be selected at once. Articulations on the original are optionally copied to the other layer.\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 The dialog box has the following options:\par}
+        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab From Layer (1-4): the source layer to split from (defaults to 1)\par}
+        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab To Layer (1-4): the target layer to split to (defaults to 2)\par}
+        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Split At [ ] Notes From Top: the number of chord tones to preserve in the source layer, counting from the top of each chord. All other notes are split to the target layer.\par}
+        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Copy Articulations: if checked, copies articulations from the source to the target.\sa180\par}
+        }
     ]]
     finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/staff_split_layers.hash"
     return "Staff Split Layers...", "Staff Split Layers", "Split chords from one layer 1 into two independent layers, based on a split point."

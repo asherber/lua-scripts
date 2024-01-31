@@ -3345,6 +3345,59 @@ package.preload["library.utils"] = package.preload["library.utils"] or function(
     function utils.rethrow_placeholder()
         return "'" .. rethrow_placeholder .. "'"
     end
+
+    function utils.show_notes_dialog(caption, width, height)
+        if not finaleplugin.RTFNotes and not finaleplugin.Notes then
+            return
+        end
+
+        width = width or 500
+        height = height or 350
+
+        if not caption then
+            caption = plugindef()
+            if finaleplugin.Version then
+                local version = finaleplugin.Version
+                if string.sub(version, 1, 1) ~= "v" then
+                    version = "v" .. version
+                end
+                caption = string.format("%s %s", caption, version)
+            end
+        end
+        local dlg = finale.FCCustomLuaWindow()
+        dlg:SetTitle(finale.FCString(caption))
+        local edit_text = dlg:CreateTextEditor(10, 10)
+        edit_text:SetWidth(width)
+        edit_text:SetHeight(height)
+        edit_text:SetUseRichText(finaleplugin.RTFNotes)
+        edit_text:SetReadOnly(true)
+        edit_text:SetWordWrap(true)
+        local ok = dlg:CreateOkButton()
+        local function dedent(input)
+            local first_line_indent = input:match("^(%s*)")
+            local pattern = "\n" .. string.rep(" ", #first_line_indent)
+            local result = input:gsub(pattern, "\n")
+            result = result:gsub("^%s+", "")
+            return result
+        end
+        dlg:RegisterInitWindow(
+            function()
+                local notes = dedent(finaleplugin.RTFNotes or dedent(finaleplugin.Notes))
+                local notes_str = finale.FCString(notes)
+                if edit_text:GetUseRichText() then
+                    edit_text:SetRTFString(notes_str)
+                else
+                    local edit_font = finale.FCFontInfo()
+                    edit_font.Name = "Arial"
+                    edit_font.Size = 10
+                    edit_text:SetFont(edit_font)
+                    edit_text:SetText(notes_str)
+                end
+                edit_text:ResetColors()
+                ok:SetKeyboardFocus()
+            end)
+        dlg:ExecuteModal(nil)
+    end
     return utils
 end
 package.preload["library.client"] = package.preload["library.client"] or function()
@@ -4941,11 +4994,12 @@ function plugindef()
     finaleplugin.Date = "2023/10/15"
     finaleplugin.MinJWLuaVersion = 0.62
     finaleplugin.Notes = [[
-        Perform specific actions on individual note layers in the current selection.
-        Each action in the list begins with a configurable hotkey.
-        Open the script, type the hotkey and hit RETURN or ENTER.
-        To repeat the same action as last time without a confirmation dialog
+        Perform specific actions on individual note layers in the current selection. 
+        Each action in the list begins with a configurable hotkey. 
+        Open the script, type the hotkey and hit RETURN or ENTER. 
+        To repeat the same action as last time without a confirmation dialog 
         hold down the SHIFT key when starting the script.
+
         Actions:
         - Erase Layer
         - Playback Enable
@@ -4955,12 +5009,24 @@ function plugindef()
         - Stems Up
         - Stems Down
         - Stems Default
-        Note that "Erase Layer" will delete a whole measure even if only part of
-        it is selected. All other actions respect selection boundaries.
-        This script replaces four old (deprecated) ones in the repo:
-        "layer_hide.lua", "layer_mute.lua",
+
+        Note that "Erase Layer" will delete a whole measure even if only part of 
+        it is selected. All other actions respect selection boundaries. 
+        This script replaces four old (deprecated) ones in the repo: 
+        "layer_hide.lua", "layer_mute.lua", 
         "stem_direction_by_layer.lua" and "layer_clear_selective.lua".
 	]]
+    finaleplugin.RTFNotes = [[
+        {\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier New;}}
+        {\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
+        \widowctrl\hyphauto
+        \f0\fs20
+        \f1\fs20
+        {\pard \ql \f0 \sa180 \li0 \fi0 Perform specific actions on individual note layers in the current selection. Each action in the list begins with a configurable hotkey. Open the script, type the hotkey and hit RETURN or ENTER. To repeat the same action as last time without a confirmation dialog hold down the SHIFT key when starting the script.\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 Actions: - Erase Layer - Playback Enable - Playback Mute - Visible - Invisible - Stems Up - Stems Down - Stems Default\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 Note that \u8220"Erase Layer\u8221" will delete a whole measure even if only part of it is selected. All other actions respect selection boundaries. This script replaces four old (deprecated) ones in the repo: \u8220"layer_hide.lua\u8221", \u8220"layer_mute.lua\u8221", \u8220"stem_direction_by_layer.lua\u8221" and \u8220"layer_clear_selective.lua\u8221".\par}
+        }
+    ]]
     finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/layer_actions.hash"
     return "Layer Actions...", "Layer Actions", "Perform specific actions on individual layers in the current selection"
 end

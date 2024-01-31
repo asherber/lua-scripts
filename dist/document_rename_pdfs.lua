@@ -4193,6 +4193,59 @@ package.preload["library.utils"] = package.preload["library.utils"] or function(
     function utils.rethrow_placeholder()
         return "'" .. rethrow_placeholder .. "'"
     end
+
+    function utils.show_notes_dialog(caption, width, height)
+        if not finaleplugin.RTFNotes and not finaleplugin.Notes then
+            return
+        end
+
+        width = width or 500
+        height = height or 350
+
+        if not caption then
+            caption = plugindef()
+            if finaleplugin.Version then
+                local version = finaleplugin.Version
+                if string.sub(version, 1, 1) ~= "v" then
+                    version = "v" .. version
+                end
+                caption = string.format("%s %s", caption, version)
+            end
+        end
+        local dlg = finale.FCCustomLuaWindow()
+        dlg:SetTitle(finale.FCString(caption))
+        local edit_text = dlg:CreateTextEditor(10, 10)
+        edit_text:SetWidth(width)
+        edit_text:SetHeight(height)
+        edit_text:SetUseRichText(finaleplugin.RTFNotes)
+        edit_text:SetReadOnly(true)
+        edit_text:SetWordWrap(true)
+        local ok = dlg:CreateOkButton()
+        local function dedent(input)
+            local first_line_indent = input:match("^(%s*)")
+            local pattern = "\n" .. string.rep(" ", #first_line_indent)
+            local result = input:gsub(pattern, "\n")
+            result = result:gsub("^%s+", "")
+            return result
+        end
+        dlg:RegisterInitWindow(
+            function()
+                local notes = dedent(finaleplugin.RTFNotes or dedent(finaleplugin.Notes))
+                local notes_str = finale.FCString(notes)
+                if edit_text:GetUseRichText() then
+                    edit_text:SetRTFString(notes_str)
+                else
+                    local edit_font = finale.FCFontInfo()
+                    edit_font.Name = "Arial"
+                    edit_font.Size = 10
+                    edit_text:SetFont(edit_font)
+                    edit_text:SetText(notes_str)
+                end
+                edit_text:ResetColors()
+                ok:SetKeyboardFocus()
+            end)
+        dlg:ExecuteModal(nil)
+    end
     return utils
 end
 package.preload["library.configuration"] = package.preload["library.configuration"] or function()
@@ -4847,24 +4900,40 @@ function plugindef()
     finaleplugin.Copyright = "CC0 https://creativecommons.org/publicdomain/zero/1.0/"
     finaleplugin.Version = "1.0.1"
     finaleplugin.Date = "2023-02-26"
-    finaleplugin.Id = "d9282b18-12ed-488a-b0e2-011a1ba7d5b4"
+    finaleplugin.Id = "d9282b18-12ed-488a-b0e2-011a1ba7d5b4" 
     finaleplugin.RevisionNotes = [[
         v1.0.1      First public release
     ]]
     finaleplugin.Notes = [[
         The main goal of this script is to emulate the tokens that Sibelius allows when exporting PDFs.
         Using this script, you can change the names of your PDFs, after they have been created,
-        to include any combination of the score filename, score title, part name, part number,
+        to include any combination of the score filename, score title, part name, part number, 
         total number of parts, current date, and current time.
-        A simple use of the script would be to prepend the part number so that your PDFs can be sorted in
+
+        A simple use of the script would be to prepend the part number so that your PDFs can be sorted in 
         the order they appear in the "Manage Parts" dialog.
+
         The script will also fix filename artifacts that result from certain Finale versions and
         PDF drivers – for example, an extra "x" after the score filename or a truncated filename
         if the part names contains a "/".
+
         The script assumes that PDFs currently have the default names assigned by Finale – generally,
         "[score filename] - [part name].pdf".
     ]]
+    finaleplugin.RTFNotes = [[
+        {\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier New;}}
+        {\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
+        \widowctrl\hyphauto
+        \f0\fs20
+        \f1\fs20
+        {\pard \ql \f0 \sa180 \li0 \fi0 The main goal of this script is to emulate the tokens that Sibelius allows when exporting PDFs. Using this script, you can change the names of your PDFs, after they have been created, to include any combination of the score filename, score title, part name, part number, total number of parts, current date, and current time.\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 A simple use of the script would be to prepend the part number so that your PDFs can be sorted in the order they appear in the \u8220"Manage Parts\u8221" dialog.\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 The script will also fix filename artifacts that result from certain Finale versions and PDF drivers \u8211- for example, an extra \u8220"x\u8221" after the score filename or a truncated filename if the part names contains a \u8220"/\u8221".\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 The script assumes that PDFs currently have the default names assigned by Finale \u8211- generally, \u8220"[score filename] - [part name].pdf\u8221".\par}
+        }
+    ]]
     finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/document_rename_pdfs.hash"
+
     return "Rename PDFs...", "", "Renames all PDFs for the current document"
 end
 local mixin = require("library.mixin")

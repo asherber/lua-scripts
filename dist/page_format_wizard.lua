@@ -151,6 +151,59 @@ package.preload["library.utils"] = package.preload["library.utils"] or function(
     function utils.rethrow_placeholder()
         return "'" .. rethrow_placeholder .. "'"
     end
+
+    function utils.show_notes_dialog(caption, width, height)
+        if not finaleplugin.RTFNotes and not finaleplugin.Notes then
+            return
+        end
+
+        width = width or 500
+        height = height or 350
+
+        if not caption then
+            caption = plugindef()
+            if finaleplugin.Version then
+                local version = finaleplugin.Version
+                if string.sub(version, 1, 1) ~= "v" then
+                    version = "v" .. version
+                end
+                caption = string.format("%s %s", caption, version)
+            end
+        end
+        local dlg = finale.FCCustomLuaWindow()
+        dlg:SetTitle(finale.FCString(caption))
+        local edit_text = dlg:CreateTextEditor(10, 10)
+        edit_text:SetWidth(width)
+        edit_text:SetHeight(height)
+        edit_text:SetUseRichText(finaleplugin.RTFNotes)
+        edit_text:SetReadOnly(true)
+        edit_text:SetWordWrap(true)
+        local ok = dlg:CreateOkButton()
+        local function dedent(input)
+            local first_line_indent = input:match("^(%s*)")
+            local pattern = "\n" .. string.rep(" ", #first_line_indent)
+            local result = input:gsub(pattern, "\n")
+            result = result:gsub("^%s+", "")
+            return result
+        end
+        dlg:RegisterInitWindow(
+            function()
+                local notes = dedent(finaleplugin.RTFNotes or dedent(finaleplugin.Notes))
+                local notes_str = finale.FCString(notes)
+                if edit_text:GetUseRichText() then
+                    edit_text:SetRTFString(notes_str)
+                else
+                    local edit_font = finale.FCFontInfo()
+                    edit_font.Name = "Arial"
+                    edit_font.Size = 10
+                    edit_text:SetFont(edit_font)
+                    edit_text:SetText(notes_str)
+                end
+                edit_text:ResetColors()
+                ok:SetKeyboardFocus()
+            end)
+        dlg:ExecuteModal(nil)
+    end
     return utils
 end
 package.preload["library.configuration"] = package.preload["library.configuration"] or function()
@@ -292,26 +345,40 @@ package.preload["library.configuration"] = package.preload["library.configuratio
 end
 function plugindef()
   finaleplugin.RequireSelection = false
-  finaleplugin.Author = "Jacob Winkler"
+  finaleplugin.Author = "Jacob Winkler" 
   finaleplugin.Copyright = "©2024 Jacob Winkler"
   finaleplugin.AuthorEmail = "jacob.winkler@mac.com"
   finaleplugin.Date = "2024/1/25"
   finaleplugin.Version = "1.2.1"
   finaleplugin.HandlesUndo = true
   finaleplugin.NoStore = false
-  finaleplugin.MinJWLuaVersion = 0.70
+  finaleplugin.MinJWLuaVersion = 0.70 
   finaleplugin.Notes = [[
         USING THE 'PAGE FORMAT WIZARD'
-
+        
         The Page Format Wizard duplicates and extends the functionality of both the 'Page Format for Score' and 'Page Format for Parts' dialogs, and works instantly without needing to call 'Redefine Pages' from the Page Layout Tool menu.
-
+        
         Staff height is entered using millimeters, rather than Finale's method of using "Resulting System Scaling" (a fixed value multiplied by a scaling factor). Presets for various raster sizes can be selected from the popup menu. A brief description of each raster size pops up when it is selected, paraphrased from the MOLA guidelines on parts and scores, Elaine Gould's "Behind Bars", and Steven Powell's "Music Engraving Today: The Art and Practice of Digital Notesetting."
-
+        
         System margins can use different units than page units. The default unit for system related measurements are spaces, but the plug-in will remember what was last used.
-
+        
         You can set or scale the staff spacing as you reformat, without the need to 'Respace Staves' using the Staff Tool. This can be useful for doing things like reformatting a tabloid sized score to A3 where slight adjustments to staff spacing might need to be made. Note that if you scale the staff spacing by a percentage, the dialog will be reset to 100% so that you don't keep applying the same transformation over and over. Systems can be locked or unlocked through the plug-in as needed before reformatting.
-
+        
         In addition to formatting the score and parts, you can set up "special parts" to have alternate formatting. This makes it easy to do something like create something like a Piano/Vocal score that may have different requirements than both the full score and the regular instrumental parts. The "special parts" feature could also be used to reformat a subset of parts without touching the others simply by diabling the 'Score' and 'Default Parts' sections of the plug-in.
+    ]]
+    finaleplugin.RTFNotes = [[
+        {\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier New;}}
+        {\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
+        \widowctrl\hyphauto
+        \f0\fs20
+        \f1\fs20
+        {\pard \ql \f0 \sa180 \li0 \fi0 USING THE \u8216'PAGE FORMAT WIZARD\u8217'\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 The Page Format Wizard duplicates and extends the functionality of both the \u8216'Page Format for Score\u8217' and \u8216'Page Format for Parts\u8217' dialogs, and works instantly without needing to call \u8216'Redefine Pages\u8217' from the Page Layout Tool menu.\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 Staff height is entered using millimeters, rather than Finale\u8217's method of using \u8220"Resulting System Scaling\u8221" (a fixed value multiplied by a scaling factor). Presets for various raster sizes can be selected from the popup menu. A brief description of each raster size pops up when it is selected, paraphrased from the MOLA guidelines on parts and scores, Elaine Gould\u8217's \u8220"Behind Bars\u8221", and Steven Powell\u8217's \u8220"Music Engraving Today: The Art and Practice of Digital Notesetting.\u8221"\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 System margins can use different units than page units. The default unit for system related measurements are spaces, but the plug-in will remember what was last used.\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 You can set or scale the staff spacing as you reformat, without the need to \u8216'Respace Staves\u8217' using the Staff Tool. This can be useful for doing things like reformatting a tabloid sized score to A3 where slight adjustments to staff spacing might need to be made. Note that if you scale the staff spacing by a percentage, the dialog will be reset to 100% so that you don\u8217't keep applying the same transformation over and over. Systems can be locked or unlocked through the plug-in as needed before reformatting.\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 In addition to formatting the score and parts, you can set up \u8220"special parts\u8221" to have alternate formatting. This makes it easy to do something like create something like a Piano/Vocal score that may have different requirements than both the full score and the regular instrumental parts. The \u8220"special parts\u8221" feature could also be used to reformat a subset of parts without touching the others simply by diabling the \u8216'Score\u8217' and \u8216'Default Parts\u8217' sections of the plug-in.\par}
+        }
     ]]
     finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/page_format_wizard.hash"
   return "Page Format Wizard", "Page Format Wizard", "Page Format Wizard"

@@ -4699,6 +4699,59 @@ package.preload["library.utils"] = package.preload["library.utils"] or function(
     function utils.rethrow_placeholder()
         return "'" .. rethrow_placeholder .. "'"
     end
+
+    function utils.show_notes_dialog(caption, width, height)
+        if not finaleplugin.RTFNotes and not finaleplugin.Notes then
+            return
+        end
+
+        width = width or 500
+        height = height or 350
+
+        if not caption then
+            caption = plugindef()
+            if finaleplugin.Version then
+                local version = finaleplugin.Version
+                if string.sub(version, 1, 1) ~= "v" then
+                    version = "v" .. version
+                end
+                caption = string.format("%s %s", caption, version)
+            end
+        end
+        local dlg = finale.FCCustomLuaWindow()
+        dlg:SetTitle(finale.FCString(caption))
+        local edit_text = dlg:CreateTextEditor(10, 10)
+        edit_text:SetWidth(width)
+        edit_text:SetHeight(height)
+        edit_text:SetUseRichText(finaleplugin.RTFNotes)
+        edit_text:SetReadOnly(true)
+        edit_text:SetWordWrap(true)
+        local ok = dlg:CreateOkButton()
+        local function dedent(input)
+            local first_line_indent = input:match("^(%s*)")
+            local pattern = "\n" .. string.rep(" ", #first_line_indent)
+            local result = input:gsub(pattern, "\n")
+            result = result:gsub("^%s+", "")
+            return result
+        end
+        dlg:RegisterInitWindow(
+            function()
+                local notes = dedent(finaleplugin.RTFNotes or dedent(finaleplugin.Notes))
+                local notes_str = finale.FCString(notes)
+                if edit_text:GetUseRichText() then
+                    edit_text:SetRTFString(notes_str)
+                else
+                    local edit_font = finale.FCFontInfo()
+                    edit_font.Name = "Arial"
+                    edit_font.Size = 10
+                    edit_text:SetFont(edit_font)
+                    edit_text:SetText(notes_str)
+                end
+                edit_text:ResetColors()
+                ok:SetKeyboardFocus()
+            end)
+        dlg:ExecuteModal(nil)
+    end
     return utils
 end
 package.preload["library.configuration"] = package.preload["library.configuration"] or function()
@@ -4843,33 +4896,56 @@ function plugindef()
     finaleplugin.Author = "Carl Vine"
     finaleplugin.AuthorURL = "https://carlvine.com/lua/"
     finaleplugin.Copyright = "CC0 https://creativecommons.org/publicdomain/zero/1.0/"
-    finaleplugin.Version = "0.53"
-    finaleplugin.Date = "2023/12/11"
+    finaleplugin.Version = "0.57"
+    finaleplugin.Date = "2024/01/25"
     finaleplugin.CategoryTags = "Measures, Region, Selection"
     finaleplugin.MinJWLuaVersion = 0.67
     finaleplugin.Notes = [[
-        The selected score area can be refined in Finale by measure and
-        either beat or EDU at "Edit" → "Select Region...".
-        This script offers a more organic option for precise positioning with
-        slider controls to change the beat and EDU position in each measure,
+        The selected score area can be refined in Finale by measure and 
+        either beat or EDU at "Edit" → "Select Region...". 
+        This script offers a more organic option for precise positioning with 
+        slider controls to change the beat and EDU position in each measure, 
         continuously updating the score highlighting as the selection changes.
-        Note that when one slider overlaps the other in the same
-        measure, it will be pushed out of the way to create a "null"
-        selection (start = end). This doesn't break anything
+
+        Note that when one slider overlaps the other in the same 
+        measure, it will push the other out of the way creating a "null" 
+        selection (start = end). This doesn't break anything 
         but the selection contains no notes.
-        == Beat Boundaries ==
-        The duration of a Finale quarter note is 1024 EDUs,
-        but to select all of of the first beat in a 4/4 measure the
-        selection must be from 0 to 1023 EDU, otherwise it will
-        include notes starting ON the second beat.
-        This "minus one" adjustment is applied to all END positions
-        relative to the beat, as happens when entering beat numbers
+
+        == Beat Boundaries ==  
+        The duration of a Finale quarter note is 1024 EDUs, 
+        but to select all of of the first beat in a 4/4 measure the 
+        selection must be from 0 to 1023 EDU, otherwise it will 
+        include notes starting ON the second beat. 
+        This "minus one" adjustment is applied to all END positions 
+        relative to the beat, as happens when entering beat numbers 
         on the inbuilt "Select Region" option.
-        == Key Commands ==
-        - START point: [w][s][a][d] (up-down-left-right) increments [e][r]
-        - END point:  [f][v][c][b] (up-down-left-right) increments [g][h]
-        - [z] toggle the "follow selection" checkbox.
-        - [q] show these script notes
+
+        == Key Commands == 
+        - (w)(s) @tStart Staff up/down 
+        - (d)(f) @tStart Measure left/right 
+        - (g)(h) @tStart increments -/+ 
+        - (j)(k) / (-)(+) @tStart -/+ one EDU 
+        - • • 
+        - (a)(z) @tEnd Staff up/down 
+        - (x)(c) @tEnd Measure left/right 
+        - (v)(b) @tEnd increments -/+ 
+        - (n)(m) / ([)(]) @tEnd -/+ one EDU 
+        - • •
+        - (e) toggle the "follow selection" checkbox 
+        - (q) show these script notes 
+    ]]
+    finaleplugin.RTFNotes = [[
+        {\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier New;}}
+        {\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
+        \widowctrl\hyphauto
+        \f0\fs20
+        \f1\fs20
+        {\pard \ql \f0 \sa180 \li0 \fi0 The selected score area can be refined in Finale by measure and either beat or EDU at \u8220"Edit\u8221" \u8594? \u8220"Select Region\u8230?\u8221". This script offers a more organic option for precise positioning with slider controls to change the beat and EDU position in each measure, continuously updating the score highlighting as the selection changes.\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 Note that when one slider overlaps the other in the same measure, it will push the other out of the way creating a \u8220"null\u8221" selection (start = end). This doesn\u8217't break anything but the selection contains no notes.\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 == Beat Boundaries ==\line The duration of a Finale quarter note is 1024 EDUs, but to select all of of the first beat in a 4/4 measure the selection must be from 0 to 1023 EDU, otherwise it will include notes starting ON the second beat. This \u8220"minus one\u8221" adjustment is applied to all END positions relative to the beat, as happens when entering beat numbers on the inbuilt \u8220"Select Region\u8221" option.\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 == Key Commands == - (w)(s) @tStart Staff up/down - (d)(f) @tStart Measure left/right - (g)(h) @tStart increments -/+ - (j)(k) / (-)(+) @tStart -/+ one EDU - \u8226? \u8226? - (a)(z) @tEnd Staff up/down - (x)(c) @tEnd Measure left/right - (v)(b) @tEnd increments -/+ - (n)(m) / ([)(]) @tEnd -/+ one EDU - \u8226? \u8226? - (e) toggle the \u8220"follow selection\u8221" checkbox - (q) show these script notes\par}
+        }
     ]]
     finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/selection_refiner.hash"
     return "Selection Refiner...", "Selection Refiner", "Refine the selected music area with visual feedback"
@@ -4882,7 +4958,7 @@ slider controls to change the beat and EDU position in each measure,
 continuously updating the score highlighting as the selection changes.
 **
 Note that when one slider overlaps the other in the same
-measure, it will be pushed out of the way to create a "null"
+measure, it will push the other out of the way creating a "null"
 selection (start = end). This doesn't break anything
 but the selection contains no notes.
 **
@@ -4897,21 +4973,30 @@ relative to the beat, as happens when entering beat numbers
 on the inbuilt "Select Region" option.
 **
 == Key Commands ==
-*• (w)(s)(a)(d) @tSTART (up-down-left-right)
-*• (e/r) @t@tSTART increments
-*• (+/-) (t/y) @tSTART +/- one EDU
-*• (f)(v)(c)(b) @tEND (up-down-left-right)
-*• (g/h) @t@tEND increments
-*• ( [/] ) (j/k) @tEND +/- one EDU
-*• (z) toggle the "follow selection" checkbox
+*• (w)(s) @tStart Staff up/down
+*• (d)(f) @tStart Measure left/right
+*• (g)(h) @tStart increments -/+
+*• (j)(k) / (-)(+) @tStart -/+ one EDU
+*• • •
+*• (a)(z) @tEnd Staff up/down
+*• (x)(c) @tEnd Measure left/right
+*• (v)(b) @tEnd increments -/+
+*• (m)(n) / ([)(]) @tEnd -/+ one EDU
+*• • •
+*• (e) toggle the "follow selection" checkbox
 *• (q) show these script notes
 ]]
 info_notes = info_notes:gsub("\n%s*", " "):gsub("*", "\n"):gsub("@t", "\t")
-local config = { window_pos_x = false, window_pos_y = false, follow_measure = 1 }
+    .. "\n(v" .. finaleplugin.Version .. ")"
+local config = {
+    follow_measure = 0,
+    window_pos_x = false,
+    window_pos_y = false
+}
 local mixin = require("library.mixin")
 local library = require("library.general_library")
 local configuration = require("library.configuration")
-local script_name = "selection_refiner"
+local script_name = library.calc_script_name()
 local function dialog_set_position(dialog)
     if config.window_pos_x and config.window_pos_y then
         dialog:StorePosition()
@@ -4925,21 +5010,27 @@ local function dialog_save_position(dialog)
     config.window_pos_y = dialog.StoredY
     configuration.save_user_settings(script_name, config)
 end
-local function power_of_2(duration)
-    local test_rest = finale.NOTE_128TH / 2
+local function power_of_two(duration)
+    local smallest = finale.NOTE_128TH / 2
     local power = 1
-    while test_rest < duration and power < 10 do
-        test_rest = test_rest * 2
+    while smallest < duration and power < 10 do
+        smallest = smallest * 2
         power = power + 1
     end
     return power
 end
 local function score_limits(rgn)
+    local staff = finale.FCStaff()
+    local staff_list = {}
     local stack = mixin.FCMMusicRegion()
-    stack:SetRegion(rgn):SetFullMeasureStack()
+    stack:SetRegion(rgn):SetFullDocument()
+    for staff_number in eachstaff(stack) do
+        staff:Load(staff_number)
+
+        table.insert(staff_list, staff:CreateDisplayFullNameString())
+    end
     local max_slot = stack.EndSlot
-    stack:SetFullDocument()
-    return stack.EndMeasure, max_slot
+    return stack.EndMeasure, max_slot, staff_list
 end
 local function compile_rest_strings(power)
     power = math.min(math.max(power, 1), 10)
@@ -5000,7 +5091,7 @@ local function get_measure_details(region, is_start_sector)
         md.mark = md.beatdur / 2
         md.steps = 8
     end
-    local power = power_of_2(md.mark * 2)
+    local power = power_of_two(md.mark * 2)
     md.div_dur = md.beatdur / md.steps
     md.divisions = md.beats * md.steps
     if md.composite then
@@ -5016,12 +5107,6 @@ local function get_measure_details(region, is_start_sector)
     end
     md.rests = compile_rest_strings(power)
     return md
-end
-local function get_staff_name(region, slot)
-    local staff_number = region:CalcStaffNumber(slot)
-    local staff = finale.FCStaff()
-    staff:Load(staff_number)
-    return staff:CreateDisplayFullNameString()
 end
 local function convert_edu_to_rest_string(index, md, backwards)
     if backwards then index = md.divisions - index end
@@ -5054,17 +5139,18 @@ end
 local function user_chooses(rgn)
     local y, rest_wide, x_wide =  40, 130, 236
     local x_offset = finenv.UI():IsOnMac() and 0 or 3
+    local name = plugindef():gsub("%.%.%.", "")
         local function yd(diff)
             y = diff and y + diff or y + 16
         end
         local function show_info()
-            finenv.UI():AlertInfo(info_notes, "About " .. plugindef())
+            finenv.UI():AlertInfo(info_notes, "About " .. name)
         end
 
     local measure, sliders, offset, save_off = {}, {}, {}, {}
-    local rest, buttons, index, staff, actions = {}, {}, {}, {}, {}
+    local rest, buttons, index, staff_sel, actions = {}, {}, {}, {}, {}
     local follow
-    local max_measure, max_slot = score_limits(rgn)
+    local max_measure, max_slot, staff_list = score_limits(rgn)
 
     local md = { get_measure_details(rgn, true), get_measure_details(rgn, false) }
     local function pos_to_index(side)
@@ -5073,7 +5159,7 @@ local function user_chooses(rgn)
     index[1] = pos_to_index(1)
     index[2] = pos_to_index(2)
 
-    local dialog = mixin.FCXCustomLuaWindow():SetTitle(plugindef())
+    local dialog = mixin.FCXCustomLuaWindow():SetTitle(name)
 
         local function set_measure_pos(side)
             if side == 1 then rgn.StartMeasurePos = md[side].pos
@@ -5126,15 +5212,6 @@ local function user_chooses(rgn)
             rgn:SetInDocument()
             rgn:Redraw()
         end
-        local function staff_button_visibility()
-            for side = 1, 2 do
-                buttons[side].up:SetEnable(md[side].slot > 1)
-                buttons[side].down:SetEnable(md[side].slot < max_slot)
-                staff[side]:SetText(get_staff_name(rgn, md[side].slot))
-            end
-            rgn:SetInDocument()
-            rgn:Redraw()
-        end
         local function position_increment(side, add)
             if (add > 0 and md[side].pos < md[side].dur)
                 or (add < 0 and md[side].pos > 0) then
@@ -5147,36 +5224,36 @@ local function user_chooses(rgn)
         end
 
     actions = {
-        up = function(a_side)
-            if md[a_side].slot > 1 then
-                md[a_side].slot = md[a_side].slot - 1
-                if a_side == 1 then
-                    rgn.StartSlot = md[1].slot
-                else
-                    rgn.EndSlot = md[2].slot
-                    if md[1].slot > md[2].slot  then
-                        md[1].slot = md[2].slot
-                        rgn.StartSlot = md[2].slot
-                    end
+        staff = function(a_side)
+            local new_slot = staff_sel[a_side]:GetSelectedItem() + 1
+            if new_slot == md[a_side].slot then return end
+            if a_side == 1 then
+                rgn.StartSlot = new_slot
+                if new_slot > (staff_sel[2]:GetSelectedItem() + 1) then
+                    staff_sel[2]:SetSelectedItem(new_slot - 1)
+                    md[2].slot = new_slot
+                    rgn.EndSlot = new_slot
                 end
-                staff_button_visibility()
+            else
+                rgn.EndSlot = new_slot
+                if new_slot < (staff_sel[1]:GetSelectedItem() + 1) then
+                    staff_sel[1]:SetSelectedItem(new_slot - 1)
+                    md[1].slot = new_slot
+                    rgn.StartSlot = new_slot
+                end
             end
+            staff_sel[a_side]:SetSelectedItem(new_slot - 1)
+            md[a_side].slot = new_slot
+            rgn:SetInDocument()
+            rgn:Redraw()
         end,
 
-        down = function(a_side)
-            if md[a_side].slot < max_slot then
-                md[a_side].slot = md[a_side].slot + 1
-                if a_side == 1 then
-                    rgn.StartSlot = md[1].slot
-                    if md[2].slot < md[1].slot  then
-                        md[2].slot = md[1].slot
-                        rgn.EndSlot = md[1].slot
-                    end
-                else
-                    rgn.EndSlot = md[2].slot
-                end
-                staff_button_visibility()
+        change_staff = function(a_side, diff)
+            local slot = staff_sel[a_side]:GetSelectedItem() + 1
+            if (slot > 1 and diff < 0) or (slot < max_slot and diff > 0) then
+                staff_sel[a_side]:SetSelectedItem(slot + diff - 1)
             end
+            actions.staff(a_side)
         end,
 
         left = function(a_side)
@@ -5261,23 +5338,23 @@ local function user_chooses(rgn)
             local s = offset[i]:GetText():lower()
             if s:find("[^0-9]") then
                 if s:find("[?q]") then show_info()
-                elseif s:find("w") then actions.up(1)
-                elseif s:find("s") then actions.down(1)
-                elseif s:find("a") then actions.left(1)
-                elseif s:find("d") then actions.right(1)
-                elseif s:find("e") then actions.thumb(1, -1)
-                elseif s:find("r") then actions.thumb(1, 1)
-                elseif s:find("f") then actions.up(2)
-                elseif s:find("v") then actions.down(2)
-                elseif s:find("c") then actions.left(2)
-                elseif s:find("b") then actions.right(2)
-                elseif s:find("g") then actions.thumb(2, -1)
-                elseif s:find("h") then actions.thumb(2, 1)
-                elseif s:find("[-_t]") then position_increment(1, -1)
-                elseif s:find("[+=y]") then position_increment(1, 1)
-                elseif s:find("[%[j]") then position_increment(2, -1)
-                elseif s:find("[%]k]") then position_increment(2, 1)
-                elseif s:find("z") then
+                elseif s:find("w") then actions.change_staff(1, -1)
+                elseif s:find("s") then actions.change_staff(1, 1)
+                elseif s:find("d") then actions.left(1)
+                elseif s:find("f") then actions.right(1)
+                elseif s:find("g") then actions.thumb(1, -1)
+                elseif s:find("h") then actions.thumb(1, 1)
+                elseif s:find("a") then actions.change_staff(2, -1)
+                elseif s:find("z") then actions.change_staff(2, 1)
+                elseif s:find("x") then actions.left(2)
+                elseif s:find("c") then actions.right(2)
+                elseif s:find("b") then actions.thumb(2, 1)
+                elseif s:find("v") then actions.thumb(2, -1)
+                elseif s:find("[-_j]") then position_increment(1, -1)
+                elseif s:find("[+=k]") then position_increment(1, 1)
+                elseif s:find("[%[n]") then position_increment(2, -1)
+                elseif s:find("[%]m]") then position_increment(2, 1)
+                elseif s:find("e") then
                     follow:SetCheck((follow:GetCheck() + 1) % 2)
                 end
                 offset[i]:SetText(save_off[i])
@@ -5297,16 +5374,11 @@ local function user_chooses(rgn)
     }
     local default_font = finale.FCFontInfo()
     default_font:LoadFontPrefs(finale.FONTPREF_MUSIC)
-    local button_x = (x_wide + rest_wide + 14) / 4
-    local bx12 = button_x + 12
+    local button_x = (x_wide + rest_wide + 14) / 5
         local function make_rest_text(i, y_off)
             rest[i] = dialog:CreateStatic(x_wide + 65, y_off + md[i].rests.vert)
                 :SetWidth(rest_wide):SetHeight(80):SetFont(default_font)
                 :SetText(convert_edu_to_rest_string(index[i], md[i], false))
-        end
-        local function make_staff_name(i)
-            staff[i] = dialog:CreateStatic(bx12 + 25, y):SetWidth(rest_wide)
-                :SetText(get_staff_name(rgn, md[i].slot))
         end
         local function make_slider_and_offset(i)
             sliders[i] = dialog:CreateSlider(0, y):SetMinValue(0)
@@ -5317,45 +5389,56 @@ local function user_chooses(rgn)
                 :AddHandleCommand(function() actions.offset(i) end):SetWidth(50)
         end
         local function make_buttons(i)
+
+            staff_sel[i] = dialog:CreatePopup(0, y)
+                :AddStrings(table.unpack(staff_list)):SetWidth(button_x * 2)
+                :SetSelectedItem(md[i].slot - 1)
+                :AddHandleCommand(function() actions.staff(i) end)
+
             buttons[i] = {}
-            for k, v in pairs({
-                up = { bx12, y, "Staff ↑" },       down = { bx12, y + 20, "Staff ↓" },
-                left = { 0, y + 10, "← Measure" }, right = { bx12 * 2, y + 10, "Measure →" }
-            }) do
-                buttons[i][k] = dialog:CreateButton(v[1], v[2]):SetWidth(button_x)
-                    :AddHandleCommand(function() actions[k](i) end):SetText(v[3])
+            for k, v in pairs{
+                left = { button_x * 2 + 5, "← Measure" }, right = { button_x * 3 + 5, "Measure →" }
+            } do
+                buttons[i][k] = dialog:CreateButton(v[1], y):SetWidth(button_x - 5)
+                    :AddHandleCommand(function() actions[k](i) end):SetText(v[2])
             end
-            measure[i] = dialog:CreateStatic(bx12 * 3, y + 10):SetWidth(60)
+            measure[i] = dialog:CreateStatic(button_x * 4 + 5, y):SetWidth(button_x - 5)
                 :SetText("m. " .. md[2].measure)
         end
 
     make_rest_text(1, 0)
-    make_rest_text(2, 83)
-    dialog:CreateStatic(0, y):SetText("START of Selection:"):SetWidth(x_wide)
-    make_staff_name(1)
-    dialog:CreateButton(x_wide + rest_wide + 30, y):SetText("?"):SetWidth(20)
+    make_rest_text(2, 78)
+
+    dialog:CreateStatic(0, y, "head_1"):SetText("START of Selection:"):SetWidth(x_wide)
+    dialog:CreateButton(x_wide + rest_wide + 30, y, "q"):SetText("?"):SetWidth(20)
         :AddHandleCommand(function() show_info() end)
     yd(14)
     make_slider_and_offset(1)
-    yd(22)
+    yd(30)
     make_buttons(1)
-    yd(42)
-    dialog:CreateHorizontalLine(0, y, button_x * 4)
+    yd(30)
+    dialog:CreateHorizontalLine(0, y, button_x * 5)
     yd(5)
 
-    dialog:CreateStatic(0, y):SetText("END of Selection:"):SetWidth(x_wide)
-    make_staff_name(2)
+    dialog:CreateStatic(0, y, "head_2"):SetText("END of Selection:"):SetWidth(x_wide)
     yd(14)
     make_slider_and_offset(2)
-    yd(22)
+    yd(30)
     make_buttons(2)
-    yd(42)
+    yd(30)
     follow = dialog:CreateCheckbox(0, y, "follow_measure"):SetWidth(x_wide)
         :SetText("Follow selection to off-screen measures"):SetCheck(config.follow_measure)
     dialog:CreateOkButton()
     dialog:CreateCancelButton()
     dialog_set_position(dialog)
     dialog:RegisterHandleOkButtonPressed(function() config.follow_measure = follow:GetCheck() end)
+    dialog:RegisterInitWindow(function(self)
+        local h = self:GetControl("head_1")
+        local bold = h:CreateFontInfo():SetBold(true)
+        h:SetFont(bold)
+        self:GetControl("head_2"):SetFont(bold)
+        self:GetControl("q"):SetFont(bold)
+    end)
     dialog:RegisterCloseWindow(function(self) dialog_save_position(self) end)
     return (dialog:ExecuteModal(nil) == finale.EXECMODAL_OK)
 end

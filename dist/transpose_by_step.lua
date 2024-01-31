@@ -3964,6 +3964,59 @@ package.preload["library.utils"] = package.preload["library.utils"] or function(
     function utils.rethrow_placeholder()
         return "'" .. rethrow_placeholder .. "'"
     end
+
+    function utils.show_notes_dialog(caption, width, height)
+        if not finaleplugin.RTFNotes and not finaleplugin.Notes then
+            return
+        end
+
+        width = width or 500
+        height = height or 350
+
+        if not caption then
+            caption = plugindef()
+            if finaleplugin.Version then
+                local version = finaleplugin.Version
+                if string.sub(version, 1, 1) ~= "v" then
+                    version = "v" .. version
+                end
+                caption = string.format("%s %s", caption, version)
+            end
+        end
+        local dlg = finale.FCCustomLuaWindow()
+        dlg:SetTitle(finale.FCString(caption))
+        local edit_text = dlg:CreateTextEditor(10, 10)
+        edit_text:SetWidth(width)
+        edit_text:SetHeight(height)
+        edit_text:SetUseRichText(finaleplugin.RTFNotes)
+        edit_text:SetReadOnly(true)
+        edit_text:SetWordWrap(true)
+        local ok = dlg:CreateOkButton()
+        local function dedent(input)
+            local first_line_indent = input:match("^(%s*)")
+            local pattern = "\n" .. string.rep(" ", #first_line_indent)
+            local result = input:gsub(pattern, "\n")
+            result = result:gsub("^%s+", "")
+            return result
+        end
+        dlg:RegisterInitWindow(
+            function()
+                local notes = dedent(finaleplugin.RTFNotes or dedent(finaleplugin.Notes))
+                local notes_str = finale.FCString(notes)
+                if edit_text:GetUseRichText() then
+                    edit_text:SetRTFString(notes_str)
+                else
+                    local edit_font = finale.FCFontInfo()
+                    edit_font.Name = "Arial"
+                    edit_font.Size = 10
+                    edit_text:SetFont(edit_font)
+                    edit_text:SetText(notes_str)
+                end
+                edit_text:ResetColors()
+                ok:SetKeyboardFocus()
+            end)
+        dlg:ExecuteModal(nil)
+    end
     return utils
 end
 package.preload["library.client"] = package.preload["library.client"] or function()
@@ -5459,7 +5512,7 @@ package.preload["library.mixin"] = package.preload["library.mixin"] or function(
 end
 function plugindef()
     finaleplugin.RequireSelection = false
-    finaleplugin.HandlesUndo = true
+    finaleplugin.HandlesUndo = true 
     finaleplugin.Author = "Robert Patterson"
     finaleplugin.Copyright = "CC0 https://creativecommons.org/publicdomain/zero/1.0/"
     finaleplugin.Version = "1.2"
@@ -5469,24 +5522,40 @@ function plugindef()
         This script allows you to specify a number of chromatic steps by which to transpose and the script
         simplifies the spelling. Chromatic steps are half-steps in a standard 12-tone scale, but they are smaller
         if you are using a microtone sytem defined in a custom key signature.
+
         Normally the script opens a modeless window. However, if you invoke the plugin with a shift, option, or
         alt key pressed, it skips opening a window and uses the last settings you entered into the window.
         (This works with RGP Lua version 0.60 and higher.)
-
+        
         If you are using custom key signatures with JW Lua or an early version of RGP Lua, you must create
         a custom_key_sig.config.txt file in a folder called `script_settings` within the same folder as the script.
         It should contains the following two lines that define the custom key signature you are using. Unfortunately,
         the JW Lua and early versions of RGP Lua do not allow scripts to read this information from the Finale document.
-
+        
         (This example is for 31-EDO.)
-
+        
         ```
         number_of_steps = 31
         diatonic_steps = {0, 5, 10, 13, 18, 23, 28}
         ```
-
+        
         Later versions of RGP Lua (0.58 or higher) ignore this configuration file (if it exists) and read the correct
         information from the Finale document.
+    ]]
+    finaleplugin.RTFNotes = [[
+        {\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier New;}}
+        {\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
+        \widowctrl\hyphauto
+        \f0\fs20
+        \f1\fs20
+        {\pard \ql \f0 \sa180 \li0 \fi0 This script allows you to specify a number of chromatic steps by which to transpose and the script simplifies the spelling. Chromatic steps are half-steps in a standard 12-tone scale, but they are smaller if you are using a microtone sytem defined in a custom key signature.\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 Normally the script opens a modeless window. However, if you invoke the plugin with a shift, option, or alt key pressed, it skips opening a window and uses the last settings you entered into the window. (This works with RGP Lua version 0.60 and higher.)\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 If you are using custom key signatures with JW Lua or an early version of RGP Lua, you must create a custom_key_sig.config.txt file in a folder called {\f1 script_settings} within the same folder as the script. It should contains the following two lines that define the custom key signature you are using. Unfortunately, the JW Lua and early versions of RGP Lua do not allow scripts to read this information from the Finale document.\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 (This example is for 31-EDO.)\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 \f1 number_of_steps = 31\line
+        diatonic_steps = \{0, 5, 10, 13, 18, 23, 28\}\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 Later versions of RGP Lua (0.58 or higher) ignore this configuration file (if it exists) and read the correct information from the Finale document.\par}
+        }
     ]]
     finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/transpose_by_step.hash"
     return "Transpose By Steps...", "Transpose By Steps", "Transpose by the number of steps given, simplifying spelling as needed."

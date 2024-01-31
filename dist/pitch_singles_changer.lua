@@ -3345,6 +3345,59 @@ package.preload["library.utils"] = package.preload["library.utils"] or function(
     function utils.rethrow_placeholder()
         return "'" .. rethrow_placeholder .. "'"
     end
+
+    function utils.show_notes_dialog(caption, width, height)
+        if not finaleplugin.RTFNotes and not finaleplugin.Notes then
+            return
+        end
+
+        width = width or 500
+        height = height or 350
+
+        if not caption then
+            caption = plugindef()
+            if finaleplugin.Version then
+                local version = finaleplugin.Version
+                if string.sub(version, 1, 1) ~= "v" then
+                    version = "v" .. version
+                end
+                caption = string.format("%s %s", caption, version)
+            end
+        end
+        local dlg = finale.FCCustomLuaWindow()
+        dlg:SetTitle(finale.FCString(caption))
+        local edit_text = dlg:CreateTextEditor(10, 10)
+        edit_text:SetWidth(width)
+        edit_text:SetHeight(height)
+        edit_text:SetUseRichText(finaleplugin.RTFNotes)
+        edit_text:SetReadOnly(true)
+        edit_text:SetWordWrap(true)
+        local ok = dlg:CreateOkButton()
+        local function dedent(input)
+            local first_line_indent = input:match("^(%s*)")
+            local pattern = "\n" .. string.rep(" ", #first_line_indent)
+            local result = input:gsub(pattern, "\n")
+            result = result:gsub("^%s+", "")
+            return result
+        end
+        dlg:RegisterInitWindow(
+            function()
+                local notes = dedent(finaleplugin.RTFNotes or dedent(finaleplugin.Notes))
+                local notes_str = finale.FCString(notes)
+                if edit_text:GetUseRichText() then
+                    edit_text:SetRTFString(notes_str)
+                else
+                    local edit_font = finale.FCFontInfo()
+                    edit_font.Name = "Arial"
+                    edit_font.Size = 10
+                    edit_text:SetFont(edit_font)
+                    edit_text:SetText(notes_str)
+                end
+                edit_text:ResetColors()
+                ok:SetKeyboardFocus()
+            end)
+        dlg:ExecuteModal(nil)
+    end
     return utils
 end
 package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"] or function()
@@ -4848,17 +4901,34 @@ function plugindef()
     finaleplugin.CategoryTags = "Entries, Pitch, Transposition"
     finaleplugin.MinJWLuaVersion = 0.67
     finaleplugin.Notes = [[
-        Change up to four specific pitches to other specific pitches.
+        Change up to four specific pitches to other specific pitches. 
         Pitch specification is exact and immutable:
-        First character: pitch name A-G.
+
+        First character: pitch name A-G. 
         (Lower case will be replaced automatically with upper case)
+
         Last character: octave number 0-9.
-        In between: accidentals if needed.
-        b / bb / bbb / # / ## / ###
+
+        In between: accidentals if needed. 
+        b / bb / bbb / # / ## / ### 
         (you can use "s" instead of "#" - automatic replacement)
-        If you make a mistake with the pitch format you will be asked to
-        "FIX" the mistake before the pitch change can take place.
+
+        If you make a mistake with the pitch format you will be asked to 
+        "FIX" the mistake before the pitch change can take place. 
         "C4" is middle C. "B4" is a major seventh above that.
+    ]]
+    finaleplugin.RTFNotes = [[
+        {\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier New;}}
+        {\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
+        \widowctrl\hyphauto
+        \f0\fs20
+        \f1\fs20
+        {\pard \ql \f0 \sa180 \li0 \fi0 Change up to four specific pitches to other specific pitches. Pitch specification is exact and immutable:\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 First character: pitch name A-G. (Lower case will be replaced automatically with upper case)\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 Last character: octave number 0-9.\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 In between: accidentals if needed. b / bb / bbb / # / ## / ### (you can use \u8220"s\u8221" instead of \u8220"#\u8221" - automatic replacement)\par}
+        {\pard \ql \f0 \sa180 \li0 \fi0 If you make a mistake with the pitch format you will be asked to \u8220"FIX\u8221" the mistake before the pitch change can take place. \u8220"C4\u8221" is middle C. \u8220"B4\u8221" is a major seventh above that.\par}
+        }
     ]]
     finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/pitch_singles_changer.hash"
     return "Pitch Singles Changer...", "Pitch Singles Changer", "Change up to four specific pitches to other specific pitches"
