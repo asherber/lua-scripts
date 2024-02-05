@@ -156,10 +156,27 @@ package.preload["library.utils"] = package.preload["library.utils"] or function(
         if not finaleplugin.RTFNotes and not finaleplugin.Notes then
             return
         end
-
-        width = width or 500
-        height = height or 350
-
+        local function dedent(input)
+            local first_line_indent = input:match("^(%s*)")
+            local pattern = "\n" .. string.rep(" ", #first_line_indent)
+            local result = input:gsub(pattern, "\n")
+            result = result:gsub("^%s+", "")
+            return result
+        end
+        local function replace_font_sizes(rtf)
+            local font_sizes_json  = rtf:match("{\\info%s*{\\comment%s*(.-)%s*}}")
+            if font_sizes_json then
+                local cjson = require("cjson.safe")
+                local font_sizes = cjson.decode('{' .. font_sizes_json .. '}')
+                if font_sizes and font_sizes.os then
+                    local this_os = finenv.UI():IsOnWindows() and 'win' or 'mac'
+                    if (font_sizes.os == this_os) then
+                        rtf = rtf:gsub("fs%d%d", font_sizes)
+                    end
+                end
+            end
+            return rtf
+        end
         if not caption then
             caption = plugindef()
             if finaleplugin.Version then
@@ -170,39 +187,42 @@ package.preload["library.utils"] = package.preload["library.utils"] or function(
                 caption = string.format("%s %s", caption, version)
             end
         end
-        local dlg = finale.FCCustomLuaWindow()
-        dlg:SetTitle(finale.FCString(caption))
-        local edit_text = dlg:CreateTextEditor(10, 10)
-        edit_text:SetWidth(width)
-        edit_text:SetHeight(height)
-        edit_text:SetUseRichText(finaleplugin.RTFNotes)
-        edit_text:SetReadOnly(true)
-        edit_text:SetWordWrap(true)
-        local ok = dlg:CreateOkButton()
-        local function dedent(input)
-            local first_line_indent = input:match("^(%s*)")
-            local pattern = "\n" .. string.rep(" ", #first_line_indent)
-            local result = input:gsub(pattern, "\n")
-            result = result:gsub("^%s+", "")
-            return result
+        if finenv.MajorVersion == 0 and finenv.MinorVersion < 68 and finaleplugin.Notes then
+            finenv.UI():AlertInfo(dedent(finaleplugin.Notes), caption)
+        else
+            local notes = dedent(finaleplugin.RTFNotes or finaleplugin.Notes)
+            if finaleplugin.RTFNotes then
+                notes = replace_font_sizes(notes)
+            end
+            width = width or 500
+            height = height or 350
+
+            local dlg = finale.FCCustomLuaWindow()
+            dlg:SetTitle(finale.FCString(caption))
+            local edit_text = dlg:CreateTextEditor(10, 10)
+            edit_text:SetWidth(width)
+            edit_text:SetHeight(height)
+            edit_text:SetUseRichText(finaleplugin.RTFNotes)
+            edit_text:SetReadOnly(true)
+            edit_text:SetWordWrap(true)
+            local ok = dlg:CreateOkButton()
+            dlg:RegisterInitWindow(
+                function()
+                    local notes_str = finale.FCString(notes)
+                    if edit_text:GetUseRichText() then
+                        edit_text:SetRTFString(notes_str)
+                    else
+                        local edit_font = finale.FCFontInfo()
+                        edit_font.Name = "Arial"
+                        edit_font.Size = finenv.UI():IsOnWindows() and 9 or 12
+                        edit_text:SetFont(edit_font)
+                        edit_text:SetText(notes_str)
+                    end
+                    edit_text:ResetColors()
+                    ok:SetKeyboardFocus()
+                end)
+            dlg:ExecuteModal(nil)
         end
-        dlg:RegisterInitWindow(
-            function()
-                local notes = dedent(finaleplugin.RTFNotes or dedent(finaleplugin.Notes))
-                local notes_str = finale.FCString(notes)
-                if edit_text:GetUseRichText() then
-                    edit_text:SetRTFString(notes_str)
-                else
-                    local edit_font = finale.FCFontInfo()
-                    edit_font.Name = "Arial"
-                    edit_font.Size = 10
-                    edit_text:SetFont(edit_font)
-                    edit_text:SetText(notes_str)
-                end
-                edit_text:ResetColors()
-                ok:SetKeyboardFocus()
-            end)
-        dlg:ExecuteModal(nil)
     end
     return utils
 end
@@ -394,7 +414,7 @@ function lyrics_spacing(title)
     end
     local function add_ctrl(dialog, ctrl_type, text, x, y, h, w)
         str.LuaString = tostring(text)
-        local ctrl = ""
+        local ctrl
         if ctrl_type == "checkbox" then
             ctrl = dialog:CreateCheckbox(x, y)
         elseif ctrl_type == "edit" then
@@ -403,7 +423,7 @@ function lyrics_spacing(title)
             ctrl = dialog:CreateStatic(x, y)
         end
         if ctrl_type == "edit" then
-            ctrl:SetHeight(h-2)
+            ctrl:SetHeight(h - 2)
             ctrl:SetWidth(w - col_gap)
         else
             ctrl:SetHeight(h)
@@ -412,22 +432,23 @@ function lyrics_spacing(title)
         ctrl:SetText(str)
         return ctrl
     end
-    local verse_static = add_ctrl(dialog, "static", "All Lyrics", col[3], row[1], row_h, col_w, 0, 0)
-    local chorus_static = add_ctrl(dialog, "static", "", col[4], row[1], row_h, col_w, 0, 0)
-    local section_static = add_ctrl(dialog, "static", "", col[5], row[1], row_h, col_w, 0, 0)
 
-    add_ctrl(dialog, "static", "Lyric 1 baseline:", col[1] + 31, row[2], row_h, col_w * 2, 0, 0)
-    local verse1_edit = add_ctrl(dialog, "edit", verse1_start, col[3], row[2], row_h, col_w, 0, 0)
-    local chorus1_edit = add_ctrl(dialog, "edit", chorus1_start, col[4], row[2], row_h, col_w, 0, 0)
-    local section1_edit = add_ctrl(dialog, "edit", section1_start, col[5], row[2], row_h, col_w, 0, 0)
+    local verse_static = add_ctrl(dialog, "static", "All Lyrics", col[3], row[1], row_h, col_w)
+    local chorus_static = add_ctrl(dialog, "static", "", col[4], row[1], row_h, col_w)
+    local section_static = add_ctrl(dialog, "static", "", col[5], row[1], row_h, col_w)
 
-    add_ctrl(dialog, "static", "Gap:", col[2] + 29, row[3], row_h, col_w, 0, 0)
-    local verse_gap_edit = add_ctrl(dialog, "edit", verse_gap, col[3], row[3], row_h, col_w, 0, 0)
-    local chorus_gap_edit = add_ctrl(dialog, "edit", chorus_gap, col[4], row[3], row_h, col_w, 0, 0)
-    local section_gap_edit = add_ctrl(dialog, "edit", section_gap, col[5], row[3], row_h, col_w, 0, 0)
+    add_ctrl(dialog, "static", "Lyric 1 baseline:", col[1] + 31, row[2], row_h, col_w * 2)
+    local verse1_edit = add_ctrl(dialog, "edit", verse1_start, col[3], row[2], row_h, col_w)
+    local chorus1_edit = add_ctrl(dialog, "edit", chorus1_start, col[4], row[2], row_h, col_w)
+    local section1_edit = add_ctrl(dialog, "edit", section1_start, col[5], row[2], row_h, col_w)
 
-    add_ctrl(dialog, "static", "Edit all:", col[2] + 14, row[4], row_h, col_w, 0, 0)
-    local all_lyrics_check = add_ctrl(dialog, "checkbox", "", col[3], row[4], row_h, col_w * 2, 0, 0)
+    add_ctrl(dialog, "static", "Gap:", col[2] + 29, row[3], row_h, col_w)
+    local verse_gap_edit = add_ctrl(dialog, "edit", verse_gap, col[3], row[3], row_h, col_w)
+    local chorus_gap_edit = add_ctrl(dialog, "edit", chorus_gap, col[4], row[3], row_h, col_w)
+    local section_gap_edit = add_ctrl(dialog, "edit", section_gap, col[5], row[3], row_h, col_w)
+
+    add_ctrl(dialog, "static", "Edit all:", col[2] + 14, row[4], row_h, col_w)
+    local all_lyrics_check = add_ctrl(dialog, "checkbox", "", col[3], row[4], row_h, col_w * 2)
     dialog:CreateOkButton()
     dialog:CreateCancelButton()
 
@@ -442,17 +463,17 @@ function lyrics_spacing(title)
             section_gap_edit:SetText(str)
         end
         verse1_edit:GetText(str)
-        verse1_start = tonumber(str.LuaString)
+        verse1_start = tonumber(str.LuaString) or 0
         chorus1_edit:GetText(str)
-        chorus1_start = tonumber(str.LuaString)
+        chorus1_start = tonumber(str.LuaString) or 0
         section1_edit:GetText(str)
-        section1_start = tonumber(str.LuaString)
+        section1_start = tonumber(str.LuaString) or 0
         verse_gap_edit:GetText(str)
-        verse_gap = tonumber(str.LuaString)
+        verse_gap = tonumber(str.LuaString) or 0
         chorus_gap_edit:GetText(str)
-        chorus_gap = tonumber(str.LuaString)
+        chorus_gap = tonumber(str.LuaString) or 0
         section_gap_edit:GetText(str)
-        section_gap = tonumber(str.LuaString)
+        section_gap = tonumber(str.LuaString) or 0
 
         for i = 1, 100, 1 do
             baseline_verse:LoadDefaultForLyricNumber(finale.BASELINEMODE_LYRICSVERSE,i)
