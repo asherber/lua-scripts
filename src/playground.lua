@@ -1,5 +1,5 @@
 function plugindef()    
-    return "Lua Playground", "", "Lua Playground"
+    return "_Playground", "", "_Playground"
 end
 
 ---[[
