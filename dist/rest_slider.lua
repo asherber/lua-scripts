@@ -3275,9 +3275,7 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
         if library.is_finale_object(value) then
             secondary_type = value.MixinClass or value.ClassName
         end
-        error(
-            "bad argument #" .. tostring(argument_number) .. " to 'tryfunczzz' (" .. table.concat(table.pack(...), " or ") .. " expected, got " .. (secondary_type or primary_type) ..
-                ")", levels)
+        error("bad argument #" .. tostring(argument_number) .. " to 'tryfunczzz' (" .. table.concat(table.pack(...), " or ") .. " expected, got " .. (secondary_type or primary_type) .. ")", levels)
     end
 
     function mixin_helper.assert_argument_type(argument_number, value, ...)
@@ -3288,6 +3286,32 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
 
     function mixin_helper.force_assert_argument_type(argument_number, value, ...)
         assert_argument_type(4, argument_number, value, ...)
+    end
+    local function to_key_string(value)
+        if type(value) == "string" then
+            value = "\"" .. value .. "\""
+        end
+        return "[" .. tostring(value) .. "]"
+    end
+    local function assert_table_argument_type(argument_number, table_value, ...)
+        if type(table_value) ~= "table" then
+            error("bad argument #2 to 'assert_table_argument_type' (table expected, got " .. type(table_value) .. ")", 3)
+        end
+        for k, v in pairsbykeys(table_value) do
+            if k ~= "n" or type(k) ~= "number" then
+                assert_argument_type(5, tostring(argument_number) .. to_key_string(k), v, ...)
+            end
+        end
+    end
+
+    function mixin_helper.assert_table_argument_type(argument_number, value, ...)
+        if debug_enabled then
+            assert_table_argument_type(argument_number, value, ...)
+        end
+    end
+
+    function mixin_helper.force_assert_table_argument_type(argument_number, value, ...)
+        assert_table_argument_type(argument_number, value, ...)
     end
     local function assert_func(condition, message, level)
         if type(condition) == "function" then
@@ -3453,13 +3477,12 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
             if windows[window] then
                 return
             end
-            window:AddInitWindow(
-                function()
+            window:AddInitWindow(function()
 
-                    for control in event.target_iterator() do
-                        event.dispatcher(control)
-                    end
-                end)
+                for control in event.target_iterator() do
+                    event.dispatcher(control)
+                end
+            end)
             window:AddHandleCommand(event.dispatcher)
         end
         local function add_func(self, callback)
@@ -3481,11 +3504,10 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
             end
             local window = control:GetParent()
             if window:WindowExists__() then
-                window:QueueHandleCustom(
-                    function()
-                        queued[control] = nil
-                        event.dispatcher(control)
-                    end)
+                window:QueueHandleCustom(function()
+                    queued[control] = nil
+                    event.dispatcher(control)
+                end)
                 queued[control] = true
             end
         end
@@ -3529,11 +3551,10 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
             if not event.has_callbacks(window) or queued[window] or not window:WindowExists__() then
                 return
             end
-            window:QueueHandleCustom(
-                function()
-                    queued[window] = nil
-                    event.dispatcher(window)
-                end)
+            window:QueueHandleCustom(function()
+                queued[window] = nil
+                event.dispatcher(window)
+            end)
             queued[window] = true
         end
         local function trigger_func(window, immediate)
@@ -3599,12 +3620,6 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
     end
 
     function mixin_helper.create_multi_string_proxy(method_name)
-        local function to_key_string(value)
-            if type(value) == "string" then
-                value = "\"" .. value .. "\""
-            end
-            return "[" .. tostring(value) .. "]"
-        end
         return function(self, ...)
             mixin_helper.assert_argument_type(1, self, "userdata")
             for i = 1, select("#", ...) do
@@ -3615,8 +3630,8 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
                         self[method_name](self, str)
                     end
                 elseif type(v) == "table" then
-                    for k2, v2 in pairsbykeys(v) do
-                        mixin_helper.assert_argument_type(tostring(i + 1) .. to_key_string(k2), v2, "string", "number", "FCString")
+                    mixin_helper.assert_table_argument_type(i + 1, v, "string", "number", "FCString")
+                    for _, v2 in pairsbykeys(v) do
                         self[method_name](self, v2)
                     end
                 else
@@ -5321,19 +5336,19 @@ function plugindef()
         \widowctrl\hyphauto
         \fs18
         {\info{\comment "os":"mac","fs18":"fs24","fs26":"fs32","fs23":"fs29","fs20":"fs26"}}
-        {\pard \ql \f0 \sa180 \li0 \fi0 Slide rests up and down on the nominated layer with continuous visual feedback. This was designed especially to help align rests midway between staves with cross-staff notes. The {\i Mid-Staff Above} and {\i Mid-Staff Below} buttons achieve this with one click. Cancel the script to leave rests unchanged.\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 {\i Reset Zero} sets nil offset. Note that on transposing instruments this is NOT the middle of the staff if {\i Display in Concert Pitch} is selected. In those instances use {\i Floating Rests} to return them to their virgin state where the only offset is that set at {\i Document} \u8594? {\i Document Options} \u8594? {\i Layers} \u8594? {\i Adjust Floating Rests by\u8230?}\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 At startup all rests in the chosen layer are moved to the same offset as the first rest on that layer in the selection. Layer numbers can be changed \u8220"on the fly\u8221" to help balance rests across multiple layers. Select {\b Modeless} if you prefer the dialog window to \u8220"float\u8221" above your score. In this mode you must click {\b Apply} [Return/Enter] to \u8220"set\u8221" new rest positions and {\b Cancel} [Escape] to close the window. {\b Modeless} will apply {\i next} time you use the script.\par}
-        {\pard \ql \f0 \sa180 \li720 \fi0 If {\b Layer Number} is highlighted these {\b Key Commands} are available:\par}
-        {\pard \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b a} ({\b -}): move rests down one step\par}
-        {\pard \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b s} ({\b +}): move rests up one step\par}
-        {\pard \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b d}: move to mid-staff above (if one staff selected)\par}
-        {\pard \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b f}: move to mid-staff below (if one staff selected)\par}
-        {\pard \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b z}: reset to \u8220"zero\u8221" shift (not floating)\par}
-        {\pard \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b x}: floating rests\par}
-        {\pard \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b i}: invert shift direction\par}
-        {\pard \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b q}: show these script notes\par}
-        {\pard \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b 0-4}: layer number (delete key not needed)\sa180\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 Slide rests up and down on the nominated layer with continuous visual feedback. This was designed especially to help align rests midway between staves with cross-staff notes. The {\i Mid-Staff Above} and {\i Mid-Staff Below} buttons achieve this with one click. Cancel the script to leave rests unchanged.\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 {\i Reset Zero} sets nil offset. Note that on transposing instruments this is NOT the middle of the staff if {\i Display in Concert Pitch} is selected. In those instances use {\i Floating Rests} to return them to their virgin state where the only offset is that set at {\i Document} \u8594? {\i Document Options} \u8594? {\i Layers} \u8594? {\i Adjust Floating Rests by\u8230?}\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 At startup all rests in the chosen layer are moved to the same offset as the first rest on that layer in the selection. Layer numbers can be changed \u8220"on the fly\u8221" to help balance rests across multiple layers. Select {\b Modeless} if you prefer the dialog window to \u8220"float\u8221" above your score. In this mode you must click {\b Apply} [Return/Enter] to \u8220"set\u8221" new rest positions and {\b Cancel} [Escape] to close the window. {\b Modeless} will apply {\i next} time you use the script.\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li720 \fi0 If {\b Layer Number} is highlighted these {\b Key Commands} are available:\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b a} ({\b -}): move rests down one step\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b s} ({\b +}): move rests up one step\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b d}: move to mid-staff above (if one staff selected)\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b f}: move to mid-staff below (if one staff selected)\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b z}: reset to \u8220"zero\u8221" shift (not floating)\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b x}: floating rests\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b i}: invert shift direction\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b q}: show these script notes\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b 0-4}: layer number (delete key not needed)\sa180\par}
         }
     ]]
     finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/rest_slider.hash"

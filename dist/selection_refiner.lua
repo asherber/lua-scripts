@@ -3275,9 +3275,7 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
         if library.is_finale_object(value) then
             secondary_type = value.MixinClass or value.ClassName
         end
-        error(
-            "bad argument #" .. tostring(argument_number) .. " to 'tryfunczzz' (" .. table.concat(table.pack(...), " or ") .. " expected, got " .. (secondary_type or primary_type) ..
-                ")", levels)
+        error("bad argument #" .. tostring(argument_number) .. " to 'tryfunczzz' (" .. table.concat(table.pack(...), " or ") .. " expected, got " .. (secondary_type or primary_type) .. ")", levels)
     end
 
     function mixin_helper.assert_argument_type(argument_number, value, ...)
@@ -3288,6 +3286,32 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
 
     function mixin_helper.force_assert_argument_type(argument_number, value, ...)
         assert_argument_type(4, argument_number, value, ...)
+    end
+    local function to_key_string(value)
+        if type(value) == "string" then
+            value = "\"" .. value .. "\""
+        end
+        return "[" .. tostring(value) .. "]"
+    end
+    local function assert_table_argument_type(argument_number, table_value, ...)
+        if type(table_value) ~= "table" then
+            error("bad argument #2 to 'assert_table_argument_type' (table expected, got " .. type(table_value) .. ")", 3)
+        end
+        for k, v in pairsbykeys(table_value) do
+            if k ~= "n" or type(k) ~= "number" then
+                assert_argument_type(5, tostring(argument_number) .. to_key_string(k), v, ...)
+            end
+        end
+    end
+
+    function mixin_helper.assert_table_argument_type(argument_number, value, ...)
+        if debug_enabled then
+            assert_table_argument_type(argument_number, value, ...)
+        end
+    end
+
+    function mixin_helper.force_assert_table_argument_type(argument_number, value, ...)
+        assert_table_argument_type(argument_number, value, ...)
     end
     local function assert_func(condition, message, level)
         if type(condition) == "function" then
@@ -3453,13 +3477,12 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
             if windows[window] then
                 return
             end
-            window:AddInitWindow(
-                function()
+            window:AddInitWindow(function()
 
-                    for control in event.target_iterator() do
-                        event.dispatcher(control)
-                    end
-                end)
+                for control in event.target_iterator() do
+                    event.dispatcher(control)
+                end
+            end)
             window:AddHandleCommand(event.dispatcher)
         end
         local function add_func(self, callback)
@@ -3481,11 +3504,10 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
             end
             local window = control:GetParent()
             if window:WindowExists__() then
-                window:QueueHandleCustom(
-                    function()
-                        queued[control] = nil
-                        event.dispatcher(control)
-                    end)
+                window:QueueHandleCustom(function()
+                    queued[control] = nil
+                    event.dispatcher(control)
+                end)
                 queued[control] = true
             end
         end
@@ -3529,11 +3551,10 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
             if not event.has_callbacks(window) or queued[window] or not window:WindowExists__() then
                 return
             end
-            window:QueueHandleCustom(
-                function()
-                    queued[window] = nil
-                    event.dispatcher(window)
-                end)
+            window:QueueHandleCustom(function()
+                queued[window] = nil
+                event.dispatcher(window)
+            end)
             queued[window] = true
         end
         local function trigger_func(window, immediate)
@@ -3599,12 +3620,6 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
     end
 
     function mixin_helper.create_multi_string_proxy(method_name)
-        local function to_key_string(value)
-            if type(value) == "string" then
-                value = "\"" .. value .. "\""
-            end
-            return "[" .. tostring(value) .. "]"
-        end
         return function(self, ...)
             mixin_helper.assert_argument_type(1, self, "userdata")
             for i = 1, select("#", ...) do
@@ -3615,8 +3630,8 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
                         self[method_name](self, str)
                     end
                 elseif type(v) == "table" then
-                    for k2, v2 in pairsbykeys(v) do
-                        mixin_helper.assert_argument_type(tostring(i + 1) .. to_key_string(k2), v2, "string", "number", "FCString")
+                    mixin_helper.assert_table_argument_type(i + 1, v, "string", "number", "FCString")
+                    for _, v2 in pairsbykeys(v) do
                         self[method_name](self, v2)
                     end
                 else
@@ -5225,10 +5240,10 @@ function plugindef()
         \widowctrl\hyphauto
         \fs18
         {\info{\comment "os":"mac","fs18":"fs24","fs26":"fs32","fs23":"fs29","fs20":"fs26"}}
-        {\pard \ql \f0 \sa180 \li0 \fi0 The selected score area can be refined in Finale by measure and either beat or EDU at \u8220"Edit\u8221" \u8594? \u8220"Select Region\u8230?\u8221". This script offers a more organic option for precise positioning with slider controls to change the beat and EDU position in each measure, continuously updating the score highlighting as the selection changes.\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 Note that when one slider overlaps the other in the same measure, it will push the other out of the way creating a \u8220"null\u8221" selection (start = end). This doesn\u8217't break anything but the selection contains no notes.\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 == Beat Boundaries ==\line The duration of a Finale quarter note is 1024 EDUs, but to select all of of the first beat in a 4/4 measure the selection must be from 0 to 1023 EDU, otherwise it will include notes starting ON the second beat. This \u8220"minus one\u8221" adjustment is applied to all END positions relative to the beat, as happens when entering beat numbers on the inbuilt \u8220"Select Region\u8221" option.\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 == Key Commands == - (w)(s) @tStart Staff up/down - (d)(f) @tStart Measure left/right - (g)(h) @tStart increments -/+ - (j)(k) / (-)(+) @tStart -/+ one EDU - \u8226? \u8226? - (a)(z) @tEnd Staff up/down - (x)(c) @tEnd Measure left/right - (v)(b) @tEnd increments -/+ - (n)(m) / ([)(]) @tEnd -/+ one EDU - \u8226? \u8226? - (e) toggle the \u8220"follow selection\u8221" checkbox - (q) show these script notes\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 The selected score area can be refined in Finale by measure and either beat or EDU at \u8220"Edit\u8221" \u8594? \u8220"Select Region\u8230?\u8221". This script offers a more organic option for precise positioning with slider controls to change the beat and EDU position in each measure, continuously updating the score highlighting as the selection changes.\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 Note that when one slider overlaps the other in the same measure, it will push the other out of the way creating a \u8220"null\u8221" selection (start = end). This doesn\u8217't break anything but the selection contains no notes.\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 == Beat Boundaries ==\line The duration of a Finale quarter note is 1024 EDUs, but to select all of of the first beat in a 4/4 measure the selection must be from 0 to 1023 EDU, otherwise it will include notes starting ON the second beat. This \u8220"minus one\u8221" adjustment is applied to all END positions relative to the beat, as happens when entering beat numbers on the inbuilt \u8220"Select Region\u8221" option.\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 == Key Commands == - (w)(s) @tStart Staff up/down - (d)(f) @tStart Measure left/right - (g)(h) @tStart increments -/+ - (j)(k) / (-)(+) @tStart -/+ one EDU - \u8226? \u8226? - (a)(z) @tEnd Staff up/down - (x)(c) @tEnd Measure left/right - (v)(b) @tEnd increments -/+ - (n)(m) / ([)(]) @tEnd -/+ one EDU - \u8226? \u8226? - (e) toggle the \u8220"follow selection\u8221" checkbox - (q) show these script notes\par}
         }
     ]]
     finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/selection_refiner.hash"

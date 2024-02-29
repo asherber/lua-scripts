@@ -3514,9 +3514,7 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
         if library.is_finale_object(value) then
             secondary_type = value.MixinClass or value.ClassName
         end
-        error(
-            "bad argument #" .. tostring(argument_number) .. " to 'tryfunczzz' (" .. table.concat(table.pack(...), " or ") .. " expected, got " .. (secondary_type or primary_type) ..
-                ")", levels)
+        error("bad argument #" .. tostring(argument_number) .. " to 'tryfunczzz' (" .. table.concat(table.pack(...), " or ") .. " expected, got " .. (secondary_type or primary_type) .. ")", levels)
     end
 
     function mixin_helper.assert_argument_type(argument_number, value, ...)
@@ -3527,6 +3525,32 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
 
     function mixin_helper.force_assert_argument_type(argument_number, value, ...)
         assert_argument_type(4, argument_number, value, ...)
+    end
+    local function to_key_string(value)
+        if type(value) == "string" then
+            value = "\"" .. value .. "\""
+        end
+        return "[" .. tostring(value) .. "]"
+    end
+    local function assert_table_argument_type(argument_number, table_value, ...)
+        if type(table_value) ~= "table" then
+            error("bad argument #2 to 'assert_table_argument_type' (table expected, got " .. type(table_value) .. ")", 3)
+        end
+        for k, v in pairsbykeys(table_value) do
+            if k ~= "n" or type(k) ~= "number" then
+                assert_argument_type(5, tostring(argument_number) .. to_key_string(k), v, ...)
+            end
+        end
+    end
+
+    function mixin_helper.assert_table_argument_type(argument_number, value, ...)
+        if debug_enabled then
+            assert_table_argument_type(argument_number, value, ...)
+        end
+    end
+
+    function mixin_helper.force_assert_table_argument_type(argument_number, value, ...)
+        assert_table_argument_type(argument_number, value, ...)
     end
     local function assert_func(condition, message, level)
         if type(condition) == "function" then
@@ -3692,13 +3716,12 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
             if windows[window] then
                 return
             end
-            window:AddInitWindow(
-                function()
+            window:AddInitWindow(function()
 
-                    for control in event.target_iterator() do
-                        event.dispatcher(control)
-                    end
-                end)
+                for control in event.target_iterator() do
+                    event.dispatcher(control)
+                end
+            end)
             window:AddHandleCommand(event.dispatcher)
         end
         local function add_func(self, callback)
@@ -3720,11 +3743,10 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
             end
             local window = control:GetParent()
             if window:WindowExists__() then
-                window:QueueHandleCustom(
-                    function()
-                        queued[control] = nil
-                        event.dispatcher(control)
-                    end)
+                window:QueueHandleCustom(function()
+                    queued[control] = nil
+                    event.dispatcher(control)
+                end)
                 queued[control] = true
             end
         end
@@ -3768,11 +3790,10 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
             if not event.has_callbacks(window) or queued[window] or not window:WindowExists__() then
                 return
             end
-            window:QueueHandleCustom(
-                function()
-                    queued[window] = nil
-                    event.dispatcher(window)
-                end)
+            window:QueueHandleCustom(function()
+                queued[window] = nil
+                event.dispatcher(window)
+            end)
             queued[window] = true
         end
         local function trigger_func(window, immediate)
@@ -3838,12 +3859,6 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
     end
 
     function mixin_helper.create_multi_string_proxy(method_name)
-        local function to_key_string(value)
-            if type(value) == "string" then
-                value = "\"" .. value .. "\""
-            end
-            return "[" .. tostring(value) .. "]"
-        end
         return function(self, ...)
             mixin_helper.assert_argument_type(1, self, "userdata")
             for i = 1, select("#", ...) do
@@ -3854,8 +3869,8 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
                         self[method_name](self, str)
                     end
                 elseif type(v) == "table" then
-                    for k2, v2 in pairsbykeys(v) do
-                        mixin_helper.assert_argument_type(tostring(i + 1) .. to_key_string(k2), v2, "string", "number", "FCString")
+                    mixin_helper.assert_table_argument_type(i + 1, v, "string", "number", "FCString")
+                    for _, v2 in pairsbykeys(v) do
                         self[method_name](self, v2)
                     end
                 else
@@ -5557,10 +5572,10 @@ function plugindef()
         \widowctrl\hyphauto
         \fs18
         {\info{\comment "os":"mac","fs18":"fs24","fs26":"fs32","fs23":"fs29","fs20":"fs26"}}
-        {\pard \ql \f0 \sa180 \li0 \fi0 Change notehead shapes on a specific layer of the current selection to one of these options:\line Circled | Default | Diamond | Guitar Diamond |\line Hidden | Number | Round | Slash | Square |\line Strikethrough | Triangle | Wedge | X |\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 This script produces an ordered list of notehead types, each line beginning with a configurable \u8220"hotkey\u8221". Call the script, type the hotkey and hit [enter] or [return].\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 In SMuFL fonts like Finale Maestro, shapes can vary according to duration values. Most duration-dependent shapes are not available in Finale\u8217's old (non-SMuFL) Maestro and Engraver fonts. \u8220"Diamond (Guitar)\u8221" is like \u8220"Diamond\u8221" except quarter notes and shorter use filled diamonds. \u8220"Number\u8221" lets you specify any font character as a number including SMuFL (Unicode) numbers in the form \u8220"0xe0e1\u8221" or \u8220"0xE0E1\u8221".\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 To repeat the same action as last time without a confirmation dialog either select the \u8220"Noteheads Change Repeat\u8221" menu item or hold down the [shift] key when opening the script.\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 Change notehead shapes on a specific layer of the current selection to one of these options:\line Circled | Default | Diamond | Guitar Diamond |\line Hidden | Number | Round | Slash | Square |\line Strikethrough | Triangle | Wedge | X |\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 This script produces an ordered list of notehead types, each line beginning with a configurable \u8220"hotkey\u8221". Call the script, type the hotkey and hit [enter] or [return].\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 In SMuFL fonts like Finale Maestro, shapes can vary according to duration values. Most duration-dependent shapes are not available in Finale\u8217's old (non-SMuFL) Maestro and Engraver fonts. \u8220"Diamond (Guitar)\u8221" is like \u8220"Diamond\u8221" except quarter notes and shorter use filled diamonds. \u8220"Number\u8221" lets you specify any font character as a number including SMuFL (Unicode) numbers in the form \u8220"0xe0e1\u8221" or \u8220"0xE0E1\u8221".\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 To repeat the same action as last time without a confirmation dialog either select the \u8220"Noteheads Change Repeat\u8221" menu item or hold down the [shift] key when opening the script.\par}
         }
     ]]
     finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/noteheads_change_by_layer.hash"

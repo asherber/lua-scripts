@@ -3506,9 +3506,7 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
         if library.is_finale_object(value) then
             secondary_type = value.MixinClass or value.ClassName
         end
-        error(
-            "bad argument #" .. tostring(argument_number) .. " to 'tryfunczzz' (" .. table.concat(table.pack(...), " or ") .. " expected, got " .. (secondary_type or primary_type) ..
-                ")", levels)
+        error("bad argument #" .. tostring(argument_number) .. " to 'tryfunczzz' (" .. table.concat(table.pack(...), " or ") .. " expected, got " .. (secondary_type or primary_type) .. ")", levels)
     end
 
     function mixin_helper.assert_argument_type(argument_number, value, ...)
@@ -3519,6 +3517,32 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
 
     function mixin_helper.force_assert_argument_type(argument_number, value, ...)
         assert_argument_type(4, argument_number, value, ...)
+    end
+    local function to_key_string(value)
+        if type(value) == "string" then
+            value = "\"" .. value .. "\""
+        end
+        return "[" .. tostring(value) .. "]"
+    end
+    local function assert_table_argument_type(argument_number, table_value, ...)
+        if type(table_value) ~= "table" then
+            error("bad argument #2 to 'assert_table_argument_type' (table expected, got " .. type(table_value) .. ")", 3)
+        end
+        for k, v in pairsbykeys(table_value) do
+            if k ~= "n" or type(k) ~= "number" then
+                assert_argument_type(5, tostring(argument_number) .. to_key_string(k), v, ...)
+            end
+        end
+    end
+
+    function mixin_helper.assert_table_argument_type(argument_number, value, ...)
+        if debug_enabled then
+            assert_table_argument_type(argument_number, value, ...)
+        end
+    end
+
+    function mixin_helper.force_assert_table_argument_type(argument_number, value, ...)
+        assert_table_argument_type(argument_number, value, ...)
     end
     local function assert_func(condition, message, level)
         if type(condition) == "function" then
@@ -3684,13 +3708,12 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
             if windows[window] then
                 return
             end
-            window:AddInitWindow(
-                function()
+            window:AddInitWindow(function()
 
-                    for control in event.target_iterator() do
-                        event.dispatcher(control)
-                    end
-                end)
+                for control in event.target_iterator() do
+                    event.dispatcher(control)
+                end
+            end)
             window:AddHandleCommand(event.dispatcher)
         end
         local function add_func(self, callback)
@@ -3712,11 +3735,10 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
             end
             local window = control:GetParent()
             if window:WindowExists__() then
-                window:QueueHandleCustom(
-                    function()
-                        queued[control] = nil
-                        event.dispatcher(control)
-                    end)
+                window:QueueHandleCustom(function()
+                    queued[control] = nil
+                    event.dispatcher(control)
+                end)
                 queued[control] = true
             end
         end
@@ -3760,11 +3782,10 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
             if not event.has_callbacks(window) or queued[window] or not window:WindowExists__() then
                 return
             end
-            window:QueueHandleCustom(
-                function()
-                    queued[window] = nil
-                    event.dispatcher(window)
-                end)
+            window:QueueHandleCustom(function()
+                queued[window] = nil
+                event.dispatcher(window)
+            end)
             queued[window] = true
         end
         local function trigger_func(window, immediate)
@@ -3830,12 +3851,6 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
     end
 
     function mixin_helper.create_multi_string_proxy(method_name)
-        local function to_key_string(value)
-            if type(value) == "string" then
-                value = "\"" .. value .. "\""
-            end
-            return "[" .. tostring(value) .. "]"
-        end
         return function(self, ...)
             mixin_helper.assert_argument_type(1, self, "userdata")
             for i = 1, select("#", ...) do
@@ -3846,8 +3861,8 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
                         self[method_name](self, str)
                     end
                 elseif type(v) == "table" then
-                    for k2, v2 in pairsbykeys(v) do
-                        mixin_helper.assert_argument_type(tostring(i + 1) .. to_key_string(k2), v2, "string", "number", "FCString")
+                    mixin_helper.assert_table_argument_type(i + 1, v, "string", "number", "FCString")
+                    for _, v2 in pairsbykeys(v) do
                         self[method_name](self, v2)
                     end
                 else
@@ -5875,16 +5890,16 @@ function plugindef()
         \widowctrl\hyphauto
         \fs18
         {\info{\comment "os":"mac","fs18":"fs24","fs26":"fs32","fs23":"fs29","fs20":"fs26"}}
-        {\pard \ql \f0 \sa180 \li0 \fi0 This script \u8220"explodes\u8221" a set of chords on one staff into successive staves either as single notes or pairs of notes. If the selected chords contain different numbers of notes, missing notes will be replaced by rests in the destination. It can also explode chords in one layer on each staff into different layers on the same staff, and explode multiple layers from one staff onto successive staves.\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 Five menu items are created:\par}
-        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Staff Explode Singles (single notes onto successive staves)\par}
-        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Staff Explode Pairs (pairs of notes, omitting odd notes from bottom staff)\par}
-        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Staff Explode Pairs Up (pairs, but omitting odd notes from top staff)\par}
-        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Staff Explode Split Pairs (pairs split: 1-3/2-4 | 1-4/2-5/3-6 \u8230? etc)\par}
-        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Staff Explode From Layers (multiple layers on one staff to single layers on consecutive staves)\par}
-        {\pard \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Staff Explode To Layers (chords on each staff split into layers on the same staff)\sa180\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 \u8220"Staff Explode To Layers\u8221" works on one or more staves at once. All other options require a single staff selection. As a special case, if a staff contains only single-note entries, Explode To Layers duplicates them in unison on layer 2 to create standard two-voice (unison) notation.\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 Your setting at Finale \u8594? Settings\u8230? \u8594? Edit \u8594? [Automatic Music Spacing] determines whether or not the music is RESPACED after each explosion.\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 This script \u8220"explodes\u8221" a set of chords on one staff into successive staves either as single notes or pairs of notes. If the selected chords contain different numbers of notes, missing notes will be replaced by rests in the destination. It can also explode chords in one layer on each staff into different layers on the same staff, and explode multiple layers from one staff onto successive staves.\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 Five menu items are created:\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Staff Explode Singles (single notes onto successive staves)\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Staff Explode Pairs (pairs of notes, omitting odd notes from bottom staff)\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Staff Explode Pairs Up (pairs, but omitting odd notes from top staff)\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Staff Explode Split Pairs (pairs split: 1-3/2-4 | 1-4/2-5/3-6 \u8230? etc)\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Staff Explode From Layers (multiple layers on one staff to single layers on consecutive staves)\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa0 \li360 \fi-360 \bullet \tx360\tab Staff Explode To Layers (chords on each staff split into layers on the same staff)\sa180\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 \u8220"Staff Explode To Layers\u8221" works on one or more staves at once. All other options require a single staff selection. As a special case, if a staff contains only single-note entries, Explode To Layers duplicates them in unison on layer 2 to create standard two-voice (unison) notation.\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 Your setting at Finale \u8594? Settings\u8230? \u8594? Edit \u8594? [Automatic Music Spacing] determines whether or not the music is RESPACED after each explosion.\par}
         }
     ]]
     finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/staff_explode.hash"

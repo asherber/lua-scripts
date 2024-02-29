@@ -3986,9 +3986,7 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
         if library.is_finale_object(value) then
             secondary_type = value.MixinClass or value.ClassName
         end
-        error(
-            "bad argument #" .. tostring(argument_number) .. " to 'tryfunczzz' (" .. table.concat(table.pack(...), " or ") .. " expected, got " .. (secondary_type or primary_type) ..
-                ")", levels)
+        error("bad argument #" .. tostring(argument_number) .. " to 'tryfunczzz' (" .. table.concat(table.pack(...), " or ") .. " expected, got " .. (secondary_type or primary_type) .. ")", levels)
     end
 
     function mixin_helper.assert_argument_type(argument_number, value, ...)
@@ -3999,6 +3997,32 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
 
     function mixin_helper.force_assert_argument_type(argument_number, value, ...)
         assert_argument_type(4, argument_number, value, ...)
+    end
+    local function to_key_string(value)
+        if type(value) == "string" then
+            value = "\"" .. value .. "\""
+        end
+        return "[" .. tostring(value) .. "]"
+    end
+    local function assert_table_argument_type(argument_number, table_value, ...)
+        if type(table_value) ~= "table" then
+            error("bad argument #2 to 'assert_table_argument_type' (table expected, got " .. type(table_value) .. ")", 3)
+        end
+        for k, v in pairsbykeys(table_value) do
+            if k ~= "n" or type(k) ~= "number" then
+                assert_argument_type(5, tostring(argument_number) .. to_key_string(k), v, ...)
+            end
+        end
+    end
+
+    function mixin_helper.assert_table_argument_type(argument_number, value, ...)
+        if debug_enabled then
+            assert_table_argument_type(argument_number, value, ...)
+        end
+    end
+
+    function mixin_helper.force_assert_table_argument_type(argument_number, value, ...)
+        assert_table_argument_type(argument_number, value, ...)
     end
     local function assert_func(condition, message, level)
         if type(condition) == "function" then
@@ -4164,13 +4188,12 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
             if windows[window] then
                 return
             end
-            window:AddInitWindow(
-                function()
+            window:AddInitWindow(function()
 
-                    for control in event.target_iterator() do
-                        event.dispatcher(control)
-                    end
-                end)
+                for control in event.target_iterator() do
+                    event.dispatcher(control)
+                end
+            end)
             window:AddHandleCommand(event.dispatcher)
         end
         local function add_func(self, callback)
@@ -4192,11 +4215,10 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
             end
             local window = control:GetParent()
             if window:WindowExists__() then
-                window:QueueHandleCustom(
-                    function()
-                        queued[control] = nil
-                        event.dispatcher(control)
-                    end)
+                window:QueueHandleCustom(function()
+                    queued[control] = nil
+                    event.dispatcher(control)
+                end)
                 queued[control] = true
             end
         end
@@ -4240,11 +4262,10 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
             if not event.has_callbacks(window) or queued[window] or not window:WindowExists__() then
                 return
             end
-            window:QueueHandleCustom(
-                function()
-                    queued[window] = nil
-                    event.dispatcher(window)
-                end)
+            window:QueueHandleCustom(function()
+                queued[window] = nil
+                event.dispatcher(window)
+            end)
             queued[window] = true
         end
         local function trigger_func(window, immediate)
@@ -4310,12 +4331,6 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
     end
 
     function mixin_helper.create_multi_string_proxy(method_name)
-        local function to_key_string(value)
-            if type(value) == "string" then
-                value = "\"" .. value .. "\""
-            end
-            return "[" .. tostring(value) .. "]"
-        end
         return function(self, ...)
             mixin_helper.assert_argument_type(1, self, "userdata")
             for i = 1, select("#", ...) do
@@ -4326,8 +4341,8 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
                         self[method_name](self, str)
                     end
                 elseif type(v) == "table" then
-                    for k2, v2 in pairsbykeys(v) do
-                        mixin_helper.assert_argument_type(tostring(i + 1) .. to_key_string(k2), v2, "string", "number", "FCString")
+                    mixin_helper.assert_table_argument_type(i + 1, v, "string", "number", "FCString")
+                    for _, v2 in pairsbykeys(v) do
                         self[method_name](self, v2)
                     end
                 else
@@ -5831,18 +5846,18 @@ function plugindef()
         \widowctrl\hyphauto
         \fs18
         {\info{\comment "os":"mac","fs18":"fs24","fs26":"fs32","fs23":"fs29","fs20":"fs26"}}
-        {\pard \ql \f0 \sa180 \li0 \fi0 This script creates hairpins spanning the currently selected music region. It provides four menu items to create {\b Crescendo}, {\b Diminuendo}, {\b Swell} ({\i messa di voce}) and {\b Unswell} ({\i inverse messa di voce}) hairpins.\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 Hairpins are shifted vertically to avoid colliding with the lowest notes, down-stem tails, articulations and dynamics on each staff in the selection. Dynamics are shifted to match the hairpin vertical. Dynamics in the middle of a hairpin will also be levelled, so give them an opaque background to sit \u8220"above\u8221" the hairpin. The script also considers trailing notes and dynamics, just beyond the end of the selected music, since a hairpin is normally expected to end just before the note with the destination dynamic.\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 Hairpin positions are more accurate when attached to these \u8220"trailing\u8221" notes and dynamics, but this can be a problem if they fall across a barline and especially if they are on a different system from the end of the hairpin. (Elaine Gould, {\i Behind Bars} pp.103-106, outlines several scenarios in which hairpins either should or shouldn\u8217't \u8220"attach\u8221" across barlines. Individual preferences may differ.)\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 This script works better if dynamic markings are added first. It will find the lowest matching vertical offset for the hairpin, but if you want the hairpin lower than that then first move a dynamic to the lowest required point.\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 To change options use the {\i Configuration} menu or hold down the [Shift] key when selecting a {\i Hairpin Creator} menu. For simple hairpins that don\u8217't mess around with trailing barlines and dynamics try selecting {\i Dynamics Match Hairpin} with no other options.\par}
-        {\pard \ql \f0 \sa180 \li720 \fi0 {\b Key Commands} in the {\i Configuration} window:\par}
-        {\pard \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b d - f - g - h} toggle the checkboxes\par}
-        {\pard \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b z}: reset default values\par}
-        {\pard \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b q}: display these notes\line \par}
-        {\pard \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab Change measurement units:\par}
-        {\pard \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b e} - EVPU; {\b i} - Inches; {\b c} - Centimeters;\par}
-        {\pard \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b o} - Points; {\b a} - Picas; {\b s} - Spaces;\sa180\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 This script creates hairpins spanning the currently selected music region. It provides four menu items to create {\b Crescendo}, {\b Diminuendo}, {\b Swell} ({\i messa di voce}) and {\b Unswell} ({\i inverse messa di voce}) hairpins.\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 Hairpins are shifted vertically to avoid colliding with the lowest notes, down-stem tails, articulations and dynamics on each staff in the selection. Dynamics are shifted to match the hairpin vertical. Dynamics in the middle of a hairpin will also be levelled, so give them an opaque background to sit \u8220"above\u8221" the hairpin. The script also considers trailing notes and dynamics, just beyond the end of the selected music, since a hairpin is normally expected to end just before the note with the destination dynamic.\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 Hairpin positions are more accurate when attached to these \u8220"trailing\u8221" notes and dynamics, but this can be a problem if they fall across a barline and especially if they are on a different system from the end of the hairpin. (Elaine Gould, {\i Behind Bars} pp.103-106, outlines several scenarios in which hairpins either should or shouldn\u8217't \u8220"attach\u8221" across barlines. Individual preferences may differ.)\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 This script works better if dynamic markings are added first. It will find the lowest matching vertical offset for the hairpin, but if you want the hairpin lower than that then first move a dynamic to the lowest required point.\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 To change options use the {\i Configuration} menu or hold down the [Shift] key when selecting a {\i Hairpin Creator} menu. For simple hairpins that don\u8217't mess around with trailing barlines and dynamics try selecting {\i Dynamics Match Hairpin} with no other options.\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li720 \fi0 {\b Key Commands} in the {\i Configuration} window:\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b d - f - g - h} toggle the checkboxes\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b z}: reset default values\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b q}: display these notes\line \par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab Change measurement units:\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b e} - EVPU; {\b i} - Inches; {\b c} - Centimeters;\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa0 \li1080 \fi-360 \bullet \tx360\tab {\b o} - Points; {\b a} - Picas; {\b s} - Spaces;\sa180\par}
         }
     ]]
     finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/hairpin_creator.hash"

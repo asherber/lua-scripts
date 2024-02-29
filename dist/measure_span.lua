@@ -4200,9 +4200,7 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
         if library.is_finale_object(value) then
             secondary_type = value.MixinClass or value.ClassName
         end
-        error(
-            "bad argument #" .. tostring(argument_number) .. " to 'tryfunczzz' (" .. table.concat(table.pack(...), " or ") .. " expected, got " .. (secondary_type or primary_type) ..
-                ")", levels)
+        error("bad argument #" .. tostring(argument_number) .. " to 'tryfunczzz' (" .. table.concat(table.pack(...), " or ") .. " expected, got " .. (secondary_type or primary_type) .. ")", levels)
     end
 
     function mixin_helper.assert_argument_type(argument_number, value, ...)
@@ -4213,6 +4211,32 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
 
     function mixin_helper.force_assert_argument_type(argument_number, value, ...)
         assert_argument_type(4, argument_number, value, ...)
+    end
+    local function to_key_string(value)
+        if type(value) == "string" then
+            value = "\"" .. value .. "\""
+        end
+        return "[" .. tostring(value) .. "]"
+    end
+    local function assert_table_argument_type(argument_number, table_value, ...)
+        if type(table_value) ~= "table" then
+            error("bad argument #2 to 'assert_table_argument_type' (table expected, got " .. type(table_value) .. ")", 3)
+        end
+        for k, v in pairsbykeys(table_value) do
+            if k ~= "n" or type(k) ~= "number" then
+                assert_argument_type(5, tostring(argument_number) .. to_key_string(k), v, ...)
+            end
+        end
+    end
+
+    function mixin_helper.assert_table_argument_type(argument_number, value, ...)
+        if debug_enabled then
+            assert_table_argument_type(argument_number, value, ...)
+        end
+    end
+
+    function mixin_helper.force_assert_table_argument_type(argument_number, value, ...)
+        assert_table_argument_type(argument_number, value, ...)
     end
     local function assert_func(condition, message, level)
         if type(condition) == "function" then
@@ -4378,13 +4402,12 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
             if windows[window] then
                 return
             end
-            window:AddInitWindow(
-                function()
+            window:AddInitWindow(function()
 
-                    for control in event.target_iterator() do
-                        event.dispatcher(control)
-                    end
-                end)
+                for control in event.target_iterator() do
+                    event.dispatcher(control)
+                end
+            end)
             window:AddHandleCommand(event.dispatcher)
         end
         local function add_func(self, callback)
@@ -4406,11 +4429,10 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
             end
             local window = control:GetParent()
             if window:WindowExists__() then
-                window:QueueHandleCustom(
-                    function()
-                        queued[control] = nil
-                        event.dispatcher(control)
-                    end)
+                window:QueueHandleCustom(function()
+                    queued[control] = nil
+                    event.dispatcher(control)
+                end)
                 queued[control] = true
             end
         end
@@ -4454,11 +4476,10 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
             if not event.has_callbacks(window) or queued[window] or not window:WindowExists__() then
                 return
             end
-            window:QueueHandleCustom(
-                function()
-                    queued[window] = nil
-                    event.dispatcher(window)
-                end)
+            window:QueueHandleCustom(function()
+                queued[window] = nil
+                event.dispatcher(window)
+            end)
             queued[window] = true
         end
         local function trigger_func(window, immediate)
@@ -4524,12 +4545,6 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
     end
 
     function mixin_helper.create_multi_string_proxy(method_name)
-        local function to_key_string(value)
-            if type(value) == "string" then
-                value = "\"" .. value .. "\""
-            end
-            return "[" .. tostring(value) .. "]"
-        end
         return function(self, ...)
             mixin_helper.assert_argument_type(1, self, "userdata")
             for i = 1, select("#", ...) do
@@ -4540,8 +4555,8 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
                         self[method_name](self, str)
                     end
                 elseif type(v) == "table" then
-                    for k2, v2 in pairsbykeys(v) do
-                        mixin_helper.assert_argument_type(tostring(i + 1) .. to_key_string(k2), v2, "string", "number", "FCString")
+                    mixin_helper.assert_table_argument_type(i + 1, v, "string", "number", "FCString")
+                    for _, v2 in pairsbykeys(v) do
                         self[method_name](self, v2)
                     end
                 else
@@ -5340,15 +5355,15 @@ function plugindef()
         \widowctrl\hyphauto
         \fs18
         {\info{\comment "os":"mac","fs18":"fs24","fs26":"fs32","fs23":"fs29","fs20":"fs26"}}
-        {\pard \ql \f0 \sa180 \li0 \fi0 This script changes the \u8220"span\u8221" of every measure in the currently selected music by manipulating its time signature, either dividing it into two or combining it with the following measure. Many measures with different time signatures can be modified at once.\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 == JOIN ==\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 Combine each pair of measures in the selection into one by combining their time signatures. If they have the same time signature either double the numerator ([3/4][3/4] -> [6/4]) or halve the denominator ([3/4][3/4] -> [3/2]). If the time signatures are different, choose to either COMPOSITE them ([2/4][3/8] -> [2/4 + 3/8]) or CONSOLIDATE them ([2/4][3/8] -> [7/8]). (Consolidation loses current beam groupings). You can choose that a consolidated \u8220"display\u8221" time signature is created automatically when compositing meters. \u8220"JOIN\u8221" only works on an even number of measures.\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 == DIVIDE ==\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 Divide every selected measure into two, changing the time signature by either halving the numerator ([6/4] -> [3/4][3/4]) or doubling the denominator ([6/4] -> [6/8][6/8]). If the measure has an odd number of beats, choose whether to put more beats in the first measure (5->3+2) or the second (5->2+3). Measures containing composite meters will be divided after the first composite group, or if there is only one group, after its first element.\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 == IN ALL CASES ==\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 Incomplete measures will be filled with rests before Join/Divide. Measures containing too many notes will be trimmed to the \u8220"real\u8221" duration of the time signature. Time signatures \u8220"for display only\u8221" will be removed. Measures are either deleted or shifted in every operation so smart shapes on either side of the area need to be \u8220"restored\u8221". Selecting a SPAN of \u8220"5\u8221" will look for smart shapes to restore from 5 measures before until 5 after the selected region. (This takes noticeably longer than a SPAN of \u8220"2\u8221").\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 == OPTIONS ==\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 To configure script settings select the \u8220"Measure Span Options\u8230?\u8221" menu item, or else hold down the SHIFT or ALT (option) key when invoking \u8220"Join\u8221" or \u8220"Divide\u8221".\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 This script changes the \u8220"span\u8221" of every measure in the currently selected music by manipulating its time signature, either dividing it into two or combining it with the following measure. Many measures with different time signatures can be modified at once.\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 == JOIN ==\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 Combine each pair of measures in the selection into one by combining their time signatures. If they have the same time signature either double the numerator ([3/4][3/4] -> [6/4]) or halve the denominator ([3/4][3/4] -> [3/2]). If the time signatures are different, choose to either COMPOSITE them ([2/4][3/8] -> [2/4 + 3/8]) or CONSOLIDATE them ([2/4][3/8] -> [7/8]). (Consolidation loses current beam groupings). You can choose that a consolidated \u8220"display\u8221" time signature is created automatically when compositing meters. \u8220"JOIN\u8221" only works on an even number of measures.\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 == DIVIDE ==\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 Divide every selected measure into two, changing the time signature by either halving the numerator ([6/4] -> [3/4][3/4]) or doubling the denominator ([6/4] -> [6/8][6/8]). If the measure has an odd number of beats, choose whether to put more beats in the first measure (5->3+2) or the second (5->2+3). Measures containing composite meters will be divided after the first composite group, or if there is only one group, after its first element.\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 == IN ALL CASES ==\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 Incomplete measures will be filled with rests before Join/Divide. Measures containing too many notes will be trimmed to the \u8220"real\u8221" duration of the time signature. Time signatures \u8220"for display only\u8221" will be removed. Measures are either deleted or shifted in every operation so smart shapes on either side of the area need to be \u8220"restored\u8221". Selecting a SPAN of \u8220"5\u8221" will look for smart shapes to restore from 5 measures before until 5 after the selected region. (This takes noticeably longer than a SPAN of \u8220"2\u8221").\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 == OPTIONS ==\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 To configure script settings select the \u8220"Measure Span Options\u8230?\u8221" menu item, or else hold down the SHIFT or ALT (option) key when invoking \u8220"Join\u8221" or \u8220"Divide\u8221".\par}
         }
     ]]
     finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/measure_span.hash"

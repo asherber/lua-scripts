@@ -3275,9 +3275,7 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
         if library.is_finale_object(value) then
             secondary_type = value.MixinClass or value.ClassName
         end
-        error(
-            "bad argument #" .. tostring(argument_number) .. " to 'tryfunczzz' (" .. table.concat(table.pack(...), " or ") .. " expected, got " .. (secondary_type or primary_type) ..
-                ")", levels)
+        error("bad argument #" .. tostring(argument_number) .. " to 'tryfunczzz' (" .. table.concat(table.pack(...), " or ") .. " expected, got " .. (secondary_type or primary_type) .. ")", levels)
     end
 
     function mixin_helper.assert_argument_type(argument_number, value, ...)
@@ -3288,6 +3286,32 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
 
     function mixin_helper.force_assert_argument_type(argument_number, value, ...)
         assert_argument_type(4, argument_number, value, ...)
+    end
+    local function to_key_string(value)
+        if type(value) == "string" then
+            value = "\"" .. value .. "\""
+        end
+        return "[" .. tostring(value) .. "]"
+    end
+    local function assert_table_argument_type(argument_number, table_value, ...)
+        if type(table_value) ~= "table" then
+            error("bad argument #2 to 'assert_table_argument_type' (table expected, got " .. type(table_value) .. ")", 3)
+        end
+        for k, v in pairsbykeys(table_value) do
+            if k ~= "n" or type(k) ~= "number" then
+                assert_argument_type(5, tostring(argument_number) .. to_key_string(k), v, ...)
+            end
+        end
+    end
+
+    function mixin_helper.assert_table_argument_type(argument_number, value, ...)
+        if debug_enabled then
+            assert_table_argument_type(argument_number, value, ...)
+        end
+    end
+
+    function mixin_helper.force_assert_table_argument_type(argument_number, value, ...)
+        assert_table_argument_type(argument_number, value, ...)
     end
     local function assert_func(condition, message, level)
         if type(condition) == "function" then
@@ -3453,13 +3477,12 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
             if windows[window] then
                 return
             end
-            window:AddInitWindow(
-                function()
+            window:AddInitWindow(function()
 
-                    for control in event.target_iterator() do
-                        event.dispatcher(control)
-                    end
-                end)
+                for control in event.target_iterator() do
+                    event.dispatcher(control)
+                end
+            end)
             window:AddHandleCommand(event.dispatcher)
         end
         local function add_func(self, callback)
@@ -3481,11 +3504,10 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
             end
             local window = control:GetParent()
             if window:WindowExists__() then
-                window:QueueHandleCustom(
-                    function()
-                        queued[control] = nil
-                        event.dispatcher(control)
-                    end)
+                window:QueueHandleCustom(function()
+                    queued[control] = nil
+                    event.dispatcher(control)
+                end)
                 queued[control] = true
             end
         end
@@ -3529,11 +3551,10 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
             if not event.has_callbacks(window) or queued[window] or not window:WindowExists__() then
                 return
             end
-            window:QueueHandleCustom(
-                function()
-                    queued[window] = nil
-                    event.dispatcher(window)
-                end)
+            window:QueueHandleCustom(function()
+                queued[window] = nil
+                event.dispatcher(window)
+            end)
             queued[window] = true
         end
         local function trigger_func(window, immediate)
@@ -3599,12 +3620,6 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
     end
 
     function mixin_helper.create_multi_string_proxy(method_name)
-        local function to_key_string(value)
-            if type(value) == "string" then
-                value = "\"" .. value .. "\""
-            end
-            return "[" .. tostring(value) .. "]"
-        end
         return function(self, ...)
             mixin_helper.assert_argument_type(1, self, "userdata")
             for i = 1, select("#", ...) do
@@ -3615,8 +3630,8 @@ package.preload["library.mixin_helper"] = package.preload["library.mixin_helper"
                         self[method_name](self, str)
                     end
                 elseif type(v) == "table" then
-                    for k2, v2 in pairsbykeys(v) do
-                        mixin_helper.assert_argument_type(tostring(i + 1) .. to_key_string(k2), v2, "string", "number", "FCString")
+                    mixin_helper.assert_table_argument_type(i + 1, v, "string", "number", "FCString")
+                    for _, v2 in pairsbykeys(v) do
                         self[method_name](self, v2)
                     end
                 else
@@ -5215,11 +5230,11 @@ function plugindef()
         \widowctrl\hyphauto
         \fs18
         {\info{\comment "os":"mac","fs18":"fs24","fs26":"fs32","fs23":"fs29","fs20":"fs26"}}
-        {\pard \ql \f0 \sa180 \li0 \fi0 This script allows rapid creation of simple or complex time signatures with a few keystrokes. It supports composite numerators like [3+2+3/16] and can join easily with extra composites (e.g.\u160?[3+2+3/16]+[1/4]+[5+4/8]). \u8220"Display only\u8221" time signatures can be equally complex and set without using a mouse.\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 At startup the time signature of the first selected measure is shown. To revert to a simple 4/4 with no other options click the \u8220"Clear All\u8221" button or type [x]. To read these script notes click the [?] button or type [q]. To respace notes on completion click the \u8220"Respace\u8221" button or type [r].\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 All measures in the current selection will be assigned the new time signature. Use this feature to quickly copy the initial meter throughout the selection. If just one measure is selected only it will be changed.\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 \u8220"Bottom\u8221" numbers (denominators) are the usual \u8220"note\u8221" numbers: 2, 4, 8, 16, 32, or 64. \u8220"Top\u8221" numbers (numerators) are integers, optionally joined by \u8216'+\u8217' signs for composite meters. Numerators that are multiples of 3 automatically convert to compound signatures so [9/16] will convert to three groups of dotted 8ths. To prevent automatic compounding, instead of the bottom \u8216'note\u8217' number enter its EDU value (quarter note = 1024; eighth note = 512; sixteenth = 256 etc).\par}
-        {\pard \ql \f0 \sa180 \li0 \fi0 Empty and zero \u8220"Top\u8221" numbers will be ignored. \u8220"Tertiary\u8221" values will be ignored if \u8220"Secondary\u8221" numbers are blank or zero.\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 This script allows rapid creation of simple or complex time signatures with a few keystrokes. It supports composite numerators like [3+2+3/16] and can join easily with extra composites (e.g.\u160?[3+2+3/16]+[1/4]+[5+4/8]). \u8220"Display only\u8221" time signatures can be equally complex and set without using a mouse.\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 At startup the time signature of the first selected measure is shown. To revert to a simple 4/4 with no other options click the \u8220"Clear All\u8221" button or type [x]. To read these script notes click the [?] button or type [q]. To respace notes on completion click the \u8220"Respace\u8221" button or type [r].\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 All measures in the current selection will be assigned the new time signature. Use this feature to quickly copy the initial meter throughout the selection. If just one measure is selected only it will be changed.\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 \u8220"Bottom\u8221" numbers (denominators) are the usual \u8220"note\u8221" numbers: 2, 4, 8, 16, 32, or 64. \u8220"Top\u8221" numbers (numerators) are integers, optionally joined by \u8216'+\u8217' signs for composite meters. Numerators that are multiples of 3 automatically convert to compound signatures so [9/16] will convert to three groups of dotted 8ths. To prevent automatic compounding, instead of the bottom \u8216'note\u8217' number enter its EDU value (quarter note = 1024; eighth note = 512; sixteenth = 256 etc).\par}
+        {\pard \sl264 \slmult1 \ql \f0 \sa180 \li0 \fi0 Empty and zero \u8220"Top\u8221" numbers will be ignored. \u8220"Tertiary\u8221" values will be ignored if \u8220"Secondary\u8221" numbers are blank or zero.\par}
         }
     ]]
     finaleplugin.HashURL = "https://raw.githubusercontent.com/finale-lua/lua-scripts/master/hash/meter_set_numeric.hash"
